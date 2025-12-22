@@ -30,7 +30,7 @@ export const NAV_DATA = [
       },
       {
         title: "Products & Services",
-        url: "/products_services",
+        url: "/products",
         icon: Icons.Products,
         items: [],
       },

@@ -8,6 +8,17 @@
   }
 }
 
+
+:root {
+  --radius: 0.5rem; /* default radius */
+}
+:root {
+  --primary: 137 35% 44%; /* your image green */
+  --primary-foreground: 0 0% 100%; /* white text */
+}
+
+
+
 @layer utilities {
   /* Chrome, Safari and Opera */
   .no-scrollbar::-webkit-scrollbar {
@@ -44,6 +55,51 @@
     @apply h-[calc(100vh_-_8.125rem)] lg:h-[calc(100vh_-_5.625rem)];
   }
 }
+
+
+
+
+
+.editor-btn {
+  padding: 6px;
+  border-radius: 6px;
+  color: #4b5563;
+}
+
+.editor-btn:hover {
+  background-color: #e5e7eb;
+}
+
+.dark .editor-btn:hover {
+  background-color: #374151;
+}
+/* Remove ProseMirror focus outline & border */
+.ProseMirror {
+  outline: none !important;
+}
+
+.ProseMirror:focus {
+  outline: none !important;
+}
+
+.ProseMirror-focused {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.ProseMirror {
+  cursor: text;
+}
+
+.ProseMirror p {
+  margin: 0.10rem 0;
+}
+
+
+
+
+
+
+
 
 /* third-party libraries CSS */
 

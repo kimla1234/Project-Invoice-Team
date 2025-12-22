@@ -85,7 +85,7 @@ export function Sidebar() {
                 </h2>
 
                 <nav role="navigation" aria-label={section.label}>
-                  <ul className="space-y-1">
+                  <ul className="space-y-1 ">
                     {section.items.map((item) => {
                       const isSignOut = item.title === "Sign out";
 

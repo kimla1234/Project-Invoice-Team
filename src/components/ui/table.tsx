@@ -6,14 +6,17 @@ export function Table({
   ...props
 }: React.HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="relative w-full overflow-auto">
+    // The rounded-lg class here makes the container rounded and clips overflow
+    <div className="relative w-full overflow-auto rounded-lg">
       <table
+        // The table itself is inside the rounded container
         className={cn("w-full caption-bottom text-sm", className)}
         {...props}
       />
     </div>
   );
 }
+
 
 export function TableHeader({
   className,
@@ -27,7 +30,7 @@ export function TableBody({
   ...props
 }: React.HTMLAttributes<HTMLTableSectionElement>) {
   return (
-    <tbody className={cn("[&_tr:last-child]:border-0", className)} {...props} />
+    <tbody className={cn("[&_tr:last-child]:border-0 ", className)} {...props} />
   );
 }
 
@@ -68,7 +71,7 @@ export function TableHead({
   return (
     <th
       className={cn(
-        "h-12 px-4 text-left align-middle font-medium text-neutral-500 dark:text-neutral-400 [&:has([role=checkbox])]:pr-0",
+        "h-12 px-4 text-left align-middle  font-medium text-neutral-500 dark:text-neutral-400 [&:has([role=checkbox])]:pr-0",
         className,
       )}
       {...props}
@@ -83,7 +86,7 @@ export function TableCell({
   return (
     <td
       className={cn(
-        "p-4 align-middle [&:has([role=checkbox])]:pr-0",
+        "p-2 align-middle  [&:has([role=checkbox])]:pr-0",
         className,
       )}
       {...props}
