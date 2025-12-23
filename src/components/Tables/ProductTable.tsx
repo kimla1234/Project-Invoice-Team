@@ -50,7 +50,7 @@ export function ProductTable({
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(7);
 
-  // Fetch initial data
+  // Fetch initial data 
   useEffect(() => {
     async function fetchData() {
       try {
