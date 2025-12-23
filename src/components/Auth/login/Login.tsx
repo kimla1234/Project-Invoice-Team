@@ -29,7 +29,7 @@ export default function Login() {
       try {
         await new Promise((resolve) => setTimeout(resolve, 800));
 
-        // 1. Look for the "registered_user" key we defined in the form
+        // 1. Look for the "registered_user" 
         const savedUserData = localStorage.getItem("registered_user");
 
         if (!savedUserData) {
