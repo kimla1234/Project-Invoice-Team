@@ -33,6 +33,7 @@ interface ProductTableProps {
   selectedCurrencies: string[];
   selectedStatuses: string[];
   onExportDataChange: (data: any[]) => void;
+  onDeleted: () => void;
 }
 
 export function ProductTable({
@@ -41,6 +42,7 @@ export function ProductTable({
   selectedCurrencies,
   selectedStatuses,
   onExportDataChange,
+  onDeleted,
 }: ProductTableProps) {
   const [fullData, setFullData] = useState<ProductData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,28 +120,34 @@ export function ProductTable({
     setCurrentPage(1);
   };
 
+  // ProductTable.tsx
+
   const handleConfirmDelete = async () => {
     if (!deleteId) return;
 
     const success = await deleteProduct(deleteId.toString());
 
     if (success) {
-      // 1. Update State
+      // 1. Update State ក្នុង Table ឱ្យបាត់ Item ហ្នឹងភ្លាម
       setFullData((prev) => prev.filter((item) => item.id !== deleteId));
 
-      // 2. Show Success Toast
+      // 2. ហៅ onDeleted ដើម្បីឱ្យ Parent Component (Products.tsx) ដឹងថាមានការលុប
+      // បន្ទាប់មកវានឹងទៅ Update refreshKey ដើម្បីឱ្យ Header រត់ឡើងវិញ
+      if (onDeleted) {
+        onDeleted();
+      }
+
+      // 3. Show Success Toast
       toast({
         title: "Product deleted",
         description: "The product has been removed successfully.",
-        variant: "default", // Or "success" if you have a custom success variant
-        className: "bg-green-600 text-white", // Optional green styling
+        className: "bg-green-600 text-white",
         duration: 3000,
       });
     } else {
-      // 3. Show Error Toast
       toast({
         title: "Error",
-        description: "Failed to delete the product. Please try again.",
+        description: "Failed to delete the product.",
         variant: "destructive",
         duration: 3000,
       });
@@ -246,9 +254,7 @@ export function ProductTable({
 
                         {/* Align the menu to the right side of the trigger */}
                         <DropdownMenuContent align="end" className="w-44">
-                          <div className="px-2 border-b py-1">
-                            Actions
-                          </div>
+                          <div className="border-b px-2 py-1">Actions</div>
                           <div>
                             <DropdownMenuItem asChild>
                               <Link

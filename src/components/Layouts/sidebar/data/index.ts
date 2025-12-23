@@ -55,7 +55,7 @@ export const NAV_DATA = [
         title: "Setting",
         icon: Icons.Setting,
         items: [],
-        url: "/Setting",
+        url: "/setting",
       },
       {
         title: "Help Center",
@@ -67,7 +67,7 @@ export const NAV_DATA = [
         title: "Sign out",
         icon: Icons.LogOutIcon,
         items: [],
-        url: "/auth/sign-in",
+        url: "/login",
       },
     ],
   },

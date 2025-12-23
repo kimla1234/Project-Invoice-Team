@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { Providers } from "./providers";
+import "../globals.css";
+
 import { Sidebar } from "@/components/Layouts/sidebar";
 import { Header } from "@/components/Layouts/header";
 import { Toaster } from "@/components/ui/toaster";
+import { Providers } from "../providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,10 +32,8 @@ export default function RootLayout({
       <body>
         <Providers>
           <div className="flex min-h-screen">
-            <Sidebar />
-            <div className="w-full bg-gray-2 dark:bg-[#020d1a]">
-              <Header />
-              <main className="isolate mx-auto w-full max-w-screen-2xl overflow-hidden p-4 md:p-7.5 ">
+            <div className="w-full bg-slate-100 dark:bg-[#020d1a]">
+              <main className="isolate mx-auto w-full  ">
                 {children}
               </main>
             </div>

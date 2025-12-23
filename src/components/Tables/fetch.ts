@@ -1,194 +1,70 @@
 import { ProductData } from "@/types/product";
 
-// Mock product data
-export const mockProducts: ProductData[] = [
-  {
-    id: 1,
-    name: "Apple Watch Series 7",
-    type: "Product",
-    stock: 22,
-    unitPrice: 296,
-    currency: "USD",
-  },
-  {
-    id: 2,
-    name: "MacBook Pro M1 Repair Service",
-    type: "Service",
-    stock: 0,
-    unitPrice: 120,
-    currency: "USD",
-  },
-  {
-    id: 3,
-    name: "Dell Inspiron 15",
-    type: "Product",
-    stock: 64,
-    unitPrice: 443,
-    currency: "USD",
-  },
-  {
-    id: 4,
-    name: "HP ProBook 450",
-    type: "Product",
-    stock: 30,
-    unitPrice: 499,
-    currency: "USD",
-  },
-  {
-    id: 5,
-    name: "Keyboard Logitech K380",
-    type: "Product",
-    stock: 85,
-    unitPrice: 39,
-    currency: "USD",
-  },
-  {
-    id: 6,
-    name: "Mouse Logitech MX Master 3",
-    type: "Product",
-    stock: 40,
-    unitPrice: 99,
-    currency: "USD",
-  },
-  {
-    id: 7,
-    name: "Office Network Setup",
-    type: "Service",
-    stock: 0,
-    unitPrice: 150,
-    currency: "USD",
-  },
-  {
-    id: 8,
-    name: "Website Maintenance Monthly",
-    type: "Service",
-    stock: 0,
-    unitPrice: 80,
-    currency: "USD",
-  },
-  {
-    id: 9,
-    name: "Samsung 27” Monitor",
-    type: "Product",
-    stock: 18,
-    unitPrice: 229,
-    currency: "USD",
-  },
-  {
-    id: 10,
-    name: "External SSD 1TB",
-    type: "Product",
-    stock: 55,
-    unitPrice: 149,
-    currency: "KHR",
-  },
-  {
-    id: 11,
-    name: "Printer HP LaserJet",
-    type: "Product",
-    stock: 12,
-    unitPrice: 320,
-    currency: "USD",
-  },
-  {
-    id: 12,
-    name: "Cloud Backup Service",
-    type: "Service",
-    stock: 0,
-    unitPrice: 60,
-    currency: "USD",
-  },
-  {
-    id: 13,
-    name: "USB-C Hub 6-in-1",
-    type: "Product",
-    stock: 90,
-    unitPrice: 45,
-    currency: "USD",
-  },
-  {
-    id: 14,
-    name: "IT Consultation (Hourly)",
-    type: "Service",
-    stock: 0,
-    unitPrice: 25,
-    currency: "USD",
-  },
-  {
-    id: 15,
-    name: "Router TP-Link AX3000",
-    type: "Product",
-    stock: 26,
-    unitPrice: 110,
-    currency: "USD",
-  },
-  {
-    id: 16,
-    name: "Laptop Battery Replacement",
-    type: "Service",
-    stock: 0,
-    unitPrice: 45,
-    currency: "USD",
-  },
-  {
-    id: 17,
-    name: "Webcam Logitech C920",
-    type: "Product",
-    stock: 34,
-    unitPrice: 79,
-    currency: "USD",
-  },
-  {
-    id: 18,
-    name: "Annual Software License",
-    type: "Service",
-    stock: 0,
-    unitPrice: 99,
-    currency: "USD",
-  },
-  {
-    id: 19,
-    name: "UPS Power Backup 1200VA",
-    type: "Product",
-    stock: 14,
-    unitPrice: 210,
-    currency: "USD",
-  },
-  {
-    id: 20,
-    name: "On-site Hardware Installation",
-    type: "Service",
-    stock: 0,
-    unitPrice: 70,
-    currency: "USD",
-  },
+// ឈ្មោះ Key សម្រាប់រក្សាទុកក្នុង Browser Storage
+const STORAGE_KEY = "inventory_products";
+
+// ១. ទិន្នន័យគំរូដើម (Initial Mock Data)
+const initialProducts: ProductData[] = [
+  { id: 1, name: "Apple Watch Series 7", type: "Product", stock: 22, unitPrice: 296, currency: "USD" },
+  { id: 2, name: "MacBook Pro M1 Repair Service", type: "Service", stock: 0, unitPrice: 120, currency: "USD" },
+  { id: 3, name: "Dell Inspiron 15", type: "Product", stock: 64, unitPrice: 443, currency: "USD" },
+  { id: 4, name: "HP ProBook 450", type: "Product", stock: 30, unitPrice: 499, currency: "USD" },
+  { id: 5, name: "Keyboard Logitech K380", type: "Product", stock: 85, unitPrice: 39, currency: "USD" },
+  { id: 6, name: "Mouse Logitech MX Master 3", type: "Product", stock: 40, unitPrice: 99, currency: "USD" },
+  { id: 7, name: "Office Network Setup", type: "Service", stock: 0, unitPrice: 150, currency: "USD" },
+  { id: 8, name: "Website Maintenance Monthly", type: "Service", stock: 0, unitPrice: 80, currency: "USD" },
+  { id: 9, name: "Samsung 27” Monitor", type: "Product", stock: 18, unitPrice: 229, currency: "USD" },
+  { id: 10, name: "External SSD 1TB", type: "Product", stock: 55, unitPrice: 149, currency: "KHR" },
+  { id: 11, name: "Printer HP LaserJet", type: "Product", stock: 12, unitPrice: 320, currency: "USD" },
+  { id: 12, name: "Cloud Backup Service", type: "Service", stock: 0, unitPrice: 60, currency: "USD" },
+  { id: 13, name: "USB-C Hub 6-in-1", type: "Product", stock: 90, unitPrice: 45, currency: "USD" },
+  { id: 14, name: "IT Consultation (Hourly)", type: "Service", stock: 0, unitPrice: 25, currency: "USD" },
+  { id: 15, name: "Router TP-Link AX3000", type: "Product", stock: 26, unitPrice: 110, currency: "USD" },
 ];
 
-// Simulate network delay
+// ២. Helper functions សម្រាប់គ្រប់គ្រង LocalStorage
+const getStoredData = (): ProductData[] => {
+  if (typeof window === "undefined") return initialProducts; // ការពារ Error ពេល Build (SSR)
+  
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (!stored) {
+    // បើគ្មានទិន្នន័យក្នុង storage ទេ យកទិន្នន័យដើមមកប្រើ ហើយរក្សាទុកចូល storage
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(initialProducts));
+    return initialProducts;
+  }
+  return JSON.parse(stored);
+};
+
+const saveStoredData = (data: ProductData[]) => {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+};
+
+// ៣. Simulate network delay
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// --- API Functions សម្រាប់ប្រើប្រាស់ក្នុង Components ---
 
 export async function getProductsTableData(): Promise<ProductData[]> {
   await delay(500);
-  return mockProducts;
+  return getStoredData();
 }
 
-export async function getProductById(
-  id: string,
-): Promise<ProductData | undefined> {
+export async function getProductById(id: string): Promise<ProductData | undefined> {
   await delay(300);
+  const products = getStoredData();
   const numericId = parseInt(id, 10);
-  return mockProducts.find((p) => p.id === numericId);
+  return products.find((p) => p.id === numericId);
 }
 
-let nextId = mockProducts.length + 1;
-
-export async function createProduct(
-  newProduct: Partial<ProductData>,
-): Promise<ProductData> {
+export async function createProduct(newProduct: Partial<ProductData>): Promise<ProductData> {
   await delay(300);
+  const products = getStoredData();
+  
   const product: ProductData = {
-    id: nextId++,
-    name: newProduct.name ?? "New Product",
+    id: Date.now(), // ប្រើ Timestamp ដើម្បីឱ្យ ID មិនជាន់គ្នា
+    name: newProduct.name ?? "New Item",
     type: newProduct.type ?? "Product",
     stock: newProduct.stock ?? 0,
     unitPrice: newProduct.unitPrice ?? 0,
@@ -197,40 +73,49 @@ export async function createProduct(
     description: newProduct.description ?? "",
     lowStockThreshold: newProduct.lowStockThreshold ?? 0,
   };
-  mockProducts.push(product);
+
+  const updatedProducts = [...products, product];
+  saveStoredData(updatedProducts);
   return product;
 }
 
-export async function updateProduct(
-  id: string,
-  updatedData: Partial<ProductData>,
-): Promise<ProductData | null> {
+export async function updateProduct(id: string, updatedData: Partial<ProductData>): Promise<ProductData | null> {
   await delay(300);
+  const products = getStoredData();
   const numericId = parseInt(id, 10);
-  const index = mockProducts.findIndex((p) => p.id === numericId);
+  const index = products.findIndex((p) => p.id === numericId);
+  
   if (index === -1) return null;
-  mockProducts[index] = { ...mockProducts[index], ...updatedData };
-  return mockProducts[index];
+
+  products[index] = { ...products[index], ...updatedData };
+  saveStoredData(products);
+  return products[index];
 }
 
 export async function deleteProduct(id: string): Promise<boolean> {
   await delay(300);
+  const products = getStoredData();
   const numericId = parseInt(id, 10);
-  const index = mockProducts.findIndex((p) => p.id === numericId);
-  if (index === -1) return false;
-  mockProducts.splice(index, 1);
+  
+  const filteredProducts = products.filter((p) => p.id !== numericId);
+  
+  if (products.length === filteredProducts.length) return false;
+
+  saveStoredData(filteredProducts); // រក្សាទុកទិន្នន័យថ្មីក្រោយពេលលុប
   return true;
 }
 
 export async function fetchProductSummary() {
   await delay(300);
-  const totalItems = mockProducts.length;
-  const totalProducts = mockProducts.filter((p) => p.type === "Product").length;
-  const totalServices = mockProducts.filter((p) => p.type === "Service").length;
-  return { totalItems, totalProducts, totalServices };
+  const products = getStoredData();
+  
+  return {
+    totalItems: products.length,
+    totalProducts: products.filter((p) => p.type === "Product").length,
+    totalServices: products.filter((p) => p.type === "Service").length,
+  };
 }
 
-// ✅ FIXED FILTER FUNCTION (Case-insensitive)
 export async function getFilteredProducts({
   searchTerm,
   selectedCurrencies,
@@ -240,25 +125,22 @@ export async function getFilteredProducts({
   selectedCurrencies: string[];
   selectedStatuses: string[];
 }) {
-  await new Promise((r) => setTimeout(r, 300));
+  await delay(300);
+  const products = getStoredData();
 
-  return mockProducts.filter((product) => {
-    const matchSearch = product.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+  return products.filter((product) => {
+    const matchSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchCurrency =
       selectedCurrencies.length === 0 ||
       selectedCurrencies.some(
-        (cur) =>
-          cur.trim().toUpperCase() === product.currency.trim().toUpperCase(),
+        (cur) => cur.trim().toUpperCase() === product.currency.trim().toUpperCase()
       );
 
     const matchType =
       selectedStatuses.length === 0 ||
       selectedStatuses.some(
-        (status) =>
-          status.trim().toLowerCase() === product.type.trim().toLowerCase(),
+        (status) => status.trim().toLowerCase() === product.type.trim().toLowerCase()
       );
 
     return matchSearch && matchType && matchCurrency;

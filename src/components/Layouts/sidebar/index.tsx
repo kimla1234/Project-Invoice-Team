@@ -9,11 +9,46 @@ import { NAV_DATA } from "./data";
 import { ArrowLeftIcon, ChevronUp } from "./icons";
 import { MenuItem } from "./menu-item";
 import { useSidebarContext } from "./sidebar-context";
+import Image from "next/image";
 
 export function Sidebar() {
   const pathname = usePathname();
   const { setIsOpen, isOpen, isMobile, toggleSidebar } = useSidebarContext();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+
+  // --- New State for Company Info ---
+  const [companyData, setCompanyData] = useState({
+    name: "Loading...",
+    email: "",
+    logo: null as string | null,
+  });
+useEffect(() => {
+  const fetchUserData = () => {
+    const savedData = localStorage.getItem("registered_user");
+    if (savedData) {
+      try {
+        const user = JSON.parse(savedData);
+        setCompanyData({
+          name: user.companyName || "My Company",
+          email: user.companyEmail || "",
+          logo: user.companyLogo || null,
+        });
+      } catch (e) {
+        console.error("Error parsing sidebar data", e);
+      }
+    }
+  };
+
+  fetchUserData(); // ទាញទិន្នន័យលើកដំបូង
+
+  // ចាប់ផ្ដើមស្ដាប់នៅពេលមានការបាញ់ Event "company-updated"
+  window.addEventListener("company-updated", fetchUserData);
+
+  return () => {
+    window.removeEventListener("company-updated", fetchUserData);
+  };
+}, []);
+  // ----------------------------------
 
   const toggleExpanded = (title: string) => {
     setExpandedItems((prev) => (prev.includes(title) ? [] : [title]));
@@ -55,26 +90,33 @@ export function Sidebar() {
         inert={!isOpen}
       >
         <div className="flex h-full flex-col py-5 pl-[25px] pr-[7px]">
-          <div className="relative pr-4.5">
-            <Link
-              href={"/"}
-              onClick={() => isMobile && toggleSidebar()}
-              className="px-0 py-2.5 min-[850px]:py-0"
-            >
-              <Logo />
-            </Link>
-
-            {isMobile && (
-              <button
-                onClick={toggleSidebar}
-                className="absolute left-3/4 right-4.5 top-1/2 -translate-y-1/2 text-right"
-              >
-                <span className="sr-only">Close Menu</span>
-
-                <ArrowLeftIcon className="ml-auto size-7" />
-              </button>
-            )}
+          {/* --- New Company Profile Preview --- */}
+          <div className="mt-8 flex items-center gap-3 pr-4">
+            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-gray-200 bg-gray-100">
+              {companyData.logo ? (
+                <Image
+                  src={companyData.logo}
+                  alt="Logo"
+                  fill // Keeps the image responsive to the parent div
+                  className="object-cover"
+                  sizes="40px" // Optional: Helps Next.js optimize the image size
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-blue-500 text-xs font-bold text-white">
+                  {companyData.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+            <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+              <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                {companyData.name}
+              </p>
+              <p className="truncate text-xs text-gray-500">
+                {companyData.email}
+              </p>
+            </div>
           </div>
+          {/* ---------------------------------- */}
 
           {/* Navigation */}
           <div className="custom-scrollbar mt-6 flex-1 overflow-y-auto pr-3 min-[850px]:mt-10">
@@ -85,7 +127,7 @@ export function Sidebar() {
                 </h2>
 
                 <nav role="navigation" aria-label={section.label}>
-                  <ul className="space-y-1 ">
+                  <ul className="space-y-1">
                     {section.items.map((item) => {
                       const isSignOut = item.title === "Sign out";
 

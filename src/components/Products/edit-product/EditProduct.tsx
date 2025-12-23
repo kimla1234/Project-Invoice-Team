@@ -248,7 +248,11 @@ export default function EditProduct({ productId }: EditProductProps) {
                 <input
                   type="number"
                   value={unitPrice}
-                  onChange={(e) => setUnitPrice(+e.target.value || 0)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setUnitPrice(val === "" ? 0 : parseFloat(val));
+                  }}
+                  placeholder="0.00"
                   className="w-full rounded-lg border p-2"
                 />
               </div>
@@ -258,7 +262,11 @@ export default function EditProduct({ productId }: EditProductProps) {
                 <input
                   type="number"
                   value={cost}
-                  onChange={(e) => setCost(+e.target.value || 0)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setCost(val === "" ? 0 : parseFloat(val));
+                  }}
+                  placeholder="0.00"
                   className="w-full rounded-lg border p-2"
                 />
               </div>
@@ -276,6 +284,7 @@ export default function EditProduct({ productId }: EditProductProps) {
                 type="checkbox"
                 checked={stockTracked}
                 onChange={(e) => setStockTracked(e.target.checked)}
+                placeholder="0"
               />
               Enable Stock Tracking
             </label>

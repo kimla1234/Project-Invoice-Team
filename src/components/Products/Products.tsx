@@ -30,11 +30,17 @@ export default function Products() {
   const [selectedCurrencies, setSelectedCurrencies] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
   const { toast } = useToast(); // ✅ ADD
+
+
+  
   // export data 
   const [exportData, setExportData] = useState<any[]>([]);
   
-
+  const triggerRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+  };
   // State to manage column visibility (Matching the image)
   const [columnVisibility, setColumnVisibility] = useState({
     Name: true,
@@ -125,7 +131,7 @@ export default function Products() {
 
       <div className="h-auto w-full space-y-10 rounded-md bg-white p-8 text-slate-600">
         <div>
-          <HeaderProducts />
+          <HeaderProducts refreshKey={refreshKey}/>
         </div>
         <div className="space-y-4">
           <div className="flex w-full justify-between space-x-4">
@@ -167,6 +173,7 @@ export default function Products() {
               selectedCurrencies={selectedCurrencies}
               selectedStatuses={selectedStatuses}
               onExportDataChange={setExportData}
+              onDeleted={triggerRefresh}
             />
             
           </div>

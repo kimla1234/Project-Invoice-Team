@@ -6,7 +6,11 @@ import SummaryCard from "./SummaryCard";
 import { FileText, Wrench, ShoppingBag } from "lucide-react";
 import { fetchProductSummary } from "@/components/Tables/fetch";
 
-export default function HeaderProducts() {
+export default function HeaderProducts({
+  refreshKey,
+}: {
+  refreshKey: number;
+}) {
   const [summary, setSummary] = useState({
     totalItems: 0,
     totalProducts: 0,
@@ -14,20 +18,22 @@ export default function HeaderProducts() {
   });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadSummary = async () => {
-      try {
-        const data = await fetchProductSummary();
-        setSummary(data);
-      } catch (err) {
-        console.error("Failed to fetch summary:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    loadSummary();
-  }, []);
+
+  useEffect(() => {
+  const loadSummary = async () => {
+    try {
+      const data = await fetchProductSummary();
+      setSummary(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  loadSummary();
+}, [refreshKey]); // 👈 KEY LINE
+
+
 
   return (
     <div className="flex justify-around bg-white">
