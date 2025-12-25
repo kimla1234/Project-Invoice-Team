@@ -1,136 +1,371 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { getClientById, updateClient } from "@/components/Tables/clients";
-import type { ClientData } from "@/types/client";
+import React, { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import { ProductData } from "@/types/product";
+import { ClientData } from "@/types/client";
+import { getProductsTableData } from "@/components/Tables/fetch";
+import { mockClients } from "@/components/Tables/clients";
 
-export default function EditQuotations() {
-  const params = useParams<{ id: string }>();
-  const id = params?.id as string;
-  const router = useRouter();
-  const { toast } = useToast();
+type Item = {
+  id: number;
+  name: string;
+  qty: number;
+  unitPrice: number;
+  total: number;
+};
 
-  const [loading, setLoading] = useState(true);
-  const [client, setClient] = useState<ClientData | null>(null);
-  const [form, setForm] = useState<Partial<ClientData>>({});
+type Quotation = {
+  id: number;
+  client: ClientData;
+  issueDate: string;
+  items: Item[];
+  amount: number;
+};
+
+type ProductModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelectProducts: (selected: ProductData[]) => void;
+};
+
+const ProductModal = ({
+  isOpen,
+  onClose,
+  onSelectProducts,
+}: ProductModalProps) => {
+  const [products, setProducts] = useState<ProductData[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedProducts, setSelectedProducts] = useState<Set<number>>(
+    new Set(),
+  );
 
   useEffect(() => {
-    let mounted = true;
-    const run = async () => {
-      if (!id) return;
-      setLoading(true);
-      const found = await getClientById(id);
-      if (mounted) {
-        setClient(found ?? null);
-        setForm(found ?? {});
-        setLoading(false);
-      }
-    };
-    run();
-    return () => {
-      mounted = false;
-    };
-  }, [id]);
-
-  const handleChange = (key: keyof ClientData, value: string) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!id) return;
-    try {
-      const updated = await updateClient(id, form);
-      if (updated) {
-        toast({
-          title: "Client updated",
-          description: `Client #${updated.id} saved successfully`,
-        });
-        router.push("/clients");
-      } else {
-        toast({
-          title: "Update failed",
-          description: "Could not update this client",
-          variant: "destructive",
-        });
-      }
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
+    if (!isOpen) return;
+    async function fetchProducts() {
+      const data = await getProductsTableData();
+      setProducts(data);
     }
+    fetchProducts();
+  }, [isOpen]);
+
+  const toggleSelect = (id: number) => {
+    const newSet = new Set(selectedProducts);
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
+    setSelectedProducts(newSet);
   };
 
-  if (loading) {
-    return (
-      <div className="p-6 text-slate-600">Loading client...</div>
-    );
-  }
+  const handleSubmit = () => {
+    const selected = products.filter((p) => selectedProducts.has(p.id));
+    onSelectProducts(selected);
+    setSelectedProducts(new Set());
+    onClose();
+  };
 
-  if (!client) {
-    return (
-      <div className="p-6 text-red-600">Client not found.</div>
-    );
-  }
+  if (!isOpen) return null;
 
   return (
-    <div className="p-6">
-      <div className="mx-auto w-full max-w-xl rounded-lg border bg-white p-6 shadow-md dark:border-dark-3 dark:bg-dark-2">
-        <div className="mb-4 text-xl font-semibold text-slate-700">Edit Client #{client.id}</div>
-        <form onSubmit={handleSubmit} className="grid gap-4">
-        <label className="grid gap-1">
-          <span className="text-sm text-slate-600">Name</span>
-          <input
-            className="rounded-md border px-3 py-2"
-            value={form.name ?? ""}
-            onChange={(e) => handleChange("name", e.target.value)}
-          />
-        </label>
-
-        <label className="grid gap-1">
-          <span className="text-sm text-slate-600">Gender</span>
-          <select
-            className="rounded-md border px-3 py-2"
-            value={form.gender ?? "Male"}
-            onChange={(e) => handleChange("gender", e.target.value)}
-          >
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-          </select>
-        </label>
-
-        <label className="grid gap-1">
-          <span className="text-sm text-slate-600">Contact</span>
-          <input
-            className="rounded-md border px-3 py-2"
-            value={form.contact ?? ""}
-            onChange={(e) => handleChange("contact", e.target.value)}
-          />
-        </label>
-
-        <label className="grid gap-1">
-          <span className="text-sm text-slate-600">Address</span>
-          <input
-            className="rounded-md border px-3 py-2"
-            value={form.address ?? ""}
-            onChange={(e) => handleChange("address", e.target.value)}
-          />
-        </label>
-
-        <div className="mt-2 flex gap-3">
-          <button type="button" onClick={() => router.push("/clients")} className="rounded-lg border px-4 py-2">
-            Cancel
-          </button>
-          <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-white">
-            Save Changes
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div className="relative z-10 max-h-[80vh] w-[600px] overflow-y-auto rounded-lg border bg-white p-4 shadow-lg">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Select Products</h2>
+          <button onClick={onClose} className="font-bold text-red-500">
+            X
           </button>
         </div>
-        </form>
+        <input
+          type="text"
+          placeholder="Search product..."
+          className="mb-3 w-full rounded border p-2"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        <div className="max-h-[300px] space-y-2 overflow-y-auto">
+          {products
+            .filter((p) =>
+              p.name.toLowerCase().includes(searchTerm.toLowerCase()),
+            )
+            .map((p) => (
+              <div
+                key={p.id}
+                onClick={() => toggleSelect(p.id)}
+                className={`flex cursor-pointer items-center justify-between rounded p-2 hover:bg-gray-100 ${
+                  selectedProducts.has(p.id) ? "bg-blue-100" : ""
+                }`}
+              >
+                <span>{p.name}</span>
+                <input
+                  type="checkbox"
+                  checked={selectedProducts.has(p.id)}
+                  readOnly
+                />
+              </div>
+            ))}
+          {products.filter((p) =>
+            p.name.toLowerCase().includes(searchTerm.toLowerCase()),
+          ).length === 0 && (
+            <p className="text-center text-gray-500">No products found</p>
+          )}
+        </div>
+        <button
+          onClick={handleSubmit}
+          className="mt-3 w-full rounded bg-primary py-2 text-white hover:bg-primary/90"
+        >
+          Add Selected
+        </button>
       </div>
+    </div>
+  );
+};
+
+export default function EditQuotation() {
+  const router = useRouter();
+  const params = useParams();
+  const { toast } = useToast();
+  const id = Number(params.id);
+
+  const [clients, setClients] = useState<ClientData[]>([]);
+  const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
+  const [items, setItems] = useState<Item[]>([]);
+  const [issueDate, setIssueDate] = useState(
+    new Date().toISOString().slice(0, 10),
+  );
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Load clients
+  useEffect(() => {
+    setClients(mockClients);
+  }, []);
+
+  // Load quotation by ID
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem("quotations") || "[]");
+    const quotation = stored.find((q: Quotation) => q.id === id);
+
+    if (!quotation) {
+      toast({
+        title: "Quotation not found",
+        description: "The requested quotation does not exist.",
+        className: "bg-red-600 text-white",
+        duration: 3000,
+      });
+      router.push("/quotation");
+      return;
+    }
+
+    setSelectedClient(quotation.client);
+    setItems(quotation.items);
+    setIssueDate(quotation.issueDate);
+  }, [id]);
+
+  // Handle item changes
+  const handleItemChange = (
+    index: number,
+    field: "name" | "qty" | "unitPrice",
+    value: string | number,
+  ) => {
+    setItems((prev) =>
+      prev.map((item, i) => {
+        if (i !== index) return item;
+        const updated: Item = { ...item };
+        if (field === "qty" || field === "unitPrice")
+          updated[field] = Number(value);
+        else updated[field] = String(value);
+        updated.total = updated.qty * updated.unitPrice;
+        return updated;
+      }),
+    );
+  };
+
+  const removeItem = (index: number) =>
+    setItems((prev) => prev.filter((_, i) => i !== index));
+
+  const handleAddProducts = (products: ProductData[]) => {
+    const newItems: Item[] = products.map((p) => ({
+      id: p.id,
+      name: p.name,
+      qty: 1,
+      unitPrice: p.unitPrice,
+      total: p.unitPrice,
+    }));
+    setItems((prev) => [...prev, ...newItems]);
+  };
+
+  // Submit edited quotation
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!selectedClient) {
+      toast({
+        title: "Select client",
+        description: "Please select a client.",
+        className: "bg-red-600 text-white",
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (items.length === 0) {
+      toast({
+        title: "No items",
+        description: "Please add at least one item.",
+        className: "bg-red-600 text-white",
+        duration: 3000,
+      });
+      return;
+    }
+
+    const stored = JSON.parse(localStorage.getItem("quotations") || "[]");
+    const updated = stored.map((q: Quotation) =>
+      q.id === id
+        ? {
+            ...q,
+            client: selectedClient,
+            issueDate,
+            items,
+            amount: items.reduce((sum, i) => sum + i.total, 0),
+          }
+        : q,
+    );
+
+    localStorage.setItem("quotations", JSON.stringify(updated));
+
+    toast({
+      title: "Quotation updated",
+      description: "The quotation has been updated successfully!",
+      className: "bg-green-600 text-white",
+      duration: 3000,
+    });
+
+    router.push("/quotation");
+  };
+
+  return (
+    <div className="p-10">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-6 rounded-lg border bg-white p-6"
+      >
+        {/* Client */}
+        <div>
+          <label className="mb-1 block font-medium">Select Client</label>
+          <select
+            value={selectedClient?.id ?? ""}
+            onChange={(e) =>
+              setSelectedClient(
+                clients.find((c) => c.id === Number(e.target.value)) ?? null,
+              )
+            }
+            className="w-full rounded border p-2"
+          >
+            <option value="">Select Client</option>
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Issue Date */}
+        <div>
+          <label className="mb-1 block font-medium">Issue Date</label>
+          <input
+            type="date"
+            value={issueDate}
+            onChange={(e) => setIssueDate(e.target.value)}
+            className="w-full rounded border p-2"
+          />
+        </div>
+
+        {/* Items Table */}
+        <div className="rounded border p-4">
+          <div className="mb-2 flex justify-between">
+            <h3 className="font-semibold">Items</h3>
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              className="rounded bg-primary px-3 py-1 text-white hover:bg-primary/90"
+            >
+              Add Items
+            </button>
+          </div>
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="px-2 py-1 text-left">No</th>
+                <th className="px-2 py-1 text-left">Product Name</th>
+                <th className="px-2 py-1 text-left">Qty</th>
+                <th className="px-2 py-1 text-left">Unit Price</th>
+                <th className="px-2 py-1 text-left">Total</th>
+                <th className="px-2 py-1 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item, index) => (
+                <tr key={index}>
+                  <td className="px-2 py-1">{index + 1}</td>
+                  <td className="px-2 py-1">
+                    <input
+                      className="w-full p-1"
+                      value={item.name}
+                      onChange={(e) =>
+                        handleItemChange(index, "name", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td className="px-2 py-1">
+                    <input
+                      type="number"
+                      className="w-full p-1"
+                      value={item.qty}
+                      onChange={(e) =>
+                        handleItemChange(index, "qty", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td className="px-2 py-1">
+                    <input
+                      type="number"
+                      className="w-full p-1"
+                      value={item.unitPrice}
+                      onChange={(e) =>
+                        handleItemChange(index, "unitPrice", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td className="px-2 py-1">{item.total.toFixed(2)}</td>
+                  <td className="px-2 py-1">
+                    <button
+                      type="button"
+                      className="rounded bg-red-500 px-2 py-1 text-white"
+                      onClick={() => removeItem(index)}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <button
+          type="submit"
+          className="w-full rounded bg-primary py-3 text-white hover:bg-primary/90"
+        >
+          Update Quotation
+        </button>
+      </form>
+
+      <ProductModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSelectProducts={handleAddProducts}
+      />
     </div>
   );
 }

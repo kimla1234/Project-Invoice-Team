@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { VscAdd } from "react-icons/vsc";
 
@@ -9,6 +9,7 @@ import SearchInput from "./search/Search";
 import FilterDate from "./FilterData";
 import QuotationTable from "../Tables/QuotationTable";
 import { ColumnToggleDropdown } from "../ui/ColumnToggleDropdown";
+import { initQuotations } from "@/utils/initLocalStorage";
 
 export default function Quotation() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -37,15 +38,21 @@ export default function Quotation() {
     visible: columnVisibility[key as keyof typeof columnVisibility],
   }));
 
+  // ---------------------------
+  // Initialize localStorage
+  // ---------------------------
+  useEffect(() => {
+    initQuotations();
+  }, []);
+
   return (
     <div className="space-y-3">
       {/* Page Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div className="inline-flex w-[210px] justify-center rounded-lg border border-gray-200 bg-white px-2 py-1 text-xl text-slate-600">
           Quotation
         </div>
 
-        {/* ✅ FIXED LINK */}
         <Link
           href="/quotation/create"
           className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
@@ -68,10 +75,7 @@ export default function Quotation() {
               onSearchChange={setSearchTerm}
             />
 
-            <FilterDate
-              date={issueDate}
-              onChange={setIssueDate}
-            />
+            <FilterDate date={issueDate} onChange={setIssueDate} />
           </div>
 
           <ColumnToggleDropdown
@@ -81,10 +85,7 @@ export default function Quotation() {
         </div>
 
         {/* Table */}
-        <QuotationTable
-          searchTerm={searchTerm}
-          issueDate={issueDate}
-        />
+        <QuotationTable searchTerm={searchTerm} issueDate={issueDate} />
       </div>
     </div>
   );
