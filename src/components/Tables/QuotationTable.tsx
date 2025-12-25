@@ -17,48 +17,46 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Eye, Edit2, Trash2, SearchX } from "lucide-react";
-
 import { QuotationData } from "@/types/quotation";
 import QuotationTableSkeleton from "../skeletons/QuotationTableSkeleton";
 import { useToast } from "@/hooks/use-toast";
 import { PaginationControls } from "../ui/pagination-controls";
 import { DeleteQuotations } from "../Quotations/delete-quotation/DeleteQuotations";
+import { getClientsTableData } from "./clients";
+import { ClientData } from "@/types/client";
 
 interface QuotationTableProps {
-  searchTerm: string;
-  issueDate?: string; // ISO format YYYY-MM-DD
+  searchTerm?: string;
+  issueDate?: string;
 }
 
 export default function QuotationTable({
-  searchTerm,
+  searchTerm = "",
   issueDate,
 }: QuotationTableProps) {
   const [quotations, setQuotations] = useState<QuotationData[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [clients, setClients] = useState<ClientData[]>([]);
   const { toast } = useToast();
 
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(7);
 
-  // ---------------------------
+  // Fetch clients
+  useEffect(() => {
+    async function fetchClients() {
+      const data = await getClientsTableData();
+      setClients(data);
+    }
+    fetchClients();
+  }, []);
+
   // Fetch quotations from localStorage
-  // ---------------------------
   const fetchQuotations = () => {
     setLoading(true);
     const stored = JSON.parse(localStorage.getItem("quotations") || "[]");
-
-    // Ensure sequential IDs for display
-    const mapped: QuotationData[] = stored.map((q: any, index: number) => ({
-      id: index + 1, // sequential id
-      name: q.client.name,
-      issueDate: q.issueDate,
-      amount: q.items.reduce((sum: number, item: any) => sum + item.total, 0),
-      items: q.items,
-    }));
-
-    setQuotations(mapped);
+    setQuotations(Array.isArray(stored) ? stored : []);
     setLoading(false);
   };
 
@@ -66,20 +64,22 @@ export default function QuotationTable({
     fetchQuotations();
   }, []);
 
-  // Filtered data based on search and date
+  // Filter quotations by search term and issueDate
   const filteredData = useMemo(() => {
     return quotations.filter((q) => {
+      const clientName = clients.find((c) => c.id === q.clientId)?.name ?? "";
+
+      const quotationNo = `QUO-${String(q.id).padStart(4, "0")}`.toLowerCase();
+      const term = searchTerm.toLowerCase();
+
       const matchesSearch =
-        q.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        `QUO-${String(q.id).padStart(4, "0")}`.toLowerCase().includes(searchTerm.toLowerCase());
+        clientName.toLowerCase().includes(term) || quotationNo.includes(term);
 
       const matchesDate = issueDate ? q.issueDate === issueDate : true;
-
       return matchesSearch && matchesDate;
     });
-  }, [quotations, searchTerm, issueDate]);
+  }, [quotations, clients, searchTerm, issueDate]);
 
-  // Pagination logic
   const totalItems = filteredData.length;
   const totalPages = Math.ceil(totalItems / rowsPerPage);
   const paginatedData = useMemo(() => {
@@ -92,21 +92,17 @@ export default function QuotationTable({
     setCurrentPage(1);
   };
 
-  // Delete quotation
   const handleConfirmDelete = () => {
-    if (!deleteId) return;
-
+    if (deleteId === null) return;
     const stored = JSON.parse(localStorage.getItem("quotations") || "[]");
-    const updated = stored.filter((q: any, index: number) => index + 1 !== deleteId);
+    const updated = stored.filter((q: QuotationData) => q.id !== deleteId);
     localStorage.setItem("quotations", JSON.stringify(updated));
-
     toast({
       title: "Quotation deleted",
       description: "The quotation has been removed successfully.",
       className: "bg-green-600 text-white",
       duration: 3000,
     });
-
     setDeleteId(null);
     fetchQuotations();
   };
@@ -129,18 +125,28 @@ export default function QuotationTable({
 
           <TableBody>
             {paginatedData.length > 0 ? (
-              paginatedData.map((q) => (
-                <TableRow key={q.id} className="border-[#eee] dark:border-dark-3">
+              paginatedData.map((q, index) => (
+                <TableRow
+                  key={q.id}
+                  className="border-[#eee] dark:border-dark-3"
+                >
                   <TableCell className="font-medium text-dark dark:text-white xl:pl-7.5">
                     {`QUO-${String(q.id).padStart(4, "0")}`}
                   </TableCell>
-                  <TableCell className="text-dark dark:text-white">{q.name}</TableCell>
-                  <TableCell className="font-medium text-dark dark:text-white">
-                    ${q.amount.toFixed(2)}
+
+                  <TableCell className="text-dark dark:text-white">
+                    {clients.find((c) => c.id === q.clientId)?.name ??
+                      "Unknown Client"}
                   </TableCell>
+
+                  <TableCell className="font-medium text-dark dark:text-white">
+                    ${Number(q.amount ?? 0).toFixed(2)}
+                  </TableCell>
+
                   <TableCell className="text-gray-500">
                     {new Date(q.issueDate).toLocaleDateString("en-GB")}
                   </TableCell>
+
                   <TableCell className="text-right xl:pr-7.5">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -150,17 +156,24 @@ export default function QuotationTable({
                       </DropdownMenuTrigger>
 
                       <DropdownMenuContent align="end" className="w-44">
-                        <div className="border-b px-2 py-1 text-sm font-medium">Actions</div>
                         <DropdownMenuItem asChild>
-                          <Link href={`/quotations/${q.id}`} className="flex items-center focus:bg-primary/10">
+                          <Link
+                            href={`/quotation/${q.id}`}
+                            className="flex items-center focus:bg-primary/10"
+                          >
                             <Eye className="mr-2 size-4" /> View
                           </Link>
                         </DropdownMenuItem>
+
                         <DropdownMenuItem asChild>
-                          <Link href={`/quotations/${q.id}/edit`} className="flex items-center focus:bg-primary/10">
+                          <Link
+                            href={`/quotation/${q.id}/edit`}
+                            className="flex items-center focus:bg-primary/10"
+                          >
                             <Edit2 className="mr-2 size-4" /> Edit
                           </Link>
                         </DropdownMenuItem>
+
                         <DropdownMenuItem
                           onClick={() => setDeleteId(q.id)}
                           className="flex items-center text-red-600 focus:bg-red-50"
