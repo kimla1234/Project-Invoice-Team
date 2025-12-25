@@ -13,17 +13,21 @@ import { createProduct } from "../Tables/fetch";
 import { ProductData } from "@/types/product";
 import { useToast } from "@/hooks/use-toast";
 
+const currencyOptions: ("USD" | "KHR")[] = ["USD", "KHR"];
+
 export default function CreateProducts() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
-  const { toast } = useToast()
+  const { toast } = useToast();
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [currency, setCurrency] = useState<"USD" | "KHR">("USD");
+
   // Form state
   const [productName, setProductName] = useState("");
-  const [productType, setProductType] = useState<"Product" | "Service">(
-    "Product",
-  );
+
   const [unitPrice, setUnitPrice] = useState(0);
-  const [cost, setCost] = useState(0);
+
   const [stock, setStock] = useState(0);
   const [lowStockThreshold, setLowStockThreshold] = useState(0);
   const [description, setDescription] = useState("");
@@ -59,11 +63,6 @@ export default function CreateProducts() {
       isValid = false;
     }
 
-    if (cost < 0) {
-      newErrors.cost = "Cost cannot be negative.";
-      isValid = false;
-    }
-
     if (stock < 0) {
       newErrors.stock = "Stock cannot be negative.";
       isValid = false;
@@ -78,6 +77,30 @@ export default function CreateProducts() {
     return isValid;
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate size (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "Image too large",
+        description: "Maximum size is 10MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setImageFile(file);
+
+    // Preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -85,12 +108,12 @@ export default function CreateProducts() {
 
     const newProduct: Partial<ProductData> = {
       name: productName,
-      type: productType,
       unitPrice,
-      cost,
       stock,
       lowStockThreshold,
       description,
+      currency, // ✅ ADD
+      image: imagePreview || "",
     };
 
     const created = await createProduct(newProduct);
@@ -161,98 +184,68 @@ export default function CreateProducts() {
                 )}
               </div>
 
-              {/* Product Type */}
-              <div className="w-full">
-                <label className="mb-1.5 block w-full font-medium">
-                  Product Type
-                </label>
-                <Dropdown isOpen={isOpen} setIsOpen={setIsOpen}>
-                  <DropdownTrigger className="w-full">
-                    <div
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setIsOpen(!isOpen);
-                      }}
-                      className="flex w-full cursor-pointer items-center justify-between rounded-lg border p-2 text-left"
-                    >
-                      {productType}
-                      <ChevronUpIcon
-                        className={cn(
-                          "h-[18px] w-[18px] rotate-180 transition-transform",
-                          isOpen && "rotate-0",
-                        )}
-                        strokeWidth={1.5}
-                      />
-                    </div>
-                  </DropdownTrigger>
-                  <DropdownContent
-                    className="z-50 mt-1 w-full min-w-[var(--radix-dropdown-trigger-width)] space-y-2 border border-stroke bg-white p-3 shadow-sm dark:border-dark-3 dark:bg-gray-dark"
-                    align="start"
-                  >
-                    {options.map((opt) => (
+              {/* Price */}
+
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                {/* Unit Price */}
+                <div>
+                  <label className="mb-1.5 block font-medium">Unit Price</label>
+                  <input
+                    type="number"
+                    value={unitPrice === 0 ? "" : unitPrice}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setUnitPrice(val === "" ? 0 : parseFloat(val));
+                    }}
+                    placeholder="0.00"
+                    className="w-full rounded-lg border p-2"
+                  />
+                </div>
+
+                {/* Currency */}
+                <div>
+                  <label className="mb-1.5 block font-medium">Currency</label>
+                  <Dropdown isOpen={isOpen} setIsOpen={setIsOpen}>
+                    <DropdownTrigger className="w-full">
                       <div
-                        key={opt}
-                        onClick={() => {
-                          setProductType(opt);
-                          setIsOpen(false);
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setIsOpen(!isOpen);
                         }}
-                        className={cn(
-                          "flex w-full items-center rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-slate-50",
-                          productType === opt
-                            ? "bg-gray-100 text-primary dark:bg-dark-3"
-                            : "hover:slate-50 text-dark dark:text-dark-6 dark:hover:text-white",
-                        )}
+                        className="flex w-full cursor-pointer items-center justify-between rounded-lg border p-2"
                       >
-                        {opt}
+                        {currency}
+                        <ChevronUpIcon
+                          className={cn(
+                            "h-[18px] w-[18px] rotate-180 transition-transform",
+                            isOpen && "rotate-0",
+                          )}
+                        />
                       </div>
-                    ))}
-                  </DropdownContent>
-                </Dropdown>
-              </div>
-            </div>
+                    </DropdownTrigger>
 
-            {/* Row 2: Unit Price & Cost */}
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div>
-                <label className="mb-1.5 block font-medium">Unit Price</label>
-                <input
-                  type="number"
-                  value={unitPrice === 0 ? "" : unitPrice}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setUnitPrice(val === "" ? 0 : parseFloat(val));
-                  }}
-                  placeholder="0.00"
-                  className={cn(
-                    "w-full rounded-lg border p-2",
-                    errors.unitPrice && "border-red-500",
-                  )}
-                />
-                {errors.unitPrice && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.unitPrice}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="mb-1.5 block font-medium">Cost (COGS)</label>
-                <input
-                  type="number"
-                  value={cost === 0 ? "" : cost}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setCost(val === "" ? 0 : parseFloat(val));
-                  }}
-                  placeholder="0.00"
-                  className={cn(
-                    "w-full rounded-lg border p-2",
-                    errors.cost && "border-red-500",
-                  )}
-                />
-                {errors.cost && (
-                  <p className="mt-1 text-sm text-red-500">{errors.cost}</p>
-                )}
+                    <DropdownContent
+                      align="start"
+                      className="z-50 mt-1 w-full space-y-2 border bg-white p-2"
+                    >
+                      {currencyOptions.map((cur) => (
+                        <div
+                          key={cur}
+                          onClick={() => {
+                            setCurrency(cur);
+                            setIsOpen(false);
+                          }}
+                          className={cn(
+                            "cursor-pointer rounded-md px-3 py-2 text-sm hover:bg-gray-100",
+                            currency === cur && "bg-gray-100 font-medium",
+                          )}
+                        >
+                          {cur}
+                        </div>
+                      ))}
+                    </DropdownContent>
+                  </Dropdown>
+                </div>
               </div>
             </div>
 
@@ -307,6 +300,46 @@ export default function CreateProducts() {
             <div>
               <label className="mb-1.5 block font-medium">Description</label>
               <RichTextEditor value={description} onChange={setDescription} />
+            </div>
+
+            {/* Product Image */}
+            <div>
+              <label className="mb-2 block font-medium">Product Image</label>
+
+              <div className="relative flex h-[180px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100">
+                {imagePreview ? (
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="h-full w-full rounded-lg object-cover"
+                  />
+                ) : (
+                  <div className="text-center text-sm text-gray-500">
+                    <div className="mb-2 text-lg">⬆️</div>
+                    <p className="font-medium">Upload product images</p>
+                    <p className="text-xs">
+                      Drag & drop or click to browse <br />
+                      JPG, PNG, GIF up to 10MB
+                    </p>
+                  </div>
+                )}
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                />
+              </div>
+
+              {/* Guidelines */}
+              <div className="mt-3 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
+                <ul className="list-disc space-y-1 pl-4">
+                  <li>Use high-quality images (min 800×800px)</li>
+                  <li>First image will be primary product image</li>
+                  <li>Use clean background & good lighting</li>
+                </ul>
+              </div>
             </div>
 
             {/* Submit */}

@@ -15,7 +15,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import RichTextEditor from "@/components/ui/RichTextEditor";
-
+import { GrSubtractCircle } from "react-icons/gr";
 import { ProductData } from "@/types/product";
 import { useRouter } from "next/navigation";
 import {
@@ -32,6 +32,9 @@ import {
 } from "@/components/ui/dropdown";
 import { useToast } from "@/hooks/use-toast";
 import EditProductSkeleton from "@/components/skeletons/EditProductSkeleton";
+import { HiOutlinePhoto } from "react-icons/hi2";
+import { IoMdAddCircleOutline } from "react-icons/io";
+import { FaRegEdit } from "react-icons/fa";
 
 interface EditProductProps {
   productId: string;
@@ -43,15 +46,18 @@ export default function EditProduct({ productId }: EditProductProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<ProductData | null>(null);
+  const [stockAction, setStockAction] = useState<
+    "in" | "out" | "adjust" | null
+  >(null);
 
   // Form state
   const [isOpen, setIsOpen] = useState(false);
   const [productName, setProductName] = useState("");
-  const [productType, setProductType] = useState<"Product" | "Service">(
-    "Product",
-  );
+  const [currency, setCurrency] = useState("USD");
+  const currencyOptions = ["USD", "KHR", "EUR"];
+  const [image, setImage] = useState<string>(product?.image ?? "");
+
   const [unitPrice, setUnitPrice] = useState(0);
-  const [cost, setCost] = useState(0);
   const [description, setDescription] = useState("");
   const [stockTracked, setStockTracked] = useState(false);
   const [openingStock, setOpeningStock] = useState(0);
@@ -72,14 +78,14 @@ export default function EditProduct({ productId }: EditProductProps) {
 
       setProduct(data);
       setProductName(data.name);
-      setProductType(data.type);
+      //setProductType(data.type);
       setUnitPrice(data.unitPrice);
-      setCost(data.cost ?? 0);
+      setImage(data.image ?? "");
       setDescription(data.description ?? "");
       setStockTracked(data.stock !== undefined);
       setOpeningStock(data.stock ?? 0);
       setLowStockThreshold(data.lowStockThreshold ?? 0);
-
+      setCurrency(data.currency ?? "USD"); // <- Add this
       setLoading(false);
     }
 
@@ -92,9 +98,9 @@ export default function EditProduct({ productId }: EditProductProps) {
 
     const payload: Partial<ProductData> = {
       name: productName,
-      type: productType,
+      currency,
       unitPrice,
-      cost,
+      image,
       description,
       stock: stockTracked ? openingStock : undefined,
       lowStockThreshold,
@@ -191,122 +197,189 @@ export default function EditProduct({ productId }: EditProductProps) {
                 />
               </div>
 
-              {/* Product Type */}
-              <div className="w-full">
-                <label className="mb-1.5 block w-full font-medium">
-                  Product Type
-                </label>
-                <Dropdown isOpen={isOpen} setIsOpen={setIsOpen}>
-                  <DropdownTrigger className="w-full">
-                    <div
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setIsOpen(!isOpen);
-                      }}
-                      className="flex w-full cursor-pointer items-center justify-between rounded-lg border p-2 text-left"
-                    >
-                      {productType}
-                      <ChevronUpIcon
-                        className={cn(
-                          "h-[18px] w-[18px] rotate-180 transition-transform",
-                          isOpen && "rotate-0",
-                        )}
-                        strokeWidth={1.5}
-                      />
-                    </div>
-                  </DropdownTrigger>
-                  <DropdownContent
-                    className="z-50 mt-1 w-full min-w-[var(--radix-dropdown-trigger-width)] space-y-2 border border-stroke bg-white p-3 shadow-sm dark:border-dark-3 dark:bg-gray-dark"
-                    align="start"
-                  >
-                    {options.map((opt) => (
+              {/* Prices */}
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block font-medium">Unit Price</label>
+                  <input
+                    type="number"
+                    value={unitPrice}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setUnitPrice(val === "" ? 0 : parseFloat(val));
+                    }}
+                    placeholder="0.00"
+                    className="w-full rounded-lg border p-2"
+                  />
+                </div>
+                {/* Currency */}
+                <div>
+                  <label className="mb-1.5 block font-medium">Currency</label>
+                  <Dropdown isOpen={isOpen} setIsOpen={setIsOpen}>
+                    <DropdownTrigger className="w-full">
                       <div
-                        key={opt}
-                        onClick={() => {
-                          setProductType(opt);
-                          setIsOpen(false);
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setIsOpen(!isOpen);
                         }}
-                        className={cn(
-                          "flex w-full items-center rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-slate-50",
-                          productType === opt
-                            ? "bg-gray-100 text-primary dark:bg-dark-3"
-                            : "hover:slate-50 text-dark dark:text-dark-6 dark:hover:text-white",
-                        )}
+                        className="flex w-full cursor-pointer items-center justify-between rounded-lg border p-2"
                       >
-                        {opt}
+                        {currency}
+                        <ChevronUpIcon
+                          className={cn(
+                            "h-[18px] w-[18px] rotate-180 transition-transform",
+                            isOpen && "rotate-0",
+                          )}
+                        />
                       </div>
-                    ))}
-                  </DropdownContent>
-                </Dropdown>
+                    </DropdownTrigger>
+
+                    <DropdownContent
+                      align="start"
+                      className="z-50 mt-1 w-full space-y-2 border bg-white p-2"
+                    >
+                      {currencyOptions.map((cur) => (
+                        <div
+                          key={cur}
+                          onClick={() => {
+                            setCurrency(cur);
+                            setIsOpen(false);
+                          }}
+                          className={cn(
+                            "cursor-pointer rounded-md px-3 py-2 text-sm hover:bg-gray-100",
+                            currency === cur && "bg-gray-100 font-medium",
+                          )}
+                        >
+                          {cur}
+                        </div>
+                      ))}
+                    </DropdownContent>
+                  </Dropdown>
+                </div>
               </div>
             </div>
 
-            {/* Prices */}
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div>
-                <label className="mb-1.5 block font-medium">Unit Price</label>
-                <input
-                  type="number"
-                  value={unitPrice}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setUnitPrice(val === "" ? 0 : parseFloat(val));
-                  }}
-                  placeholder="0.00"
-                  className="w-full rounded-lg border p-2"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block font-medium">Cost</label>
-                <input
-                  type="number"
-                  value={cost}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setCost(val === "" ? 0 : parseFloat(val));
-                  }}
-                  placeholder="0.00"
-                  className="w-full rounded-lg border p-2"
-                />
+            <div>
+              <label className="mb-1.5 block font-medium">Product Image</label>
+              <div className="flex items-center gap-4">
+                {image && (
+                  <img
+                    src={image}
+                    alt="Product Image"
+                    className="h-40 w-40 rounded-lg border object-cover"
+                  />
+                )}
+                <div>
+                  <label className="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-gray-700 hover:bg-gray-200">
+                    <HiOutlinePhoto className="text-xl" />
+                    Upload Photo
+                    <input
+                      type="file"
+                      accept="image/png, image/jpeg"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setImage(reader.result as string); // Save base64 string
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                  <p className="mt-1 text-sm text-gray-400">
+                    JPG, PNG up to 2MB
+                  </p>
+                </div>
               </div>
             </div>
 
             {/* Description */}
-            <div>
+            <div className="">
               <label className="mb-1.5 block font-medium">Description</label>
               <RichTextEditor value={description} onChange={setDescription} />
             </div>
 
             {/* Stock */}
-            <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={stockTracked}
-                onChange={(e) => setStockTracked(e.target.checked)}
-                placeholder="0"
-              />
-              Enable Stock Tracking
-            </label>
+            <div>
+              <label className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={stockTracked}
+                  onChange={(e) => setStockTracked(e.target.checked)}
+                  placeholder="0"
+                />
+                Enable Stock Tracking
+              </label>
+              <label className="pl-6 text-sm">
+                Check this box to enable stock tracking
+              </label>
+            </div>
 
             {stockTracked && (
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <input
-                  type="number"
-                  placeholder="Opening Stock"
-                  value={openingStock}
-                  onChange={(e) => setOpeningStock(+e.target.value || 0)}
-                  className="rounded-lg border p-2"
-                />
-                <input
-                  type="number"
-                  placeholder="Low Stock Threshold"
-                  value={lowStockThreshold}
-                  onChange={(e) => setLowStockThreshold(+e.target.value || 0)}
-                  className="rounded-lg border p-2"
-                />
+                <div>
+                  <label className="space-y-2">
+                    <div>Opening Stock</div>
+                    <input
+                      type="number"
+                      placeholder="Opening Stock"
+                      value={openingStock}
+                      disabled
+                      onChange={(e) => setOpeningStock(+e.target.value || 0)}
+                      className="w-full rounded-lg border p-2"
+                    />
+                  </label>
+                </div>
+                <div>
+                  <label className="space-y-2">
+                    <div>Low Stock Threshold</div>
+                    <input
+                      type="number"
+                      placeholder="Low Stock Threshold"
+                      value={lowStockThreshold}
+                      onChange={(e) =>
+                        setLowStockThreshold(+e.target.value || 0)
+                      }
+                      className="w-full rounded-lg border p-2"
+                    />
+                  </label>
+                </div>
               </div>
             )}
+            <div className="mb-6">
+              <h3 className="mb-2 text-lg font-semibold">Manage Stock</h3>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setStockAction("in")}
+                  className="flex-1 rounded-lg border bg-white py-3 text-center text-gray-800 hover:bg-gray-100"
+                >
+                  <IoMdAddCircleOutline className="mx-auto mb-1 h-5 w-5" />
+                  Stock In
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStockAction("out")}
+                  className="flex-1 rounded-lg border bg-white py-3 text-center text-gray-800 hover:bg-gray-100"
+                >
+                  <GrSubtractCircle className="mx-auto mb-1 h-5 w-5" />
+                  Stock Out
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStockAction("adjust")}
+                  className="flex-1 rounded-lg border bg-white py-3 text-center text-gray-800 hover:bg-gray-100"
+                >
+                  <FaRegEdit className="mx-auto mb-1 h-5 w-5" />
+                  Stock Adjustment
+                </button>
+              </div>
+            </div>
 
             {/* Actions */}
             <div className="flex w-full justify-between space-x-7 pt-6">

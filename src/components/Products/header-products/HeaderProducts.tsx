@@ -6,32 +6,40 @@ import SummaryCard from "./SummaryCard";
 import { FileText, Wrench, ShoppingBag } from "lucide-react";
 import { fetchProductSummary } from "@/components/Tables/fetch";
 
-export default function HeaderProducts({
-  refreshKey,
-}: {
-  refreshKey: number;
-}) {
+export default function HeaderProducts({ refreshKey }: { refreshKey: number }) {
   const [summary, setSummary] = useState({
     totalItems: 0,
     totalProducts: 0,
-    totalServices: 0,
+    outOfStock: 0,
+    lowStock: 0,
   });
+
   const [loading, setLoading] = useState(true);
-
-
 
   useEffect(() => {
   const loadSummary = async () => {
     try {
       const data = await fetchProductSummary();
-      setSummary(data);
+
+      setSummary({
+        totalItems: data.totalItems,
+        totalProducts: data.totalProducts,
+        outOfStock: data.outOfStock,
+        lowStock: data.lowStock,
+      });
     } finally {
       setLoading(false);
     }
   };
 
   loadSummary();
-}, [refreshKey]); // 👈 KEY LINE
+}, [refreshKey]);
+
+// Calculate inStock dynamically
+ const inStock = Math.max(summary.totalItems - summary.outOfStock - summary.lowStock, 0);
+
+
+
 
 
 
@@ -39,6 +47,7 @@ export default function HeaderProducts({
     <div className="flex justify-around bg-white">
       {loading ? (
         <>
+          <SummaryCardSkeleton />
           <SummaryCardSkeleton />
           <SummaryCardSkeleton />
           <SummaryCardSkeleton />
@@ -54,19 +63,27 @@ export default function HeaderProducts({
           />
 
           <SummaryCard
-            title="Total Services"
-            count={summary.totalServices}
-            icon={Wrench}
+            title="In Stock"
+            count={inStock}
+            icon={ShoppingBag}
             iconBgColor="bg-green-100"
-            iconTextColor="text-green-500"
+            iconTextColor="text-green-600"
           />
 
           <SummaryCard
-            title="Total Products"
-            count={summary.totalProducts}
+            title="Out of Stock"
+            count={summary.outOfStock}
             icon={ShoppingBag}
-            iconBgColor="bg-gray-200"
-            iconTextColor="text-gray-600"
+            iconBgColor="bg-red-100"
+            iconTextColor="text-red-600"
+          />
+
+          <SummaryCard
+            title="Low Stock"
+            count={summary.lowStock}
+            icon={Wrench}
+            iconBgColor="bg-yellow-100"
+            iconTextColor="text-yellow-600"
           />
         </>
       )}
@@ -74,10 +91,9 @@ export default function HeaderProducts({
   );
 }
 
-
- function SummaryCardSkeleton() {
+function SummaryCardSkeleton() {
   return (
-    <div className="flex w-[220px] items-center gap-4 rounded-lg border bg-white p-4 animate-pulse">
+    <div className="flex w-[220px] animate-pulse items-center gap-4 rounded-lg border bg-white p-4">
       {/* Icon skeleton */}
       <div className="h-12 w-12 rounded-full bg-gray-200" />
 

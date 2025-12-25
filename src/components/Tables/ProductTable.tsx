@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import Image from "next/image";
 
 interface ProductTableProps {
   visibleColumns: Record<string, boolean>;
@@ -52,7 +53,7 @@ export function ProductTable({
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(7);
 
-  // Fetch initial data 
+  // Fetch initial data
   useEffect(() => {
     async function fetchData() {
       try {
@@ -67,6 +68,13 @@ export function ProductTable({
     fetchData();
   }, []);
 
+  const getStockStatus = (stock: number, lowThreshold?: number) => {
+  if (stock === 0) return "out";
+  if (lowThreshold !== undefined && stock <= lowThreshold) return "low";
+  return "in";
+};
+
+
   // Filter logic
   const filteredData = useMemo(() => {
     const lowerCaseSearch = searchTerm.toLowerCase();
@@ -80,19 +88,19 @@ export function ProductTable({
         (item.stock?.toString() || "").includes(lowerCaseSearch);
 
       // 🏷 Status filter (Product / Service)
+      const stockStatus = getStockStatus(item.stock ?? 0);
+
       const matchStatus =
-        selectedStatuses.length === 0 ||
-        selectedStatuses.includes(item.type.toLowerCase());
+        selectedStatuses.length === 0 || selectedStatuses.includes(stockStatus);
 
       // 💱 Currency filter
 
       const matchCurrency =
-        selectedCurrencies.length === 0 ||
-        selectedCurrencies.some(
-          (cur) =>
-            cur.trim().toUpperCase() === item.currency.trim().toUpperCase(),
-        );
-
+      selectedCurrencies.length === 0 ||
+      selectedCurrencies.some(
+        (cur) =>
+          cur.trim().toUpperCase() === (item.currency ?? "").trim().toUpperCase()
+      );
       return matchSearch && matchStatus && matchCurrency;
     });
   }, [fullData, searchTerm, selectedStatuses, selectedCurrencies]);
@@ -160,6 +168,7 @@ export function ProductTable({
   useEffect(() => {
     onExportDataChange(
       filteredData.map((item) => ({
+        ID: item.id,
         Name: item.name,
         Type: item.type,
         Stock: item.stock ?? "N/A",
@@ -177,12 +186,20 @@ export function ProductTable({
         <Table className="relative">
           <TableHeader>
             <TableRow className="border-none bg-[#F7F9FC] dark:bg-dark-2">
-              {visibleColumns.Name && (
-                <TableHead className="min-w-[155px] xl:pl-7.5">Name</TableHead>
+              {visibleColumns.ID && (
+                <TableHead className="xl:pl-7.5">ID</TableHead>
               )}
-              {visibleColumns.Type && <TableHead>Type</TableHead>}
-              <TableHead>Stock</TableHead>
+              {visibleColumns.Image && (
+                <TableHead className="">Image</TableHead>
+              )}
+              {visibleColumns.Name && (
+                <TableHead className="min-w-[100px] xl:pl-7.5">Name</TableHead>
+              )}
               {visibleColumns.UnitPrice && <TableHead>Unit Price</TableHead>}
+              <TableHead className="w-[70px]">Stock</TableHead>
+              {visibleColumns.StockStatus && (
+                <TableHead>Stock Status</TableHead>
+              )}
               {visibleColumns.Actions && (
                 <TableHead className="text-right xl:pr-7.5">Actions</TableHead>
               )}
@@ -196,28 +213,47 @@ export function ProductTable({
                   key={item.id}
                   className="border-[#eee] dark:border-dark-3"
                 >
+                  {visibleColumns.ID && (
+                    <TableCell className="font-medium text-dark dark:text-white xl:pl-7.5">
+                      {item.id}
+                    </TableCell>
+                  )}
+                  {visibleColumns.Image && (
+                    <TableCell className="w-[50px]">
+                      <div className="relative h-11 w-11 overflow-hidden rounded-md border">
+                        <Image
+                          src={
+                            item.image ||
+                            "https://t4.ftcdn.net/jpg/06/57/37/01/360_F_657370150_pdNeG5pjI976ZasVbKN9VqH1rfoykdYU.jpg"
+                          }
+                          alt={item.name}
+                          width={44}
+                          height={44}
+                          className="object-cover"
+                        />
+                      </div>
+                    </TableCell>
+                  )}
                   {visibleColumns.Name && (
-                    <TableCell className="min-w-[155px] xl:pl-7.5">
+                    <TableCell className="min-w-[100px] max-w-[180px] xl:pl-7.5">
                       <h5 className="font-medium text-dark dark:text-white">
                         {item.name}
                       </h5>
                     </TableCell>
                   )}
-                  {visibleColumns.Type && (
+
+                  {visibleColumns.UnitPrice && (
                     <TableCell>
-                      <div
-                        className={cn(
-                          "max-w-fit rounded-full px-3.5 py-1 text-sm font-medium",
-                          item.type === "Product"
-                            ? "bg-blue-50 text-blue-800"
-                            : "bg-green-100 text-green-800",
-                        )}
-                      >
-                        {item.type}
-                      </div>
+                      <p className="font-medium text-dark dark:text-white">
+                        {item.currency?.toUpperCase() === "USD"
+                          ? `${item.unitPrice.toFixed(2)} $`
+                          : item.currency?.toUpperCase() === "KHR"
+                            ? `${item.unitPrice.toLocaleString()} KHR`
+                            : `${item.unitPrice}`}
+                      </p>
                     </TableCell>
                   )}
-                  <TableCell>
+                  <TableCell className="w-[100px] xl:pl-7">
                     <p
                       className={cn(
                         "font-medium text-dark dark:text-white",
@@ -227,17 +263,29 @@ export function ProductTable({
                       {item.stock ?? "N/A"}
                     </p>
                   </TableCell>
-                  {visibleColumns.UnitPrice && (
+
+                  {visibleColumns.StockStatus && (
                     <TableCell>
-                      <p className="font-medium text-dark dark:text-white">
-                        {
-                          item.currency.toUpperCase() === "USD"
-                            ? `${item.unitPrice.toFixed(2)} $ `
-                            : item.currency.toUpperCase() === "KHR"
-                              ? `${item.unitPrice.toLocaleString()} KHR `
-                              : `${item.unitPrice}` // fallback for other currencies
-                        }
-                      </p>
+                      {(() => {
+                        const status = getStockStatus(item.stock ?? 0, item.lowStockThreshold);
+
+
+                        return (
+                          <span
+                            className={cn(
+                              "rounded-full px-3 py-1 text-sm font-medium",
+                              status === "in" && "bg-green-100 text-green-700",
+                              status === "low" &&
+                                "bg-yellow-100 text-yellow-700",
+                              status === "out" && "bg-red-100 text-red-700",
+                            )}
+                          >
+                            {status === "in" && "In Stock"}
+                            {status === "low" && "Low Stock"}
+                            {status === "out" && "Out of Stock"}
+                          </span>
+                        );
+                      })()}
                     </TableCell>
                   )}
 
@@ -267,7 +315,7 @@ export function ProductTable({
                             {item.type === "Product" && (
                               <DropdownMenuItem asChild>
                                 <Link
-                                  href="/products/stock"
+                                  href={`/products/${item.id}/stocks`}
                                   className="flex items-center focus:bg-primary/10"
                                 >
                                   <SiNginxproxymanager className="mr-2 size-4" />

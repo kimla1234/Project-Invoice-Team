@@ -20,10 +20,10 @@ const currencyOptions = [
   { value: "KHR", label: "KHR" },
 ];
 
-
 const statusOptions = [
-  { value: "product", label: "Product" },
-  { value: "service", label: "Service" },
+  { value: "in", label: "In Stock" },
+  { value: "low", label: "Low Stock" },
+  { value: "out", label: "Out of Stock" },
 ];
 
 export default function Products() {
@@ -33,18 +33,18 @@ export default function Products() {
   const [refreshKey, setRefreshKey] = useState(0);
   const { toast } = useToast(); // ✅ ADD
 
-
-  
-  // export data 
+  // export data
   const [exportData, setExportData] = useState<any[]>([]);
-  
+
   const triggerRefresh = () => {
-    setRefreshKey(prev => prev + 1);
+    setRefreshKey((prev) => prev + 1);
   };
   // State to manage column visibility (Matching the image)
   const [columnVisibility, setColumnVisibility] = useState({
+    ID: true,
     Name: true,
-    Type: true,
+    Image: true,
+    StockStatus: true,
     UnitPrice: true,
     Actions: true,
   });
@@ -131,7 +131,7 @@ export default function Products() {
 
       <div className="h-auto w-full space-y-10 rounded-md bg-white p-8 text-slate-600">
         <div>
-          <HeaderProducts refreshKey={refreshKey}/>
+          <HeaderProducts refreshKey={refreshKey} />
         </div>
         <div className="space-y-4">
           <div className="flex w-full justify-between space-x-4">
@@ -152,7 +152,7 @@ export default function Products() {
 
                 {/* Status Filter */}
                 <FilterDropdown
-                  title="Type"
+                  title="Stock"
                   options={statusOptions}
                   selectedValues={selectedStatuses}
                   onChange={setSelectedStatuses}
@@ -175,7 +175,6 @@ export default function Products() {
               onExportDataChange={setExportData}
               onDeleted={triggerRefresh}
             />
-            
           </div>
         </div>
       </div>
