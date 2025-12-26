@@ -39,6 +39,7 @@ export default function Products() {
   const triggerRefresh = () => {
     setRefreshKey((prev) => prev + 1);
   };
+
   // State to manage column visibility (Matching the image)
   const [columnVisibility, setColumnVisibility] = useState({
     ID: true,

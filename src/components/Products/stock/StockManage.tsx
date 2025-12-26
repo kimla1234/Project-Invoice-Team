@@ -17,6 +17,7 @@ import { getProductById, updateProduct } from "@/components/Tables/fetch";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import StockManageSkeleton from "@/components/skeletons/StockManageSkeleton";
 import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
+import { addOutOfStockNotification } from "@/utils/notifications";
 
 interface StockManageProps {
   productId: string;
@@ -140,8 +141,16 @@ export default function StockManage({ productId }: StockManageProps) {
         stock: updatedStock,
         movements: updatedMovements,
       };
+
       await updateProduct(product.id.toString(), updatedProduct);
-      setProduct({ ...product, ...updatedProduct });
+
+      const mergedProduct = { ...product, ...updatedProduct };
+      setProduct(mergedProduct);
+
+      // 🔔 OUT OF STOCK NOTIFICATION (HERE ONLY)
+      if (mergedProduct.stock === 0) {
+        addOutOfStockNotification(mergedProduct.name);
+      }
     }
 
     toast({
