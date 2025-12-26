@@ -6,6 +6,7 @@ export interface QuotationItem {
   total: number;
 }
 
+
 // types/quotation.ts
 export interface QuotationData {
   id: number;
