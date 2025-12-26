@@ -16,11 +16,7 @@ import {
 /* =======================
    Types
 ======================= */
-export type CompanyType =
-  | "products"
-  | "service"
-  | "recurring"
-  | "education";
+export type CompanyType = "products" | "service" | "recurring" | "education";
 
 export interface CompanyDetailsData {
   companyName?: string;
@@ -28,7 +24,7 @@ export interface CompanyDetailsData {
   companyPhone?: string;
   companyAddress?: string;
   companyType?: CompanyType;
-  companyLogo?: File | null;
+  companyLogo?: string | null;
 }
 
 interface CompanyDetailsStepProps {
@@ -95,34 +91,37 @@ const CompanyStep = forwardRef<
      Expose validation to parent
   ======================= */
   useImperativeHandle(ref, () => ({
-  validateAndSave: async () => {
-    formik.setTouched({
-      companyName: true,
-      companyEmail: true,
-      companyPhone: true,
-      companyAddress: true,
-      companyType: true,
-    });
+    validateAndSave: async () => {
+      formik.setTouched({
+        companyName: true,
+        companyEmail: true,
+        companyPhone: true,
+        companyAddress: true,
+        companyType: true,
+      });
 
-    const errors = await formik.validateForm();
-    console.log("Validation errors:", errors); // ✅ Debug here
-    if (Object.keys(errors).length === 0) {
-      updateFormData(formik.values);
-      return true;
-    }
-    return false;
-  },
-}));
-
+      const errors = await formik.validateForm();
+      console.log("Validation errors:", errors); // ✅ Debug here
+      if (Object.keys(errors).length === 0) {
+        updateFormData(formik.values);
+        return true;
+      }
+      return false;
+    },
+  }));
 
   /* =======================
      Helpers
   ======================= */
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      formik.setFieldValue("companyLogo", file);
-    }
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      formik.setFieldValue("companyLogo", reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   const getInputClasses = (field: keyof CompanyDetailsData) => {
@@ -144,7 +143,7 @@ const CompanyStep = forwardRef<
      JSX
   ======================= */
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-8 duration-500 animate-in fade-in slide-in-from-bottom-4">
       <h2 className="text-xl font-semibold">Company Information</h2>
 
       <form onSubmit={formik.handleSubmit} className="space-y-8">
@@ -195,13 +194,13 @@ const CompanyStep = forwardRef<
               Company Type <span className="text-red-500">*</span>
             </label>
 
-            <DropdownMenu >
-              <DropdownMenuTrigger asChild >
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <button
                   type="button"
                   className={cn(
                     getInputClasses("companyType"),
-                    "flex items-center justify-between"
+                    "flex items-center justify-between",
                   )}
                 >
                   <span className="capitalize">
@@ -211,11 +210,11 @@ const CompanyStep = forwardRef<
                 </button>
               </DropdownMenuTrigger>
 
-              <DropdownMenuContent className="w-[365px] p-2 h-auto">
+              <DropdownMenuContent className="h-auto w-[365px] p-2">
                 {COMPANY_TYPES.map((item) => (
                   <DropdownMenuItem
                     key={item.value}
-                    className="capitalize hover:bg-slate-100 "
+                    className="capitalize hover:bg-slate-100"
                     onSelect={() => {
                       formik.setFieldValue("companyType", item.value);
                       formik.setFieldTouched("companyType", true);
@@ -236,12 +235,12 @@ const CompanyStep = forwardRef<
           <div className="flex h-32 w-32 items-center justify-center rounded-lg border bg-gray-50">
             {formik.values.companyLogo ? (
               <img
-                src={URL.createObjectURL(formik.values.companyLogo)}
+                src={formik.values.companyLogo}
                 alt="Company Logo"
                 className="h-full w-full rounded-lg object-cover"
               />
             ) : (
-              <span className="text-gray-400 text-sm">Logo</span>
+              <span className="text-sm text-gray-400">Logo</span>
             )}
           </div>
 

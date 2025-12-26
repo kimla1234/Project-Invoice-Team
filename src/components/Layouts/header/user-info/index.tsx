@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { LogOutIcon, SettingsIcon, UserIcon } from "./icons";
 import { useRouter } from "next/navigation"; // Import router for logout
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 
 interface User {
   fullName: string;
@@ -23,6 +24,7 @@ export function UserInfo() {
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
 
 
 
@@ -62,6 +64,11 @@ export function UserInfo() {
   window.addEventListener("storage", loadUser);
   return () => window.removeEventListener("storage", loadUser);
 }, []);
+
+// Show modal instead of direct logout
+  const handleLogoutClick = () => {
+    setShowSignOutModal(true);
+  };
 
   // 2. Handle Logout
   const handleLogout = () => {
@@ -123,7 +130,7 @@ export function UserInfo() {
 
         <div className="p-2 text-[#4B5563] dark:text-dark-6">
           <Link
-            href="/setting"
+            href="/setting?tab=account"
             onClick={() => setIsOpen(false)}
             className="flex items-center gap-2.5 rounded-lg px-2.5 py-[9px] hover:bg-gray-2 dark:hover:bg-dark-3"
           >
@@ -132,7 +139,7 @@ export function UserInfo() {
           </Link>
 
           <Link
-            href="/setting"
+            href="/setting?tab=company"
             onClick={() => setIsOpen(false)}
             className="flex items-center gap-2.5 rounded-lg px-2.5 py-[9px] hover:bg-gray-2 dark:hover:bg-dark-3"
           >
@@ -142,7 +149,7 @@ export function UserInfo() {
 
           {/* 3. Added Logout Button */}
           <button
-            onClick={handleLogout}
+            onClick={handleLogoutClick} 
             className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[9px] text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
           >
             <LogOutIcon />
@@ -150,6 +157,14 @@ export function UserInfo() {
           </button>
         </div>
       </DropdownContent>
+      {/* Confirm Sign Out Modal */}
+      <ConfirmModal
+        open={showSignOutModal}
+        title="Confirm Sign Out"
+        description="Are you sure you want to sign out?"
+        onConfirm={handleLogout}
+        onCancel={() => setShowSignOutModal(false)}
+      />
     </Dropdown>
   );
 }

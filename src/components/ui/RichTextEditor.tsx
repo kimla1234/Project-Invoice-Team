@@ -38,7 +38,7 @@ export default function RichTextEditor({ value, onChange }: Props) {
   if (!editor) return null;
 
   return (
-    <div className="rounded-lg border border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-700">
+    <div className="rounded-lg bg-slate-100/80 border-gray-300  dark:border-gray-600 dark:bg-gray-700">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-1 border-b p-2 dark:border-gray-600">
         {/* Text style */}

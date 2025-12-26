@@ -88,7 +88,7 @@ export function ProductTable({
         (item.stock?.toString() || "").includes(lowerCaseSearch);
 
       // 🏷 Status filter (Product / Service)
-      const stockStatus = getStockStatus(item.stock ?? 0);
+      const stockStatus = getStockStatus(item.stock ?? 0, item.lowStockThreshold);
 
       const matchStatus =
         selectedStatuses.length === 0 || selectedStatuses.includes(stockStatus);
@@ -282,7 +282,7 @@ export function ProductTable({
                           >
                             {status === "in" && "In Stock"}
                             {status === "low" && "Low Stock"}
-                            {status === "out" && "Out of Stock"}
+                            {status === "out" && "Out Stock"}
                           </span>
                         );
                       })()}

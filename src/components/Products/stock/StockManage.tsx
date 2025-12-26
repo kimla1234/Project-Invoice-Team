@@ -3,7 +3,7 @@
 import { ProductData } from "@/types/product";
 import Link from "next/link";
 import React, { useEffect, useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   FiSkipBack,
   FiPlusCircle,
@@ -13,9 +13,10 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 import { useToast } from "@/hooks/use-toast";
-import { getProductById, updateProduct } from "@/components/Tables/fetch"; 
+import { getProductById, updateProduct } from "@/components/Tables/fetch";
 import { PaginationControls } from "@/components/ui/pagination-controls";
-
+import StockManageSkeleton from "@/components/skeletons/StockManageSkeleton";
+import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
 
 interface StockManageProps {
   productId: string;
@@ -34,6 +35,7 @@ interface Movement {
 export default function StockManage({ productId }: StockManageProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [product, setProduct] = useState<ProductData | null>(null);
@@ -85,6 +87,16 @@ export default function StockManage({ productId }: StockManageProps) {
 
     fetchData();
   }, [productId, toast]);
+
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const action = searchParams.get("action");
+
+    if (action === "in") setType("IN");
+    if (action === "out") setType("OUT");
+    if (action === "adjust") setType("ADJUST");
+  }, [searchParams]);
 
   // Helper to calculate new stock
   const newStockInHand = useMemo(() => {
@@ -140,24 +152,41 @@ export default function StockManage({ productId }: StockManageProps) {
   };
 
   // Handle deleting a movement
-  const handleDelete = async (id: number) => {
-    const filtered = movements.filter((m) => m.id !== id);
+  // 1. open modal
+  const handleRequestDelete = (id: number) => {
+    setDeleteId(id);
+  };
+
+  // 2. confirm delete
+  const handleConfirmDelete = async () => {
+    if (deleteId === null) return;
+
+    const filtered = movements.filter((m) => m.id !== deleteId);
     setMovements(filtered);
+
     if (product) {
       await updateProduct(product.id.toString(), { movements: filtered });
       setProduct({ ...product, movements: filtered });
     }
+
+    toast({
+      title: "Deleted",
+      description: "Stock movement removed",
+      className: "bg-red-600 text-white",
+    });
+
+    setDeleteId(null);
   };
 
   const totalPages = Math.ceil(movements.length / rowsPerPage);
   const currentMovements = useMemo(() => {
     return movements.slice(
       (currentPage - 1) * rowsPerPage,
-      currentPage * rowsPerPage
+      currentPage * rowsPerPage,
     );
   }, [currentPage, rowsPerPage, movements]);
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <StockManageSkeleton />;
 
   return (
     <div className="flex w-full justify-center p-10 dark:bg-gray-900">
@@ -232,8 +261,8 @@ export default function StockManage({ productId }: StockManageProps) {
                 {type === "IN"
                   ? "Add Stock"
                   : type === "OUT"
-                  ? "Remove Stock"
-                  : "Adjust Stock"}{" "}
+                    ? "Remove Stock"
+                    : "Adjust Stock"}{" "}
                 (Current: {currentStock})
               </label>
               <div className="relative">
@@ -319,10 +348,10 @@ export default function StockManage({ productId }: StockManageProps) {
                       {m.type === "OUT" ? `-${m.quantity}` : `+${m.quantity}`}
                     </span>
                     <button
-                      onClick={() => handleDelete(m.id)}
-                      className="text-red-400 hover:text-red-600"
+                      onClick={() => handleRequestDelete(m.id)}
+                      className="rounded-full bg-red-100 p-2 text-red-400 hover:text-red-600"
                     >
-                      <FiTrash2 />
+                      <FiTrash2 className="h-5 w-5" />
                     </button>
                   </div>
                 </div>
@@ -347,6 +376,11 @@ export default function StockManage({ productId }: StockManageProps) {
           )}
         </div>
       </div>
+      <ConfirmDeleteModal
+        open={deleteId !== null}
+        onCancel={() => setDeleteId(null)}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }
