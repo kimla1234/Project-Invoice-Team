@@ -1,102 +1,44 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Eye, Edit2, Trash2, SearchX } from "lucide-react";
 import { QuotationData } from "@/types/quotation";
+import { ClientData } from "@/types/client";
 import QuotationTableSkeleton from "../skeletons/QuotationTableSkeleton";
 import { useToast } from "@/hooks/use-toast";
 import { PaginationControls } from "../ui/pagination-controls";
 import { DeleteQuotations } from "../Quotations/delete-quotation/DeleteQuotations";
-import { getClientsTableData } from "./clients";
-import { ClientData } from "@/types/client";
 
 interface QuotationTableProps {
-  searchTerm?: string;
-  issueDate?: string;
+  data: QuotationData[];
+  clients: ClientData[];
+  loading: boolean;
+  onRefresh: () => void;
 }
 
-export default function QuotationTable({
-  searchTerm = "",
-  issueDate,
-}: QuotationTableProps) {
-  const [quotations, setQuotations] = useState<QuotationData[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function QuotationTable({ data, clients, loading, onRefresh }: QuotationTableProps) {
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [clients, setClients] = useState<ClientData[]>([]);
   const { toast } = useToast();
-
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(7);
 
-  // Fetch clients
-  useEffect(() => {
-    async function fetchClients() {
-      const data = await getClientsTableData();
-      setClients(data);
-    }
-    fetchClients();
-  }, []);
-
-  // Fetch quotations from localStorage
-  const fetchQuotations = () => {
-    setLoading(true);
-    const stored = JSON.parse(localStorage.getItem("quotations") || "[]");
-    setQuotations(Array.isArray(stored) ? stored : []);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchQuotations();
-  }, []);
-
-  // Filter quotations by search term and issueDate
-  const filteredData = useMemo(() => {
-    return quotations.filter((q) => {
-      const clientName = clients.find((c) => c.id === q.clientId)?.name ?? "";
-
-      const quotationNo = `QUO-${String(q.id).padStart(4, "0")}`.toLowerCase();
-      const term = searchTerm.toLowerCase();
-
-      const matchesSearch =
-        clientName.toLowerCase().includes(term) || quotationNo.includes(term);
-
-      const matchesDate = issueDate ? q.issueDate === issueDate : true;
-      return matchesSearch && matchesDate;
-    });
-  }, [quotations, clients, searchTerm, issueDate]);
-
-  const totalItems = filteredData.length;
+  const totalItems = data.length;
   const totalPages = Math.ceil(totalItems / rowsPerPage);
+
   const paginatedData = useMemo(() => {
     const startIndex = (currentPage - 1) * rowsPerPage;
-    return filteredData.slice(startIndex, startIndex + rowsPerPage);
-  }, [filteredData, currentPage, rowsPerPage]);
-
-  const handleRowsPerPageChange = (newRowsPerPage: number) => {
-    setRowsPerPage(newRowsPerPage);
-    setCurrentPage(1);
-  };
+    return data.slice(startIndex, startIndex + rowsPerPage);
+  }, [data, currentPage, rowsPerPage]);
 
   const handleConfirmDelete = () => {
     if (deleteId === null) return;
     const stored = JSON.parse(localStorage.getItem("quotations") || "[]");
     const updated = stored.filter((q: QuotationData) => q.id !== deleteId);
     localStorage.setItem("quotations", JSON.stringify(updated));
+    
     toast({
       title: "Quotation deleted",
       description: "The quotation has been removed successfully.",
@@ -104,7 +46,7 @@ export default function QuotationTable({
       duration: 3000,
     });
     setDeleteId(null);
-    fetchQuotations();
+    onRefresh(); // Trigger parent to reload data
   };
 
   if (loading) return <QuotationTableSkeleton />;
@@ -125,28 +67,20 @@ export default function QuotationTable({
 
           <TableBody>
             {paginatedData.length > 0 ? (
-              paginatedData.map((q, index) => (
-                <TableRow
-                  key={q.id}
-                  className="border-[#eee] dark:border-dark-3"
-                >
+              paginatedData.map((q) => (
+                <TableRow key={q.id} className="border-[#eee] dark:border-dark-3">
                   <TableCell className="font-medium text-dark dark:text-white xl:pl-7.5">
                     {`QUO-${String(q.id).padStart(4, "0")}`}
                   </TableCell>
-
                   <TableCell className="text-dark dark:text-white">
-                    {clients.find((c) => c.id === q.clientId)?.name ??
-                      "Unknown Client"}
+                    {clients.find((c) => c.id === q.clientId)?.name ?? "Unknown Client"}
                   </TableCell>
-
                   <TableCell className="font-medium text-dark dark:text-white">
                     ${Number(q.amount ?? 0).toFixed(2)}
                   </TableCell>
-
                   <TableCell className="text-gray-500">
                     {new Date(q.issueDate).toLocaleDateString("en-GB")}
                   </TableCell>
-
                   <TableCell className="text-right xl:pr-7.5">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -154,30 +88,18 @@ export default function QuotationTable({
                           <MoreHorizontal className="size-5 text-gray-500" />
                         </button>
                       </DropdownMenuTrigger>
-
                       <DropdownMenuContent align="end" className="w-44">
                         <DropdownMenuItem asChild>
-                          <Link
-                            href={`/quotation/${q.id}`}
-                            className="flex items-center focus:bg-primary/10"
-                          >
+                          <Link href={`/quotation/${q.id}`} className="flex items-center focus:bg-primary/10">
                             <Eye className="mr-2 size-4" /> View
                           </Link>
                         </DropdownMenuItem>
-
                         <DropdownMenuItem asChild>
-                          <Link
-                            href={`/quotation/${q.id}/edit`}
-                            className="flex items-center focus:bg-primary/10"
-                          >
+                          <Link href={`/quotation/${q.id}/edit`} className="flex items-center focus:bg-primary/10">
                             <Edit2 className="mr-2 size-4" /> Edit
                           </Link>
                         </DropdownMenuItem>
-
-                        <DropdownMenuItem
-                          onClick={() => setDeleteId(q.id)}
-                          className="flex items-center text-red-600 focus:bg-red-50"
-                        >
+                        <DropdownMenuItem onClick={() => setDeleteId(q.id)} className="flex items-center text-red-600 focus:bg-red-50">
                           <Trash2 className="mr-2 size-4" /> Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -192,12 +114,8 @@ export default function QuotationTable({
                     <div className="rounded-full bg-gray-100 p-4 dark:bg-dark-3">
                       <SearchX className="size-8 text-gray-400" />
                     </div>
-                    <p className="text-lg font-semibold text-dark dark:text-white">
-                      No quotations found
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Try changing the search or date filter.
-                    </p>
+                    <p className="text-lg font-semibold text-dark dark:text-white">No quotations found</p>
+                    <p className="text-sm text-gray-500">Try changing the search or date filter.</p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -213,16 +131,12 @@ export default function QuotationTable({
           rowsPerPage={rowsPerPage}
           totalItems={totalItems}
           onPageChange={setCurrentPage}
-          onRowsPerPageChange={handleRowsPerPageChange}
+          onRowsPerPageChange={(val) => { setRowsPerPage(val); setCurrentPage(1); }}
           availableRowsPerPage={[7, 10, 20, 50]}
         />
       )}
 
-      <DeleteQuotations
-        open={deleteId !== null}
-        onCancel={() => setDeleteId(null)}
-        onConfirm={handleConfirmDelete}
-      />
+      <DeleteQuotations open={deleteId !== null} onCancel={() => setDeleteId(null)} onConfirm={handleConfirmDelete} />
     </div>
   );
 }

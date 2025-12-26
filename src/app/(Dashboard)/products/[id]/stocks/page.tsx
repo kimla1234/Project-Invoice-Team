@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 export default function page() {
   const params = useParams();
   const productId = params.id as string;
+  
   return (
     <StockManage productId={productId}/>
   )

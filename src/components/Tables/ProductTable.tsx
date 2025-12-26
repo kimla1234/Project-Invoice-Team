@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { MoreHorizontal, Edit2, Trash2, SearchX } from "lucide-react";
+import { addOutOfStockNotification } from "@/utils/notifications";
 
 import { ProductData } from "@/types/product";
 import { getProductsTableData, deleteProduct } from "./fetch";
@@ -55,25 +56,31 @@ export function ProductTable({
 
   // Fetch initial data
   useEffect(() => {
-    async function fetchData() {
-      try {
-        const result = await getProductsTableData();
-        setFullData(result);
-      } catch (error) {
-        console.error("Failed to fetch data:", error);
-      } finally {
-        setLoading(false);
-      }
+  async function fetchData() {
+    try {
+      const result = await getProductsTableData();
+      setFullData(result);
+
+      // បន្ថែមតែផលិតផលណាដែលអស់ស្តុក និងមិនទាន់បាន Notify
+      //result.forEach((item) => {
+      //  if (item.type === "Product" && item.stock === 0) {
+      //    addOutOfStockNotification(item.name);
+      //  }
+      //});
+    } catch (error) {
+      console.error("Failed to fetch data:", error);
+    } finally {
+      setLoading(false);
     }
-    fetchData();
-  }, []);
+  }
+  fetchData();
+}, []);
 
   const getStockStatus = (stock: number, lowThreshold?: number) => {
-  if (stock === 0) return "out";
-  if (lowThreshold !== undefined && stock <= lowThreshold) return "low";
-  return "in";
-};
-
+    if (stock === 0) return "out";
+    if (lowThreshold !== undefined && stock <= lowThreshold) return "low";
+    return "in";
+  };
 
   // Filter logic
   const filteredData = useMemo(() => {
@@ -88,7 +95,10 @@ export function ProductTable({
         (item.stock?.toString() || "").includes(lowerCaseSearch);
 
       // 🏷 Status filter (Product / Service)
-      const stockStatus = getStockStatus(item.stock ?? 0, item.lowStockThreshold);
+      const stockStatus = getStockStatus(
+        item.stock ?? 0,
+        item.lowStockThreshold,
+      );
 
       const matchStatus =
         selectedStatuses.length === 0 || selectedStatuses.includes(stockStatus);
@@ -96,11 +106,12 @@ export function ProductTable({
       // 💱 Currency filter
 
       const matchCurrency =
-      selectedCurrencies.length === 0 ||
-      selectedCurrencies.some(
-        (cur) =>
-          cur.trim().toUpperCase() === (item.currency ?? "").trim().toUpperCase()
-      );
+        selectedCurrencies.length === 0 ||
+        selectedCurrencies.some(
+          (cur) =>
+            cur.trim().toUpperCase() ===
+            (item.currency ?? "").trim().toUpperCase(),
+        );
       return matchSearch && matchStatus && matchCurrency;
     });
   }, [fullData, searchTerm, selectedStatuses, selectedCurrencies]);
@@ -267,8 +278,10 @@ export function ProductTable({
                   {visibleColumns.StockStatus && (
                     <TableCell>
                       {(() => {
-                        const status = getStockStatus(item.stock ?? 0, item.lowStockThreshold);
-
+                        const status = getStockStatus(
+                          item.stock ?? 0,
+                          item.lowStockThreshold,
+                        );
 
                         return (
                           <span
