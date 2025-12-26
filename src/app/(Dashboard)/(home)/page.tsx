@@ -1,5 +1,5 @@
 
-import Dashboard from '@/components/Dashboard/dashboard'
+import Dashboard from '@/components/Dashboard/Dashboard'
 import React from 'react'
 
 function page() {
