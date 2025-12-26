@@ -284,19 +284,19 @@ export function ProductTable({
                         );
 
                         return (
-                          <span
+                          <div
                             className={cn(
-                              "rounded-full px-3 py-1 text-sm font-medium",
+                              "rounded-md  w-[100px] py-1 flex  justify-center  text-sm font-medium",
                               status === "in" && "bg-green-100 text-green-700",
                               status === "low" &&
                                 "bg-yellow-100 text-yellow-700",
                               status === "out" && "bg-red-100 text-red-700",
                             )}
                           >
-                            {status === "in" && "In Stock"}
+                            <div>{status === "in" && "In Stock"}
                             {status === "low" && "Low Stock"}
-                            {status === "out" && "Out Stock"}
-                          </span>
+                            {status === "out" && "Out Stock"}</div>
+                          </div>
                         );
                       })()}
                     </TableCell>

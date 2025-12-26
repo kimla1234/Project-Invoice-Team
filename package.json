@@ -33,6 +33,8 @@
     "formik": "^2.4.9",
     "happy-dom": "^20.0.11",
     "html2pdf.js": "^0.12.1",
+    "jspdf": "^3.0.4",
+    "jspdf-autotable": "^5.0.2",
     "jsvectormap": "^1.6.0",
     "lucide-react": "^0.562.0",
     "next": "16.0.10",

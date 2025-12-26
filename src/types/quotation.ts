@@ -12,6 +12,9 @@ export interface QuotationData {
   clientId: number; // <-- link to client table
   amount: number;
   issueDate: string;
+  notes?: string;
+  terms?: string;
+  quotationNo?: string;
   items?: {
     id: number;
     name: string;
@@ -20,4 +23,3 @@ export interface QuotationData {
     total: number;
   }[];
 }
-

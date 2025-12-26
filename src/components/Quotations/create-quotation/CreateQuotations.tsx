@@ -10,6 +10,7 @@ import { mockClients } from "@/components/Tables/clients";
 import { IoAddCircleOutline } from "react-icons/io5";
 import { IoMdAdd } from "react-icons/io";
 import { ClientModal } from "./ClientModal";
+import { DownloadPDFButton } from "./DownloadPDFButton";
 type Item = {
   id: number;
   name: string;
@@ -121,6 +122,7 @@ export default function CreateQuotation() {
   const router = useRouter();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
+
   const [clients, setClients] = useState<ClientData[]>([]);
   const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
   const [items, setItems] = useState<Item[]>([]);
@@ -131,9 +133,33 @@ export default function CreateQuotation() {
   );
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
 
+  const [invoiceNote, setInvoiceNote] = useState("");
+  const [invoiceTerms, setInvoiceTerms] = useState("");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return; // ensure client-side
+
+    const stored = localStorage.getItem("invoice_footer_settings");
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      setInvoiceNote(parsed.defaultNote || "");
+      setInvoiceTerms(parsed.defaultTerms || "");
+    }
+  }, []);
+
   useEffect(() => {
     const storedUser = localStorage.getItem("registered_user");
+
     if (storedUser) setUser(JSON.parse(storedUser));
+  }, []);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("invoice_footer_settings");
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      setInvoiceNote(parsed.defaultNote || "");
+      setInvoiceTerms(parsed.defaultTerms || "");
+    }
   }, []);
 
   useEffect(() => setClients(mockClients), []);
@@ -265,7 +291,7 @@ export default function CreateQuotation() {
           <h1 className="text-3xl font-bold text-gray-800">Quotation</h1>
           <div className="text-sm">
             <p className="text-gray-500">Quotation No.</p>
-            <p className="font-semibold text-gray-700">QUO-2</p>
+            <p className="font-semibold text-gray-700">{quotationNo}</p>
           </div>
         </header>
 
@@ -476,15 +502,19 @@ export default function CreateQuotation() {
               </button>
             </div>
           </div>
-          <div className="flex justify-end border-t bg-gray-50 p-4">
+          <div className="flex justify-end bg-gray-50 p-4">
             <div className="w-1/2 space-y-2">
               <div className="flex justify-between font-medium text-gray-700">
                 <span>Subtotal</span>
-                <span>$0.00</span>
+                <span>
+                  ${items.reduce((sum, item) => sum + item.total, 0).toFixed(2)}
+                </span>
               </div>
-              <div className="flex justify-between text-lg font-bold text-gray-900">
+              <div className="flex justify-between text-lg font-bold text-gray-600">
                 <span>Grand Total</span>
-                <span>$0.00</span>
+                <span>
+                  ${items.reduce((sum, item) => sum + item.total, 0).toFixed(2)}
+                </span>
               </div>
             </div>
           </div>
@@ -506,9 +536,23 @@ export default function CreateQuotation() {
           <button className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700">
             <span className="mr-2">+</span> Preview and send
           </button>
-          <button className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700">
-            <span className="mr-2">+</span> Download (PDF)
-          </button>
+          <div className="flex w-full items-center justify-center rounded-lg bg-purple-600 text-white hover:bg-purple-700">
+            <DownloadPDFButton
+              quotation={{
+                id: items.length > 0 ? 1 : 0,
+                issueDate: issueDate,
+                items: items,
+                clientId: selectedClient?.id ?? 0,
+                amount: items.reduce((sum, i) => sum + i.total, 0),
+                notes: invoiceNote,
+                terms: invoiceTerms,
+                quotationNo: quotationNo,
+              }}
+              client={selectedClient}
+              taxRate={0}
+              user={user}
+            />
+          </div>
           <button className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700">
             <span className="mr-2">+</span> Send to client
           </button>

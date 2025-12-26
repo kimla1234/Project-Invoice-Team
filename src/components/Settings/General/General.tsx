@@ -1,29 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
-
-import "filepond/dist/filepond.min.css";
-import {
-  FilePond,
-  FilePondFile,
-  registerPlugin,
-  type FilePondFile as FPFile,
-} from "filepond";
-import {
-  DollarSign,
-  FileText,
-  PenTool,
-  Save,
-  Settings,
-  UploadCloud,
-} from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { DollarSign, Save, Settings, UploadCloud } from "lucide-react";
 import { AiOutlineInsertRowBelow } from "react-icons/ai";
 import RichTextEditor from "@/components/ui/RichTextEditor";
-
-// Optional: Add plugins if needed
-// import FilePondPluginImagePreview from 'filepond-plugin-image-preview';
-// import 'filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css';
-// registerPlugin(FilePondPluginImagePreview);
 
 export default function General() {
   // Currency states
@@ -31,7 +11,7 @@ export default function General() {
   const [fromCurrency, setFromCurrency] = useState("USD");
   const [toCurrency, setToCurrency] = useState("KHR");
   const [exchangeRate, setExchangeRate] = useState(4100);
-
+const [editorKey, setEditorKey] = useState(0);
   // Default terms & note
   const [defaultTerms, setDefaultTerms] = useState(
     "• Cost is Exclusive With Holding-Tax\n• Flexible Cost Depends on Customer Needs\n• 50% Deposit after agreement\n• Deposit amount is not refundable",
@@ -39,17 +19,92 @@ export default function General() {
   const [defaultNote, setDefaultNote] = useState(defaultTerms);
 
   // Signature files
-  const [files, setFiles] = useState<FPFile["file"][]>([]);
+  const [files, setFiles] = useState<File[]>([]);
 
+  // Load invoice footer & currency settings on mount
+  useEffect(() => {
+    // Load invoice footer
+    const invoiceData = localStorage.getItem("invoice_footer_settings");
+    if (invoiceData) {
+      const parsed = JSON.parse(invoiceData);
+      setDefaultTerms(parsed.defaultTerms || defaultTerms);
+      setDefaultNote(parsed.defaultNote || parsed.defaultTerms || defaultTerms);
+    }
+
+    // Load currency settings
+    const currencyData = localStorage.getItem("invoice_currency_settings");
+    if (currencyData) {
+      const parsed = JSON.parse(currencyData);
+      setBaseRate(parsed.baseRate || 1);
+      setFromCurrency(parsed.fromCurrency || "USD");
+      setToCurrency(parsed.toCurrency || "KHR");
+      setExchangeRate(parsed.exchangeRate || 4100);
+    }
+  }, []);
+
+  // Update currency settings
   const handleUpdateCurrency = () => {
-    console.log({ baseRate, fromCurrency, toCurrency, exchangeRate });
-    alert("Currency settings updated!");
+    const currencySettings = {
+      baseRate,
+      fromCurrency,
+      toCurrency,
+      exchangeRate,
+    };
+    localStorage.setItem(
+      "invoice_currency_settings",
+      JSON.stringify(currencySettings),
+    );
+    alert("Currency settings saved locally!");
   };
 
+  // Update invoice footer settings
+  // Save invoice footer including signature (Base64)
   const handleUpdateInvoice = () => {
-    console.log({ defaultTerms, defaultNote, files });
-    alert("Invoice settings updated!");
+    if (files[0]) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const invoiceSettings = {
+          defaultTerms,
+          defaultNote,
+          signatureBase64: reader.result, // save file content
+          signatureName: files[0].name,
+        };
+        localStorage.setItem(
+          "invoice_footer_settings",
+          JSON.stringify(invoiceSettings),
+        );
+        alert("Invoice settings saved locally!");
+      };
+      reader.readAsDataURL(files[0]);
+    } else {
+      const invoiceSettings = {
+        defaultTerms,
+        defaultNote,
+        signatureBase64: null,
+        signatureName: null,
+      };
+      localStorage.setItem(
+        "invoice_footer_settings",
+        JSON.stringify(invoiceSettings),
+      );
+      alert("Invoice settings saved locally!");
+    }
   };
+
+  // Restore on page load
+  useEffect(() => {
+  const invoiceData = localStorage.getItem("invoice_footer_settings");
+  if (invoiceData) {
+    const parsed = JSON.parse(invoiceData);
+    setDefaultTerms(parsed.defaultTerms || "");
+    setDefaultNote(parsed.defaultNote || parsed.defaultTerms || "");
+    
+    // reset editor by changing key
+    setEditorKey(prev => prev + 1);
+  }
+}, []);
+
+
 
   return (
     <div className="mx-auto space-y-8">
@@ -68,15 +123,14 @@ export default function General() {
         </div>
       </div>
 
-      {/* Currency Settings Card */}
+      {/* Currency Settings */}
       <div className="overflow-hidden rounded-xl border border-dashed border-slate-500">
         <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50/50 px-7 py-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100">
             <DollarSign className="h-5 w-5 text-indigo-700" />
           </div>
-
-          <div className="">
-            <h2 className="font- text-lg text-slate-700">
+          <div>
+            <h2 className="text-lg font-medium text-slate-700">
               Currency Configuration
             </h2>
             <p className="text-sm">
@@ -94,7 +148,7 @@ export default function General() {
               </label>
               <input
                 type="number"
-                className="w-full rounded-lg border-slate-200 bg-slate-100 p-2.5 text-sm outline-none ring-offset-2 transition-all focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200"
+                className="w-full rounded-lg border-slate-200 bg-slate-100 p-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200"
                 value={baseRate}
                 onChange={(e) => setBaseRate(Number(e.target.value))}
               />
@@ -102,7 +156,7 @@ export default function General() {
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-slate-500">From</label>
               <select
-                className="w-full rounded-lg border-slate-200 bg-slate-100 p-2.5 text-sm outline-none transition-all focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200"
+                className="w-full rounded-lg border-slate-200 bg-slate-100 p-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200"
                 value={fromCurrency}
                 onChange={(e) => setFromCurrency(e.target.value)}
               >
@@ -116,7 +170,7 @@ export default function General() {
               </label>
               <input
                 type="number"
-                className="w-full rounded-lg border-slate-200 bg-slate-100 p-2.5 text-sm outline-none transition-all focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200"
+                className="w-full rounded-lg border-slate-200 bg-slate-100 p-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200"
                 value={exchangeRate}
                 onChange={(e) => setExchangeRate(Number(e.target.value))}
               />
@@ -124,7 +178,7 @@ export default function General() {
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-slate-500">To</label>
               <select
-                className="w-full rounded-lg border-slate-200 bg-slate-100 p-2.5 text-sm outline-none transition-all focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200"
+                className="w-full rounded-lg border-slate-200 bg-slate-100 p-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200"
                 value={toCurrency}
                 onChange={(e) => setToCurrency(e.target.value)}
               >
@@ -136,7 +190,7 @@ export default function General() {
 
           <button
             onClick={handleUpdateCurrency}
-            className="mt-8 flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-indigo-700 hover:shadow-lg active:scale-95 disabled:opacity-50"
+            className="mt-8 flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 active:scale-95"
           >
             <Save className="h-4 w-4" />
             Update Rates
@@ -144,9 +198,8 @@ export default function General() {
         </div>
       </div>
 
-      {/* Default Terms & Note Section */}
+      {/* Invoice Footer: Terms & Note */}
       <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-b from-slate-50/50 to-white p-7">
-        {/* Header with decorative element */}
         <div className="relative z-10 mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -158,94 +211,58 @@ export default function General() {
               </h2>
             </div>
             <p className="max-w-md text-sm leading-relaxed text-slate-500">
-              Customize the global defaults for your invoice bottom section,
-              including legal terms and personal notes.
+              Customize global defaults for invoice bottom section: legal terms
+              and personal notes.
             </p>
           </div>
-
-          {/* Optional status badge */}
-          <span className="hidden items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-700/10 md:inline-flex">
-            Auto-saving enabled
-          </span>
         </div>
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-          {/* Card 1: Terms */}
-          <div className="group relative bg-white p-1">
-            <div className="">
-              <div className="mb-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <h3 className="font-bold text-slate-700">Default Terms</h3>
-                </div>
-              </div>
-              {/* Rich Text Editor replacing Textarea */}
-              <div className="min-h-[176px]">
-                <RichTextEditor
-                  value={defaultTerms}
-                  onChange={setDefaultTerms}
-                />
-              </div>
-            </div>
+          <div className="rounded-lg bg-white p-1">
+            <h3 className="mb-2 font-bold text-slate-700">Default Terms</h3>
+            <RichTextEditor key={editorKey} value={defaultTerms} onChange={setDefaultTerms} />
           </div>
 
-          {/* Card 2: Note */}
-          <div className="group relative rounded-2xl bg-white p-1 transition-all">
-            <div className="">
-              <div className="mb-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <h3 className="font-bold text-slate-700">Default Note</h3>
-                </div>
-              </div>
-              {/* Rich Text Editor replacing Textarea */}
-              <div className="min-h-[176px]">
-                <RichTextEditor value={defaultNote} onChange={setDefaultNote} />
-              </div>
-            </div>
+          <div className="rounded-lg bg-white p-1">
+            <h3 className="mb-2 font-bold text-slate-700">Default Note</h3>
+            <RichTextEditor key={editorKey} value={defaultNote} onChange={setDefaultNote} />
           </div>
         </div>
       </div>
 
-      {/* Signature Upload Card */}
-      <div className="rounded-xl border border-slate-200 bg-white p-7 ">
+      {/* Signature Upload */}
+      <div className="rounded-xl border border-slate-200 bg-white p-7">
         <div className="mb-5 flex gap-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100">
             <UploadCloud className="h-5 w-5 text-indigo-500" />
           </div>
           <div>
-            <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-700">
+            <h2 className="text-lg font-semibold text-slate-700">
               Signature Branding
             </h2>
-            <p className="text-sm">Please upload your signature as an image.</p>
+            <p className="text-sm">Upload your signature as an image.</p>
           </div>
         </div>
 
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-400 bg-slate-50 p-8 transition-colors hover:bg-slate-100/50">
-          <input
-            type="file"
-            id="signature-upload"
-            accept="image/*"
-            hidden
-            onChange={(e) => {
-              if (e.target.files && e.target.files[0]) {
-                setFiles([e.target.files[0]]);
-              }
-            }}
-          />
-          <label
-            htmlFor="signature-upload"
-            className="group flex cursor-pointer flex-col items-center"
-          >
-            <div className="mb-3 rounded-full bg-white p-4 shadow-sm transition-transform group-hover:scale-110">
-              <UploadCloud className="h-8 w-8 text-indigo-500" />
-            </div>
-            <span className="text-sm font-medium text-slate-600">
-              Click to upload signature
-            </span>
-            <span className="mt-1 text-sm text-slate-400">
-              PNG, JPG up to 5MB
-            </span>
-          </label>
-        </div>
+        <input
+          type="file"
+          id="signature-upload"
+          accept="image/*"
+          hidden
+          onChange={(e) => e.target.files && setFiles([e.target.files[0]])}
+        />
+        <label
+          htmlFor="signature-upload"
+          className="flex cursor-pointer flex-col items-center rounded-xl border border-dashed bg-slate-50 p-8 hover:bg-slate-100/50"
+        >
+          <UploadCloud className="mb-2 h-8 w-8 text-indigo-500" />
+          <span className="text-sm font-medium text-slate-600">
+            Click to upload signature
+          </span>
+          <span className="mt-1 text-sm text-slate-400">
+            PNG, JPG up to 5MB
+          </span>
+        </label>
 
         {files.length > 0 && (
           <div className="mt-6 flex items-center gap-6 rounded-lg border border-indigo-100 bg-indigo-50/30 p-4">
@@ -264,11 +281,11 @@ export default function General() {
         )}
       </div>
 
-      {/* Master Save Button */}
+      {/* Save All Button */}
       <div className="flex justify-end pt-4">
         <button
           onClick={handleUpdateInvoice}
-          className="flex items-center gap-2 rounded-xl bg-primary px-8 py-4 font-bold text-white transition-all hover:-translate-y-1 hover:bg-black active:translate-y-0"
+          className="flex items-center gap-2 rounded-xl bg-primary px-8 py-4 font-bold text-white hover:-translate-y-1 hover:bg-black"
         >
           <Save className="h-5 w-5" />
           Save All Invoice Settings
