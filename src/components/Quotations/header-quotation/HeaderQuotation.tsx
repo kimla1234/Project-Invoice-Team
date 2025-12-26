@@ -3,25 +3,23 @@
 import React, { useEffect, useState } from "react";
 import SummaryCard from "./SummaryCard";
 import { FileText } from "lucide-react";
-import { fetchQuotationSummary } from "@/components/Tables/quotation";
 
 export default function HeaderClients({
   refreshKey = 0,
 }: {
   refreshKey?: number;
 }) {
-  const [summary, setSummary] = useState({
-    totalQuotations: 0,
-  });
+  const [totalQuotations, setTotalQuotations] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadSummary = async () => {
+    const loadSummary = () => {
       try {
-        const data = await fetchQuotationSummary();
-        setSummary(data);
+        const quotations = JSON.parse(localStorage.getItem("quotations") || "[]");
+        setTotalQuotations(quotations.length);
       } catch (err) {
-        console.error("Failed to fetch summary:", err);
+        console.error("Failed to load quotations from localStorage:", err);
+        setTotalQuotations(0);
       } finally {
         setLoading(false);
       }
@@ -33,19 +31,15 @@ export default function HeaderClients({
   return (
     <div className="flex justify-around bg-white">
       {loading ? (
-        <>
-          <SummaryCardSkeleton />
-        </>
+        <SummaryCardSkeleton />
       ) : (
-        <>
-          <SummaryCard
-            title="Total Quotation"
-            count={summary.totalQuotations}
-            icon={FileText}
-            iconBgColor="bg-blue-100"
-            iconTextColor="text-blue-600"
-          />
-        </>
+        <SummaryCard
+          title="Total Quotations"
+          count={totalQuotations}
+          icon={FileText}
+          iconBgColor="bg-blue-100"
+          iconTextColor="text-blue-600"
+        />
       )}
     </div>
   );

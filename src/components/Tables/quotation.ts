@@ -1,35 +1,29 @@
+// services/mockQuotations.ts
 import { QuotationData } from "@/types/quotation";
 
-// Mock quotation data (id is now number)
+// Mock quotation data
 export const mockQuotations: QuotationData[] = [
-  { id: 1, name: "Nazaby", amount: 50, issueDate: "2025-12-25" },
-  { id: 2, name: "Nazaby", amount: 90, issueDate: "2025-12-22" },
-  { id: 3, name: "Nazaby", amount: 60, issueDate: "2025-12-22" },
-  { id: 4, name: "Nazaby", amount: 50, issueDate: "2025-12-25" },
-  { id: 5, name: "Nazaby", amount: 90, issueDate: "2025-12-25" },
-  { id: 6, name: "Nazaby", amount: 60, issueDate: "2025-12-25" },
-  { id: 7, name: "Nazaby", amount: 50, issueDate: "2025-12-25" },
-  { id: 8, name: "Nazaby", amount: 90, issueDate: "2025-12-24" },
-  { id: 9, name: "Nazaby", amount: 60, issueDate: "2025-12-25" },
+  {
+    id: 1,
+    clientId: 1, // John Doe
+    amount: 50,
+    issueDate: "2025-12-25",
+    items: [
+      { id: 1, name: "Product A", qty: 2, unitPrice: 10, total: 20 },
+      { id: 2, name: "Product B", qty: 3, unitPrice: 10, total: 30 },
+    ],
+  },
+  {
+    id: 2,
+    clientId: 2, // Jane Smith
+    amount: 90,
+    issueDate: "2025-12-22",
+    items: [{ id: 1, name: "Product C", qty: 5, unitPrice: 18, total: 90 }],
+  },
 ];
 
 // Simulate network delay
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-/* =========================
-   Generate QUO
-========================= */
-
-export function generateQuotationNo(): string {
-  const lastId =
-    mockQuotations.length > 0
-      ? Math.max(...mockQuotations.map((q) => q.id))
-      : 0;
-
-  const nextNumber = lastId + 1;
-  return `QUO-${String(nextNumber).padStart(4, "0")}`;
-}
-
 
 /* =========================
    READ
@@ -41,7 +35,7 @@ export async function getQuotationTableData(): Promise<QuotationData[]> {
 
 export async function getQuotationById(id: number): Promise<QuotationData | undefined> {
   await delay(300);
-  return mockQuotations.find((q) => q.id === id);
+  return mockQuotations.find(q => q.id === id);
 }
 
 /* =========================
@@ -53,10 +47,11 @@ export async function createQuotation(newQuotation: Partial<QuotationData>): Pro
   await delay(300);
 
   const quotation: QuotationData = {
-    id: nextNumber++, // numeric id
-    name: newQuotation.name ?? "New Quotation",
-    amount: newQuotation.amount ?? 0,
+    id: nextNumber++,
+    clientId: newQuotation.clientId ?? 0, // <-- store only clientId
     issueDate: newQuotation.issueDate ?? new Date().toISOString().split("T")[0],
+    items: newQuotation.items ?? [],
+    amount: newQuotation.amount ?? 0,
   };
 
   mockQuotations.push(quotation);
@@ -72,10 +67,15 @@ export async function updateQuotation(
 ): Promise<QuotationData | null> {
   await delay(300);
 
-  const index = mockQuotations.findIndex((q) => q.id === id);
+  const index = mockQuotations.findIndex(q => q.id === id);
   if (index === -1) return null;
 
-  mockQuotations[index] = { ...mockQuotations[index], ...updatedData };
+  mockQuotations[index] = {
+    ...mockQuotations[index],
+    ...updatedData,
+    items: updatedData.items ?? mockQuotations[index].items,
+  };
+
   return mockQuotations[index];
 }
 
@@ -85,32 +85,9 @@ export async function updateQuotation(
 export async function deleteQuotation(id: number): Promise<boolean> {
   await delay(300);
 
-  const index = mockQuotations.findIndex((q) => q.id === id);
+  const index = mockQuotations.findIndex(q => q.id === id);
   if (index === -1) return false;
 
   mockQuotations.splice(index, 1);
   return true;
-}
-
-/* =========================
-   SUMMARY
-========================= */
-export async function fetchQuotationSummary() {
-  await delay(300);
-
-  const totalQuotations = mockQuotations.length;
-  const totalAmount = mockQuotations.reduce((sum, q) => sum + q.amount, 0);
-
-  return { totalQuotations, totalAmount };
-}
-
-/* =========================
-   FILTER (by name)
-========================= */
-export async function getFilteredQuotations(searchTerm: string) {
-  await delay(300);
-
-  return mockQuotations.filter((q) =>
-    q.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 }
