@@ -5,13 +5,6 @@ import Link from "next/link";
 import React, { useState, useEffect } from "react";
 import { FiSkipBack } from "react-icons/fi";
 import { Edit2, Plus, Minus } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "../../ui/dropdown-menu";
 
 import { cn } from "@/lib/utils";
 import RichTextEditor from "@/components/ui/RichTextEditor";
@@ -154,6 +147,13 @@ export default function EditProduct({ productId }: EditProductProps) {
       });
     }
   };
+
+
+  const handleManageStock = (action: "in" | "out" | "adjust") => {
+  router.push(`/products/${productId}/stocks?action=${action}`);
+};
+
+
 
   if (loading) {
     return <EditProductSkeleton />;
@@ -354,7 +354,7 @@ export default function EditProduct({ productId }: EditProductProps) {
               <div className="flex gap-4">
                 <button
                   type="button"
-                  onClick={() => setStockAction("in")}
+                  onClick={() => handleManageStock("in")}
                   className="flex-1 rounded-lg border bg-white py-3 text-center text-gray-800 hover:bg-gray-100"
                 >
                   <IoMdAddCircleOutline className="mx-auto mb-1 h-5 w-5" />
@@ -363,7 +363,7 @@ export default function EditProduct({ productId }: EditProductProps) {
 
                 <button
                   type="button"
-                  onClick={() => setStockAction("out")}
+                  onClick={() => handleManageStock("out")}
                   className="flex-1 rounded-lg border bg-white py-3 text-center text-gray-800 hover:bg-gray-100"
                 >
                   <GrSubtractCircle className="mx-auto mb-1 h-5 w-5" />
@@ -372,7 +372,7 @@ export default function EditProduct({ productId }: EditProductProps) {
 
                 <button
                   type="button"
-                  onClick={() => setStockAction("adjust")}
+                  onClick={() => handleManageStock("adjust")}
                   className="flex-1 rounded-lg border bg-white py-3 text-center text-gray-800 hover:bg-gray-100"
                 >
                   <FaRegEdit className="mx-auto mb-1 h-5 w-5" />

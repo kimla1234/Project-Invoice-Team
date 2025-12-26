@@ -10,11 +10,13 @@ import { ArrowLeftIcon, ChevronUp } from "./icons";
 import { MenuItem } from "./menu-item";
 import { useSidebarContext } from "./sidebar-context";
 import Image from "next/image";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 
 export function Sidebar() {
   const pathname = usePathname();
   const { setIsOpen, isOpen, isMobile, toggleSidebar } = useSidebarContext();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
 
   // --- New State for Company Info ---
   const [companyData, setCompanyData] = useState({
@@ -22,32 +24,32 @@ export function Sidebar() {
     email: "",
     logo: null as string | null,
   });
-useEffect(() => {
-  const fetchUserData = () => {
-    const savedData = localStorage.getItem("registered_user");
-    if (savedData) {
-      try {
-        const user = JSON.parse(savedData);
-        setCompanyData({
-          name: user.companyName || "My Company",
-          email: user.companyEmail || "",
-          logo: user.companyLogo || null,
-        });
-      } catch (e) {
-        console.error("Error parsing sidebar data", e);
+  useEffect(() => {
+    const fetchUserData = () => {
+      const savedData = localStorage.getItem("registered_user");
+      if (savedData) {
+        try {
+          const user = JSON.parse(savedData);
+          setCompanyData({
+            name: user.companyName || "My Company",
+            email: user.companyEmail || "",
+            logo: user.companyLogo || null,
+          });
+        } catch (e) {
+          console.error("Error parsing sidebar data", e);
+        }
       }
-    }
-  };
+    };
 
-  fetchUserData(); // ទាញទិន្នន័យលើកដំបូង
+    fetchUserData(); // ទាញទិន្នន័យលើកដំបូង
 
-  // ចាប់ផ្ដើមស្ដាប់នៅពេលមានការបាញ់ Event "company-updated"
-  window.addEventListener("company-updated", fetchUserData);
+    // ចាប់ផ្ដើមស្ដាប់នៅពេលមានការបាញ់ Event "company-updated"
+    window.addEventListener("company-updated", fetchUserData);
 
-  return () => {
-    window.removeEventListener("company-updated", fetchUserData);
-  };
-}, []);
+    return () => {
+      window.removeEventListener("company-updated", fetchUserData);
+    };
+  }, []);
   // ----------------------------------
 
   const toggleExpanded = (title: string) => {
@@ -67,6 +69,13 @@ useEffect(() => {
       });
     });
   }, [pathname]);
+
+  const handleSignOut = () => {
+    // Clear registered user
+    localStorage.removeItem("registered_user");
+    // Redirect to login page
+    window.location.href = "/login";
+  };
 
   return (
     <>
@@ -89,7 +98,7 @@ useEffect(() => {
         aria-hidden={!isOpen}
         inert={!isOpen}
       >
-        <div className="flex h-full flex-col py-5 pl-[25px] pr-[7px]">
+        <div className="flex h-full flex-col pl-[25px] pr-[7px]">
           {/* --- New Company Profile Preview --- */}
           <div className="mt-8 flex items-center gap-3 pr-4">
             <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-gray-200 bg-gray-100">
@@ -102,13 +111,13 @@ useEffect(() => {
                   sizes="40px" // Optional: Helps Next.js optimize the image size
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-blue-500 text-xs font-bold text-white">
+                <div className="flex h-full w-full items-center justify-center bg-blue-500 text-sm font-bold text-white">
                   {companyData.name.charAt(0).toUpperCase()}
                 </div>
               )}
             </div>
             <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
-              <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+              <p className="truncate text-lg font-semibold text-gray-900 dark:text-white">
                 {companyData.name}
               </p>
               <p className="truncate text-xs text-gray-500">
@@ -133,19 +142,27 @@ useEffect(() => {
 
                       return (
                         <li key={item.title}>
-                          {item.items.length ? (
+                          {isSignOut ? (
+                            // Sign out button triggers modal
+                            <MenuItem
+                              className="flex items-center gap-3 py-3"
+                              onClick={() => setShowSignOutModal(true)}
+                              isDestructive
+                              isActive={false}
+                            >
+                              <item.icon className="size-6 shrink-0" />
+                              <span>{item.title}</span>
+                            </MenuItem>
+                          ) : item.items.length ? (
+                            // existing collapsible menu logic
                             <div>
                               <MenuItem
                                 isActive={item.items.some(
                                   ({ url }) => url === pathname,
                                 )}
-                                isDestructive={isSignOut}
                                 onClick={() => toggleExpanded(item.title)}
                               >
-                                <item.icon
-                                  className="size-6 shrink-0"
-                                  aria-hidden="true"
-                                />
+                                <item.icon className="size-6 shrink-0" />
                                 <span>{item.title}</span>
                                 <ChevronUp
                                   className={cn(
@@ -153,29 +170,20 @@ useEffect(() => {
                                     expandedItems.includes(item.title) &&
                                       "rotate-0",
                                   )}
-                                  aria-hidden="true"
                                 />
                               </MenuItem>
                             </div>
                           ) : (
-                            (() => {
-                              const href = "url" in item ? item.url + "" : "/";
-                              return (
-                                <MenuItem
-                                  className="flex items-center gap-3 py-3"
-                                  as="link"
-                                  href={href}
-                                  isActive={pathname === href}
-                                  isDestructive={isSignOut}
-                                >
-                                  <item.icon
-                                    className="size-6 shrink-0"
-                                    aria-hidden="true"
-                                  />
-                                  <span>{item.title}</span>
-                                </MenuItem>
-                              );
-                            })()
+                            // normal link item
+                            <MenuItem
+                              className="flex items-center gap-3 py-3"
+                              as="link"
+                              href={item.url || "/"}
+                              isActive={pathname === item.url}
+                            >
+                              <item.icon className="size-6 shrink-0" />
+                              <span>{item.title}</span>
+                            </MenuItem>
                           )}
                         </li>
                       );
@@ -187,6 +195,13 @@ useEffect(() => {
           </div>
         </div>
       </aside>
+      <ConfirmModal
+          open={showSignOutModal}
+          title="Confirm Sign Out"
+          description="Are you sure you want to sign out?"
+          onConfirm={handleSignOut}
+          onCancel={() => setShowSignOutModal(false)}
+        />
     </>
   );
 }

@@ -38,30 +38,40 @@ export default function MultiStepForm() {
   const [formData, setFormData] = useState<FullFormData>({
     fullName: "",
     email: "",
+    companyName: "",
+    companyAddress: "",
+    companyLogo: undefined,
   });
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // 2. Load data from LocalStorage on Mount
+
   useEffect(() => {
     const savedData = localStorage.getItem(STORAGE_KEY);
     const savedStep = localStorage.getItem(STEP_KEY);
 
-    if (savedData) setFormData(JSON.parse(savedData));
+    if (savedData) {
+      setFormData((prev) => ({
+        ...prev,
+        ...JSON.parse(savedData),
+      }));
+    }
+
     if (savedStep) setCurrentStepIndex(Number(savedStep));
 
     setIsInitialized(true);
   }, []);
 
-  useEffect(() => {
-    if (isInitialized) {
+  //useEffect(() => {
+   // if (isInitialized) {
       // Create a copy of the data without the File object
-      const { companyLogo, ...restOfData } = formData;
+    //  const { companyLogo, ...restOfData } = formData;
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(restOfData));
-      localStorage.setItem(STEP_KEY, currentStepIndex.toString());
-    }
-  }, [formData, currentStepIndex, isInitialized]);
+     // localStorage.setItem(STORAGE_KEY, JSON.stringify(restOfData));
+     // localStorage.setItem(STEP_KEY, currentStepIndex.toString());
+   // }
+  //}, [formData, currentStepIndex, isInitialized]);
 
   // 3. Save data to LocalStorage whenever it changes
   useEffect(() => {

@@ -13,7 +13,8 @@ export interface FullFormData {
   companyPhone?: string;
   companyType?: "products" | "service" | "recurring" | "education";
   companyAddress?: string;
-  companyLogo?: File | null;
+  companyLogo?: string | null; // base64
+
 
   // Company details / address
   province?: string;
