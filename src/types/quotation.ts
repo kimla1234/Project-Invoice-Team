@@ -14,6 +14,7 @@ export interface QuotationData {
   issueDate: string;
   notes?: string;
   terms?: string;
+  expiryDate?: string;
   quotationNo?: string;
   items?: {
     id: number;

@@ -122,6 +122,7 @@ export default function CreateQuotation() {
   const router = useRouter();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
+const [expiryDate, setExpiryDate] = useState(""); // Add this
 
   const [clients, setClients] = useState<ClientData[]>([]);
   const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
@@ -326,10 +327,12 @@ export default function CreateQuotation() {
                 <input
                   type="text"
                   placeholder="Pick a date"
+                  value={expiryDate}
                   onFocus={(e) => (e.target.type = "date")}
                   onBlur={(e) => {
                     if (!e.target.value) e.target.type = "text";
                   }}
+                  onChange={(e) => setExpiryDate(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 bg-gray-50 p-2 text-gray-400"
                 />
               </div>
@@ -541,6 +544,7 @@ export default function CreateQuotation() {
               quotation={{
                 id: items.length > 0 ? 1 : 0,
                 issueDate: issueDate,
+                expiryDate: expiryDate,
                 items: items,
                 clientId: selectedClient?.id ?? 0,
                 amount: items.reduce((sum, i) => sum + i.total, 0),

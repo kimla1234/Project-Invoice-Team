@@ -11,7 +11,7 @@ export default function General() {
   const [fromCurrency, setFromCurrency] = useState("USD");
   const [toCurrency, setToCurrency] = useState("KHR");
   const [exchangeRate, setExchangeRate] = useState(4100);
-const [editorKey, setEditorKey] = useState(0);
+  const [editorKey, setEditorKey] = useState(0);
   // Default terms & note
   const [defaultTerms, setDefaultTerms] = useState(
     "• Cost is Exclusive With Holding-Tax\n• Flexible Cost Depends on Customer Needs\n• 50% Deposit after agreement\n• Deposit amount is not refundable",
@@ -58,53 +58,44 @@ const [editorKey, setEditorKey] = useState(0);
   };
 
   // Update invoice footer settings
-  // Save invoice footer including signature (Base64)
+  // Update invoice footer settings (without storing Base64 image)
   const handleUpdateInvoice = () => {
+    const invoiceSettings = {
+      defaultTerms,
+      defaultNote,
+      signatureName: files[0]?.name || null, // just save the name
+      signatureBase64: null, // avoid localStorage quota issue
+    };
+
+    localStorage.setItem(
+      "invoice_footer_settings",
+      JSON.stringify(invoiceSettings),
+    );
+    alert(
+      `Invoice settings saved locally! ${
+        files[0] ? "Signature will be handled separately." : ""
+      }`,
+    );
+
+    // Optional: handle signature upload separately
     if (files[0]) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const invoiceSettings = {
-          defaultTerms,
-          defaultNote,
-          signatureBase64: reader.result, // save file content
-          signatureName: files[0].name,
-        };
-        localStorage.setItem(
-          "invoice_footer_settings",
-          JSON.stringify(invoiceSettings),
-        );
-        alert("Invoice settings saved locally!");
-      };
-      reader.readAsDataURL(files[0]);
-    } else {
-      const invoiceSettings = {
-        defaultTerms,
-        defaultNote,
-        signatureBase64: null,
-        signatureName: null,
-      };
-      localStorage.setItem(
-        "invoice_footer_settings",
-        JSON.stringify(invoiceSettings),
-      );
-      alert("Invoice settings saved locally!");
+      // Example: send to backend or handle in memory
+      console.log("Signature ready for upload:", files[0]);
     }
   };
 
   // Restore on page load
   useEffect(() => {
-  const invoiceData = localStorage.getItem("invoice_footer_settings");
-  if (invoiceData) {
-    const parsed = JSON.parse(invoiceData);
-    setDefaultTerms(parsed.defaultTerms || "");
-    setDefaultNote(parsed.defaultNote || parsed.defaultTerms || "");
-    
-    // reset editor by changing key
-    setEditorKey(prev => prev + 1);
-  }
-}, []);
+    const invoiceData = localStorage.getItem("invoice_footer_settings");
+    if (invoiceData) {
+      const parsed = JSON.parse(invoiceData);
+      setDefaultTerms(parsed.defaultTerms || "");
+      setDefaultNote(parsed.defaultNote || parsed.defaultTerms || "");
 
-
+      // reset editor by changing key
+      setEditorKey((prev) => prev + 1);
+    }
+  }, []);
 
   return (
     <div className="mx-auto space-y-8">
@@ -220,12 +211,20 @@ const [editorKey, setEditorKey] = useState(0);
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
           <div className="rounded-lg bg-white p-1">
             <h3 className="mb-2 font-bold text-slate-700">Default Terms</h3>
-            <RichTextEditor key={editorKey} value={defaultTerms} onChange={setDefaultTerms} />
+            <RichTextEditor
+              key={editorKey}
+              value={defaultTerms}
+              onChange={setDefaultTerms}
+            />
           </div>
 
           <div className="rounded-lg bg-white p-1">
             <h3 className="mb-2 font-bold text-slate-700">Default Note</h3>
-            <RichTextEditor key={editorKey} value={defaultNote} onChange={setDefaultNote} />
+            <RichTextEditor
+              key={editorKey}
+              value={defaultNote}
+              onChange={setDefaultNote}
+            />
           </div>
         </div>
       </div>

@@ -12,7 +12,6 @@ export interface ClientData {
   name: string;
   address?: string;
   contact?: string;
-  
 }
 
 type DownloadPDFButtonProps = {
@@ -33,7 +32,7 @@ const htmlToText = (html: string) => {
 type Props = {
   quotation: QuotationData;
   client: ClientData | null;
-user: any;
+  user: any;
   taxRate?: number;
 };
 
@@ -41,15 +40,15 @@ export const DownloadPDFButton: React.FC<Props> = ({
   quotation,
   client,
   taxRate = 0,
-  user
+  user,
 }) => {
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     const doc = new jsPDF();
 
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 15;
-    let startY = 25;
+    let startY = 17;
 
     const primaryColor: [number, number, number] = [76, 58, 145];
     const textColor: [number, number, number] = [50, 50, 50];
@@ -66,7 +65,7 @@ export const DownloadPDFButton: React.FC<Props> = ({
 
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
-    doc.text(`Quotation No.: ${displayId}`, pageWidth - margin, startY, {
+    doc.text(`Quotation No: ${displayId}`, pageWidth - margin, startY, {
       align: "right",
     });
 
@@ -75,7 +74,48 @@ export const DownloadPDFButton: React.FC<Props> = ({
       align: "right",
     });
 
-    startY += 15;
+    // Add Expiry Date below Issue Date
+    startY += 8;
+    if (quotation.expiryDate) {
+      doc.text(
+        `Expiry Date: ${quotation.expiryDate}`,
+        pageWidth - margin,
+        startY,
+        {
+          align: "right",
+        },
+      );
+    }
+
+    startY += 5;
+
+
+    // ================== ADD LOGO ==================
+    if (user?.companyLogo) {
+      try {
+        const logoBase64 = user.companyLogo; // already 'data:image/png;base64,...'
+        const imgProps = doc.getImageProperties(logoBase64);
+        const logoWidth = 20; // adjust width
+        const logoHeight = (imgProps.height * logoWidth) / imgProps.width; // maintain ratio
+        
+        // Add the image
+        doc.addImage(
+          logoBase64,
+          "PNG",
+          margin,
+          startY - 7,
+          logoWidth,
+          logoHeight,
+        );
+
+        // Crucial: Update startY to be below the image, plus some margin
+        startY += logoHeight + 0; 
+
+      } catch (error) {
+        console.error("Failed to add logo:", error);
+      }
+    }
+
 
     // ================== COMPANY ==================
     doc.setFontSize(10);
@@ -234,7 +274,6 @@ export const DownloadPDFButton: React.FC<Props> = ({
       }
     }
 
-    // --- TERMS SECTION ---
     // --- TERMS SECTION (Revised Approach) ---
     if (quotation.terms) {
       const plainTerms = htmlToText(quotation.terms);
@@ -297,7 +336,11 @@ export const DownloadPDFButton: React.FC<Props> = ({
       doc.setDrawColor(220, 220, 220);
       doc.line(margin, pageHeight - 20, pageWidth - margin, pageHeight - 20);
 
-      doc.text("Thank you for choosing KIMLA!", margin, pageHeight - 14);
+      doc.text(
+        "Thank you for choosing " + user?.companyName,
+        margin,
+        pageHeight - 14,
+      );
       doc.text(
         `Page ${i} of ${pageCount}`,
         pageWidth - margin,
