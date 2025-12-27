@@ -1,0 +1,8 @@
+# ngrok.yml
+authtoken: 2cRHBI2B6Hqet3clSrSJkZlNZnb_6rTYx1FCLLMSCUE226WuB
+region: us               # change to your region: us, eu, ap, au, sa, jp, in
+tunnels:
+  web:
+    proto: http
+    addr: 3000           # local Next.js port
+    inspect: true         # optional, allows you to view requests in web interface

@@ -89,7 +89,6 @@ export const DownloadPDFButton: React.FC<Props> = ({
 
     startY += 5;
 
-
     // ================== ADD LOGO ==================
     if (user?.companyLogo) {
       try {
@@ -97,7 +96,7 @@ export const DownloadPDFButton: React.FC<Props> = ({
         const imgProps = doc.getImageProperties(logoBase64);
         const logoWidth = 20; // adjust width
         const logoHeight = (imgProps.height * logoWidth) / imgProps.width; // maintain ratio
-        
+
         // Add the image
         doc.addImage(
           logoBase64,
@@ -109,13 +108,11 @@ export const DownloadPDFButton: React.FC<Props> = ({
         );
 
         // Crucial: Update startY to be below the image, plus some margin
-        startY += logoHeight + 0; 
-
+        startY += logoHeight + 0;
       } catch (error) {
         console.error("Failed to add logo:", error);
       }
     }
-
 
     // ================== COMPANY ==================
     doc.setFontSize(10);
@@ -223,107 +220,52 @@ export const DownloadPDFButton: React.FC<Props> = ({
       { align: "right" },
     );
 
-    // --- NOTES SECTION ---
-    if (quotation.notes) {
-      const plainNote = htmlToText(quotation.notes);
+    // --- NOTES & TERMS HORIZONTAL SECTION ---
+    const footerHeight = 25; // space reserved for footer
+    const notesY = pageHeight - footerHeight - 30; // 60 is space for notes & terms
 
-      if (plainNote.trim() !== "") {
-        const lineHeight = 6;
-        const margin = 15; // Define margin locally for clarity
-        const pageWidth = doc.internal.pageSize.getWidth(); // Define pageWidth locally
-        const maxWidth = pageWidth - margin * 2;
-        const bulletIndent = 5; // Space for the bullet + gap
+    const noteItems = htmlToText(quotation.notes || "")
+      .split("•")
+      .filter((item) => item.trim() !== "");
+    const termItems = htmlToText(quotation.terms || "")
+      .split("•")
+      .filter((item) => item.trim() !== "");
 
-        // Split the text by the bullet character to get individual items
-        const noteItems = plainNote
-          .split("•")
-          .filter((item) => item.trim().length > 0);
+    const lineHeight = 6;
+    const columnGap = 10;
+    const halfWidth = (pageWidth - margin * 2 - columnGap) / 2;
 
-        // ... (rest of the page break check and title rendering code) ...
-        // You'll need to adapt the page break check to iterate over all items first.
+    // Render Titles
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(50, 50, 50);
+    doc.text("Note *", margin, notesY);
+    doc.text("Terms *", margin + halfWidth + columnGap, notesY);
 
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(50, 50, 50);
-        doc.text("Note *", margin, startY);
-        startY += lineHeight;
-        doc.setFont("helvetica", "normal");
+    let lineY = notesY + lineHeight;
+    doc.setFont("helvetica", "normal");
 
-        // Process each item individually
-        // Process each item individually
-        // Process each item individually
-        noteItems.forEach((itemText) => {
-          const wrappedLines = doc.splitTextToSize(
-            itemText.trim(),
-            maxWidth - bulletIndent,
-          );
+    // Notes column
+    noteItems.forEach((note) => {
+      const wrappedNoteLines = doc.splitTextToSize(note.trim(), halfWidth - 5);
+      wrappedNoteLines.forEach((line: string) => {
+        doc.text("•", margin, lineY);
+        doc.text(line, margin + 5, lineY);
+        lineY += lineHeight;
+      });
+    });
 
-          // Explicitly type 'line' as 'string' and 'index' as 'number' here
-          wrappedLines.forEach((line: string, index: number) => {
-            if (index === 0) {
-              // First line: add the bullet point before the text
-              doc.text("•", margin, startY);
-              doc.text(line, margin + bulletIndent, startY);
-            } else {
-              // Subsequent lines: indent to align with the start of the text
-              doc.text(line, margin + bulletIndent, startY);
-            }
-            startY += lineHeight;
-          });
-        });
-      }
-    }
+    // Terms column
+    let termLineY = notesY + lineHeight;
+    termItems.forEach((term) => {
+      const wrappedTermLines = doc.splitTextToSize(term.trim(), halfWidth - 5);
+      wrappedTermLines.forEach((line: string) => {
+        doc.text("•", margin + halfWidth + columnGap, termLineY);
+        doc.text(line, margin + halfWidth + columnGap + 5, termLineY);
+        termLineY += lineHeight;
+      });
+    });
 
-    // --- TERMS SECTION (Revised Approach) ---
-    if (quotation.terms) {
-      const plainTerms = htmlToText(quotation.terms);
-
-      if (plainTerms.trim() !== "") {
-        const lineHeight = 6;
-        const maxWidth = pageWidth - margin * 2;
-        const bulletIndent = 5; // Space for the bullet + gap
-
-        // Split the text by the bullet character to get individual items
-        const termItems = plainTerms
-          .split("•")
-          .filter((item) => item.trim().length > 0);
-
-        // --- Start of Rendering ---
-        startY += 5; // spacing from previous section
-
-        // PAGE BREAK CHECK (Simplified example, integrate with your full logic)
-        // Note: You would calculate total required height for ALL items here.
-
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(50, 50, 50);
-        doc.text("Terms *", margin, startY);
-        startY += lineHeight;
-        doc.setFont("helvetica", "normal");
-
-        // Process each item individually with type safety
-        termItems.forEach((itemText) => {
-          // Split the text for wrapping, reducing max width by the indent
-          const wrappedLines = doc.splitTextToSize(
-            itemText.trim(),
-            maxWidth - bulletIndent,
-          );
-
-          wrappedLines.forEach((line: string, index: number) => {
-            if (index === 0) {
-              // First line: add the bullet point before the text
-              doc.text("•", margin, startY);
-              doc.text(line, margin + bulletIndent, startY);
-            } else {
-              // Subsequent lines: indent to align with the start of the text
-              doc.text(line, margin + bulletIndent, startY);
-            }
-            startY += lineHeight;
-          });
-        });
-        // startY is now correctly positioned after all terms are rendered
-      }
-    }
 
     // ================== FOOTER ==================
     const pageCount = doc.getNumberOfPages();

@@ -267,7 +267,7 @@ const [expiryDate, setExpiryDate] = useState(""); // Add this
     setQuotationNo(`QUO-${String(newId + 1).padStart(4, "0")}`);
     setIssueDate(new Date().toISOString().slice(0, 10));
 
-    router.push("/quotation");
+    router.push(`/quotation/${newId}`);
   };
 
   useEffect(() => {
@@ -281,6 +281,46 @@ const [expiryDate, setExpiryDate] = useState(""); // Add this
       document.body.style.overflow = "";
     };
   }, [isModalOpen]);
+
+
+  const handleSendToClient = () => {
+  if (!items.length || !selectedClient) {
+    toast({
+      title: "Cannot send",
+      description: "Please complete the quotation first",
+      className: "bg-red-600 text-white",
+    });
+    return;
+  }
+
+  const quotations = JSON.parse(
+    localStorage.getItem("quotations") || "[]"
+  );
+
+  const quotation = quotations.find(
+    (q: any) => q.quotationNo === quotationNo
+  );
+
+  if (!quotation) {
+    toast({
+      title: "Save quotation first",
+      description: "Please create quotation before sending",
+      className: "bg-red-600 text-white",
+    });
+    return;
+  }
+
+  const link = `${window.location.origin}/invoices/${quotation.id}`;
+
+  navigator.clipboard.writeText(link);
+
+  toast({
+    title: "Link copied",
+    description: "Quotation link copied. Send it to client!",
+    className: "bg-green-600 text-white",
+  });
+};
+
 
   return (
     <div className="flex justify-center space-x-6">
@@ -539,7 +579,7 @@ const [expiryDate, setExpiryDate] = useState(""); // Add this
           <button className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700">
             <span className="mr-2">+</span> Preview and send
           </button>
-          <div className="flex w-full items-center justify-center rounded-lg bg-purple-600 text-white hover:bg-purple-700">
+          <div onClick={handleSubmit}  className="flex w-full items-center justify-center rounded-lg bg-purple-600 text-white hover:bg-purple-700">
             <DownloadPDFButton
               quotation={{
                 id: items.length > 0 ? 1 : 0,
@@ -557,7 +597,7 @@ const [expiryDate, setExpiryDate] = useState(""); // Add this
               user={user}
             />
           </div>
-          <button className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700">
+          <button onClick={handleSendToClient} className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700">
             <span className="mr-2">+</span> Send to client
           </button>
         </div>
