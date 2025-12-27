@@ -41,6 +41,7 @@ export default function StockManage({ productId }: StockManageProps) {
   const [loading, setLoading] = useState(false);
   const [product, setProduct] = useState<ProductData | null>(null);
   const [productName, setProductName] = useState("");
+  const [stock, setStock] = useState("");
   const [unitPrice, setUnitPrice] = useState(0);
   const [currency, setCurrency] = useState("USD");
   const [image, setImage] = useState("");
@@ -229,7 +230,7 @@ export default function StockManage({ productId }: StockManageProps) {
               </p>
             </div>
             <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
-              In Stock
+               sss
             </span>
           </div>
         </div>
