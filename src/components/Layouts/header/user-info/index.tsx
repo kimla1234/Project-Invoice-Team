@@ -1,4 +1,5 @@
 "use client";
+import { get } from "idb-keyval";
 
 import { ChevronUpIcon } from "@/assets/icons";
 import {
@@ -28,42 +29,33 @@ export function UserInfo() {
 
 
 
+useEffect(() => {
+  const loadUser = async () => {
+    const savedUser = await get("registered_user");
 
-  useEffect(() => {
-    const loadUser = () => {
-      const sessionData = localStorage.getItem("user_session");
-      if (sessionData) {
-        setUser(JSON.parse(sessionData));
-      }
-    };
-
-    loadUser(); // Load on mount
-
-    // Listen for the custom event we created
-    window.addEventListener("local-storage-update", loadUser);
-    
-    // Also keep the standard storage listener for other tabs
-    window.addEventListener("storage", loadUser);
-
-    return () => {
-      window.removeEventListener("local-storage-update", loadUser);
-      window.removeEventListener("storage", loadUser);
-    };
-  }, []);
-
-
-  useEffect(() => {
-  const loadUser = () => {
-    const sessionData = localStorage.getItem("user_session");
-    if (sessionData) setUser(JSON.parse(sessionData));
+    if (savedUser) {
+      setUser({
+        fullName: savedUser.fullName,
+        email: savedUser.email,
+        photo: savedUser.photo || null,
+      });
+    }
   };
 
-  loadUser();
+  loadUser(); // load on mount
 
-  // ចាប់ព្រឹត្តិការណ៍នៅពេល localStorage មានការប្រែប្រួល
-  window.addEventListener("storage", loadUser);
-  return () => window.removeEventListener("storage", loadUser);
+  // listen when Account page saves
+  window.addEventListener("local-storage-update", loadUser);
+
+  return () => {
+    window.removeEventListener("local-storage-update", loadUser);
+  };
 }, []);
+
+
+  
+
+
 
 // Show modal instead of direct logout
   const handleLogoutClick = () => {

@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { HiOutlinePhoto } from "react-icons/hi2";
-
+import { set, get } from "idb-keyval";
 interface User {
   fullName: string;
   phoneNumber: string;
@@ -20,31 +20,38 @@ export default function Account() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    // 1. Fetch the active session from localStorage
-    const activeSession = localStorage.getItem("user_session");
+useEffect(() => {
+  const loadUserData = async () => {
+    const savedUser = await get("registered_user");
 
-    if (activeSession) {
-      const sessionData = JSON.parse(activeSession);
-      // Map session data to your User state
-      setUser({
-        fullName: sessionData.fullName || "",
-        email: sessionData.email || "",
-        phoneNumber: sessionData.phoneNumber || "",
-        bio: sessionData.bio || "",
-        language: sessionData.language || "English",
-        photo: sessionData.photo || null,
-      });
+    if (savedUser) {
+      setUser(savedUser);
     } else {
-      // Fallback to mock data if no one is logged in
       setUser(mockUser);
     }
-  }, []);
+  };
+
+  loadUserData();
+}, []);
+
+
+  
 
   // Photo upload preview
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
     const file = e.target.files[0];
+
+    // 1. Simple Guard: Reject if file is > 1MB (Base64 will make it ~1.3MB)
+    if (file.size > 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 1MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64 = reader.result as string;
@@ -60,23 +67,36 @@ export default function Account() {
   };
 
   // Inside your Account component's handleSave function:
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!user) return;
 
-    localStorage.setItem("registered_user", JSON.stringify(user));
-    localStorage.setItem(
-      "user_session",
-      JSON.stringify({ ...user, isLoggedIn: true }),
-    );
+    try {
+      // SAVE EVERYTHING TO INDEXEDDB (No 5MB limit issue)
+      await set("registered_user", user);
 
-    // DISPATCH THIS CUSTOM EVENT
-    window.dispatchEvent(new Event("local-storage-update"));
+      // SAVE ONLY ESSENTIAL DATA TO LOCALSTORAGE
+      // We remove the photo from the session object to keep it tiny
+      const { photo, ...sessionData } = user;
+      localStorage.setItem(
+        "user_session",
+        JSON.stringify({ ...sessionData, isLoggedIn: true }),
+      );
 
-    toast({
-      title: "Profile Updated",
-      description: "Your changes have been saved to storage.",
-      className: "bg-green-600 text-white",
-    });
+      // Trigger update for other components
+      window.dispatchEvent(new Event("local-storage-update"));
+
+      toast({
+        title: "Profile Updated",
+        description: "Your changes have been saved to IndexedDB.",
+        className: "bg-green-600 text-white",
+      });
+    } catch (error) {
+      toast({
+        title: "Save Failed",
+        description: "Could not save profile data.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (!user) return <p>Loading...</p>;
