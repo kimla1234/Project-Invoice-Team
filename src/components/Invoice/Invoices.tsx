@@ -2,25 +2,22 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { VscAdd } from "react-icons/vsc";
 
-import HeaderInvoices from "./header-invoice/HeaderInvoice"; // Updated
+import HeaderInvoices from "./header-invoice/HeaderInvoice";
 import SearchInput from "./search/Search";
 import FilterDate from "../Quotations/FilterData";
-import InvoiceTable from "../Tables/InvoiceTable"; // Updated
+import InvoiceTable from "../Tables/InvoiceTable";
 import { ColumnToggleDropdown } from "../ui/ColumnToggleDropdown";
-import { initInvoices } from "@/utils/initLocalStorage"; // Updated
+import { initInvoices } from "@/utils/initLocalStorage";
 
 export default function Invoices() {
-  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [issueDate, setIssueDate] = useState<string | undefined>();
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Column visibility
   const [columnVisibility, setColumnVisibility] = useState({
-    InvoiceNo: true, // Updated
+    InvoiceNo: true,
     Client: true,
     Amount: true,
     IssueDate: true,
@@ -40,11 +37,11 @@ export default function Invoices() {
     visible: columnVisibility[key as keyof typeof columnVisibility],
   }));
 
-  // ---------------------------
-  // Initialize localStorage
-  // ---------------------------
+  /* ======================
+     INIT LOCAL STORAGE
+  ====================== */
   useEffect(() => {
-    initInvoices(); // Updated
+    initInvoices();
   }, []);
 
   return (
@@ -56,7 +53,6 @@ export default function Invoices() {
         </div>
 
         <div className="flex gap-2">
-          {/* Create Invoice Button */}
           <Link
             href="/invoices/create"
             className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
@@ -64,23 +60,13 @@ export default function Invoices() {
             <span>Create Invoice</span>
             <VscAdd className="text-xl" />
           </Link>
-
-          {/* Convert Quotation to Invoice Button */}
-          <Link
-            href="/invoices/convert-quotation"
-            className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-          >
-            <span>Convert Quo to Inv</span>
-          </Link>
         </div>
       </div>
 
       {/* Content */}
       <div className="w-full space-y-6 rounded-md bg-white p-8 text-slate-600">
-        {/* Summary */}
         <HeaderInvoices refreshKey={refreshKey} />
 
-        {/* Filters */}
         <div className="flex w-full justify-between gap-4">
           <div className="flex gap-4">
             <SearchInput
@@ -97,7 +83,6 @@ export default function Invoices() {
           />
         </div>
 
-        {/* Table */}
         <InvoiceTable searchTerm={searchTerm} issueDate={issueDate} />
       </div>
     </div>
