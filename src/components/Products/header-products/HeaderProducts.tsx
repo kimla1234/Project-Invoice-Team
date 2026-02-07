@@ -37,12 +37,6 @@ export default function HeaderProducts({ refreshKey }: { refreshKey: number }) {
 
 // Calculate inStock dynamically
  const inStock = Math.max(summary.totalItems - summary.outOfStock - summary.lowStock, 0);
-
-
-
-
-
-
   return (
     <div className="flex justify-around bg-white">
       {loading ? (
