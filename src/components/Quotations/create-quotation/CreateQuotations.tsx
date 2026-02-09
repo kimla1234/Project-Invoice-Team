@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { ProductData } from "@/types/product";
+import { MyEventResponse } from "@/types/product";
 import { ClientData } from "@/types/client";
-import { getProductsTableData } from "@/components/Tables/fetch";
+//import { getProductsTableData } from "@/components/Tables/fetch";
 import { mockClients } from "@/components/Tables/clients";
 import { IoAddCircleOutline } from "react-icons/io5";
 import { IoMdAdd } from "react-icons/io";
@@ -22,7 +22,7 @@ type Item = {
 type ProductModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSelectProducts: (selected: ProductData[]) => void;
+  onSelectProducts: (selected: MyEventResponse[]) => void;
 };
 
 const ProductModal = ({
@@ -176,15 +176,9 @@ const [expiryDate, setExpiryDate] = useState(""); // Add this
     setQuotationNo(`QUO-${String(maxId + 1).padStart(4, "0")}`);
   }, []);
 
-  const handleAddProducts = (products: ProductData[]) => {
-    const newItems: Item[] = products.map((p) => ({
-      id: p.id,
-      name: p.name,
-      qty: 1,
-      unitPrice: p.unitPrice,
-      total: p.unitPrice,
-    }));
-    setItems((prev) => [...prev, ...newItems]);
+  const handleAddProducts = (products: MyEventResponse[]) => {
+    
+    //setItems((prev) => [...prev, ...newItems]);
   };
 
   const handleItemChange = (

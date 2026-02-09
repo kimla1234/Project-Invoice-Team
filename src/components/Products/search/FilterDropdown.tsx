@@ -4,6 +4,7 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import { Check, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MdOutlineAddCircleOutline } from "react-icons/md";
+import { useGetMyProductsQuery } from "@/redux/service/products";
 
 // Define a generic Option type
 interface FilterOption {
@@ -27,11 +28,15 @@ export default function FilterDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { data: products = [], isLoading } = useGetMyProductsQuery();
 
   // Handle clicking outside to close
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -54,9 +59,11 @@ export default function FilterDropdown({
   const filteredOptions = useMemo(() => {
     if (!searchTerm) return options;
     return options.filter((option) =>
-      option.label.toLowerCase().includes(searchTerm.toLowerCase())
+      option.label.toLowerCase().includes(searchTerm.toLowerCase()),
     );
   }, [searchTerm, options]);
+
+  
 
   return (
     <div className="relative inline-block text-left" ref={dropdownRef}>
@@ -72,7 +79,7 @@ export default function FilterDropdown({
 
         {/* Selected badges */}
         {selectedValues.length > 0 && (
-          <div className="flex-wrap flex  w-full gap-1 border-l pl-2 ml-1 border-gray-200">
+          <div className="ml-1 flex w-full flex-wrap gap-1 border-l border-gray-200 pl-2">
             {selectedValues.map((val) => (
               <span
                 key={val}
@@ -103,7 +110,7 @@ export default function FilterDropdown({
               <input
                 type="text"
                 placeholder={`Filter ${title}...`}
-                className="w-full rounded-lg border-1 py-1.5 pl-9 pr-4 text-sm ring-0  ring-gray-300  focus:ring-blue-600 outline-none"
+                className="border-1 w-full rounded-lg py-1.5 pl-9 pr-4 text-sm outline-none ring-0 ring-gray-300 focus:ring-blue-600"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 autoFocus
@@ -111,7 +118,7 @@ export default function FilterDropdown({
             </div>
           </div>
 
-          <div className="max-h-48 p-2 space-y-1  overflow-y-auto border-t border-dashed py-1">
+          <div className="max-h-48 space-y-1 overflow-y-auto border-t border-dashed p-2 py-1">
             {filteredOptions.length > 0 ? (
               filteredOptions.map((option) => {
                 const isSelected = selectedValues.includes(option.value);
@@ -121,18 +128,27 @@ export default function FilterDropdown({
                     onClick={() => toggleOption(option.value)}
                     className={cn(
                       "flex w-full items-center px-4 py-2 text-sm transition-colors",
-                      isSelected ? "bg-blue-50  font-semibold text-blue-600 rounded-lg" : "text-gray-700 hover:bg-gray-100 rounded-lg"
+                      isSelected
+                        ? "rounded-lg bg-blue-50 font-semibold text-blue-600"
+                        : "rounded-lg text-gray-700 hover:bg-gray-100",
                     )}
                   >
                     <div className="mr-3 flex size-4 items-center justify-center rounded border border-gray-300 bg-white">
-                      {isSelected && <Check className="size-3 text-blue-600 " strokeWidth={3} />}
+                      {isSelected && (
+                        <Check
+                          className="size-3 text-blue-600"
+                          strokeWidth={3}
+                        />
+                      )}
                     </div>
                     {option.label}
                   </button>
                 );
               })
             ) : (
-              <p className="px-4 py-2 text-xs text-gray-500 text-center">No results found</p>
+              <p className="px-4 py-2 text-center text-xs text-gray-500">
+                No results found
+              </p>
             )}
           </div>
 

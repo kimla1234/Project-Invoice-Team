@@ -14,6 +14,7 @@ import {
   AlignCenter,
   AlignRight,
 } from "lucide-react";
+import { useEffect } from "react";
 
 type Props = {
   value: string;
@@ -34,6 +35,12 @@ export default function RichTextEditor({ value, onChange }: Props) {
       onChange(editor.getHTML());
     },
   });
+  // Update editor content when value changes (from props)
+  useEffect(() => {
+    if (editor && value !== editor.getHTML()) {
+      editor.commands.setContent(value || "");
+    }
+  }, [value, editor]);
 
   if (!editor) return null;
 

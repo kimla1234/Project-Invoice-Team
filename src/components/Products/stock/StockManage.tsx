@@ -1,6 +1,6 @@
 "use client";
 
-import { ProductData } from "@/types/product";
+import { MyEventResponse } from "@/types/product";
 import Link from "next/link";
 import React, { useEffect, useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -13,11 +13,18 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 import { useToast } from "@/hooks/use-toast";
-import { getProductById, updateProduct } from "@/components/Tables/fetch";
+
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import StockManageSkeleton from "@/components/skeletons/StockManageSkeleton";
 import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
 import { addOutOfStockNotification } from "@/utils/notifications";
+import {
+  useGetProductsByUuidQuery,
+  useGetStockMovementQuery,
+  useUpdateProductMutation,
+  useUpdateStockMutation,
+} from "@/redux/service/products";
+import Image from "next/image";
 
 interface StockManageProps {
   productId: string;
@@ -26,81 +33,62 @@ interface StockManageProps {
 type MovementType = "IN" | "OUT" | "ADJUST";
 
 interface Movement {
-  id: number;
+  productUuid: string;
   type: MovementType;
   quantity: number;
   note?: string;
-  date: Date;
+  created_at: string;
 }
 
 export default function StockManage({ productId }: StockManageProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-
-  const [loading, setLoading] = useState(false);
-  const [product, setProduct] = useState<ProductData | null>(null);
-  const [productName, setProductName] = useState("");
-  const [stock, setStock] = useState("");
-  const [unitPrice, setUnitPrice] = useState(0);
-  const [currency, setCurrency] = useState("USD");
-  const [image, setImage] = useState("");
-  const [description, setDescription] = useState("");
-  const [stockTracked, setStockTracked] = useState(true);
-  const [currentStock, setCurrentStock] = useState(0);
-  const [lowStockThreshold, setLowStockThreshold] = useState(0);
-  const [movements, setMovements] = useState<Movement[]>([]);
 
   const [type, setType] = useState<MovementType>("IN");
   const [adjustmentValue, setAdjustmentValue] = useState(0);
   const [note, setNote] = useState("");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
-  // Fetch product data
+  // RTK Query
+  const {
+    data: productData,
+    isLoading,
+    isError,
+  } = useGetProductsByUuidQuery(productId);
+  const { data: movementData, isLoading: movementLoading } =
+    useGetStockMovementQuery(productId);
+
+  const [updateProduct] = useUpdateProductMutation();
+  const [updateStock] = useUpdateStockMutation();
+  const [product, setProduct] = useState<MyEventResponse | null>(null);
+  const [movements, setMovements] = useState<Movement[]>([]);
+  const [currentStock, setCurrentStock] = useState(0);
+
+  // Sync RTK Query data to local state
   useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      const data = await getProductById(productId);
-
-      if (!data) {
-        toast({
-          title: "Product not found",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-
-      setProduct(data);
-      setProductName(data.name || "");
-      setUnitPrice(data.unitPrice || 0);
-      setCurrency(data.currency || "USD");
-      setImage(data.image || "");
-      setDescription(data.description || "");
-      setStockTracked(data.stock !== undefined && data.stock !== null);
-      setCurrentStock(data.stock || 0);
-      setLowStockThreshold(data.lowStockThreshold || 0);
-      setMovements((data.movements as Movement[]) || []);
-      setLoading(false);
+    if (productData) {
+      setProduct(productData);
+      setCurrentStock(productData.stockQuantity || 0);
     }
+  }, [productData]);
 
-    fetchData();
-  }, [productId, toast]);
+  useEffect(() => {
+    if (movementData) {
+      setMovements(movementData);
+    }
+  }, [movementData]);
 
   const searchParams = useSearchParams();
-
   useEffect(() => {
     const action = searchParams.get("action");
-
     if (action === "in") setType("IN");
     if (action === "out") setType("OUT");
     if (action === "adjust") setType("ADJUST");
   }, [searchParams]);
 
-  // Helper to calculate new stock
   const newStockInHand = useMemo(() => {
     if (type === "IN") return currentStock + adjustmentValue;
     if (type === "OUT") return Math.max(currentStock - adjustmentValue, 0);
@@ -108,7 +96,6 @@ export default function StockManage({ productId }: StockManageProps) {
     return currentStock;
   }, [currentStock, adjustmentValue, type]);
 
-  // Handle creating stock movement
   const handleCreateMovement = async () => {
     if (adjustmentValue === 0) return;
 
@@ -121,82 +108,85 @@ export default function StockManage({ productId }: StockManageProps) {
       return;
     }
 
-    const movement: Movement = {
-      id: Date.now(),
-      type,
-      quantity: adjustmentValue,
-      note,
-      date: new Date(),
-    };
+    try {
+      const response = await updateStock({
+        productUuid: product!.uuid,
+        quantity: adjustmentValue,
+        type,
+        note,
+      }).unwrap();
 
-    const updatedStock = newStockInHand;
-    const updatedMovements = [movement, ...movements];
+      // Ensure movements is always an array
+      setMovements(response.movements ?? []);
+      setCurrentStock(response.stockQuantity ?? currentStock);
 
-    setMovements(updatedMovements);
-    setCurrentStock(updatedStock);
-    setAdjustmentValue(0);
-    setNote("");
+      setAdjustmentValue(0);
+      setNote("");
 
-    if (product) {
-      const updatedProduct: Partial<ProductData> = {
-        stock: updatedStock,
-        movements: updatedMovements,
-      };
+      if ((response.stockQuantity ?? 0) === 0)
+        addOutOfStockNotification(product!.name);
 
-      await updateProduct(product.id.toString(), updatedProduct);
+      toast({
+        title: "Stock Updated",
+        description: `Stock ${type} successful`,
+        className: "bg-green-600 text-white",
+      });
+    } catch (err: any) {
+      console.error("Update stock error:", err);
+      const errorMessage =
+        err?.data?.message || err?.error || "Failed to update stock";
 
-      const mergedProduct = { ...product, ...updatedProduct };
-      setProduct(mergedProduct);
-
-      // 🔔 OUT OF STOCK NOTIFICATION (HERE ONLY)
-      if (mergedProduct.stock === 0) {
-        addOutOfStockNotification(mergedProduct.name);
-      }
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     }
-
-    toast({
-      title: "Stock Updated",
-      description: `Stock ${type} successful`,
-      className: "bg-green-600 text-white",
-    });
   };
 
-  // Handle deleting a movement
-  // 1. open modal
-  const handleRequestDelete = (id: number) => {
-    setDeleteId(id);
-  };
+  const handleRequestDelete = (uuid: string) => setDeleteId(uuid);
 
-  // 2. confirm delete
   const handleConfirmDelete = async () => {
     if (deleteId === null) return;
+    const filtered = movements.filter((m) => m.productUuid !== deleteId);
 
-    const filtered = movements.filter((m) => m.id !== deleteId);
     setMovements(filtered);
+    setDeleteId(null);
 
     if (product) {
-      await updateProduct(product.id.toString(), { movements: filtered });
-      setProduct({ ...product, movements: filtered });
+      try {
+        await updateProduct({
+          uuid: product.id.toString(),
+          body: { movements: filtered },
+        }).unwrap();
+        toast({
+          title: "Deleted",
+          description: "Stock movement removed",
+          className: "bg-red-600 text-white",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to delete movement",
+          variant: "destructive",
+        });
+      }
     }
-
-    toast({
-      title: "Deleted",
-      description: "Stock movement removed",
-      className: "bg-red-600 text-white",
-    });
-
-    setDeleteId(null);
   };
 
   const totalPages = Math.ceil(movements.length / rowsPerPage);
-  const currentMovements = useMemo(() => {
-    return movements.slice(
-      (currentPage - 1) * rowsPerPage,
-      currentPage * rowsPerPage,
-    );
-  }, [currentPage, rowsPerPage, movements]);
+  const currentMovements = useMemo(
+    () =>
+      movements.slice(
+        (currentPage - 1) * rowsPerPage,
+        currentPage * rowsPerPage,
+      ),
+    [currentPage, rowsPerPage, movements],
+  );
 
-  if (loading) return <StockManageSkeleton />;
+  if (isLoading) return <StockManageSkeleton />;
+  if (isError) return <p>Error loading product</p>;
+  if (!product) return <p>Product not found</p>;
 
   return (
     <div className="flex w-full justify-center p-10 dark:bg-gray-900">
@@ -220,17 +210,34 @@ export default function StockManage({ productId }: StockManageProps) {
         {/* Product Info */}
         <div className="rounded-xl border bg-white p-6 shadow-sm dark:bg-gray-800">
           <div className="flex items-start justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                {productName}
-              </h3>
-              <p className="text-sm text-gray-500">{description}</p>
-              <p className="mt-2 text-xl font-semibold text-gray-900 dark:text-white">
-                ${unitPrice.toFixed(2)}
-              </p>
+            <div className="flex space-x-6 items-start">
+              <div className="w-[50px] h-[50px] ">
+                <Image
+                  unoptimized
+                  src={product.image_url}
+                  alt="image"
+                  width={1000}
+                  height={1000}
+                  className=" object-cover "
+                />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  {product.name}
+                </h3>
+                <div
+                  className="text-sm text-gray-500"
+                  dangerouslySetInnerHTML={{
+                    __html: product.description || "-",
+                  }}
+                />
+                <p className="mt-2 text-xl font-semibold text-gray-900 dark:text-white">
+                  ${product.price.toFixed(2)}
+                </p>
+              </div>
             </div>
             <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
-               sss
+              {product.productTypeName}
             </span>
           </div>
         </div>
@@ -280,9 +287,23 @@ export default function StockManage({ productId }: StockManageProps) {
                   {type === "OUT" ? "-" : "+"}
                 </span>
                 <input
-                  type="number"
-                  value={adjustmentValue}
-                  onChange={(e) => setAdjustmentValue(Number(e.target.value))}
+                  value={adjustmentValue || ""} // ✅ fallback to empty string
+                  onChange={(e) => {
+                    let value = Number(e.target.value);
+
+                    // Prevent NaN
+                    if (isNaN(value)) value = 0;
+
+                    // Prevent negative
+                    if (value < 0) value = 0;
+
+                    // Prevent OUT stock exceeding currentStock
+                    if (type === "OUT" && value > currentStock) {
+                      value = currentStock;
+                    }
+
+                    setAdjustmentValue(value);
+                  }}
                   className="w-full rounded-lg border border-gray-200 p-2.5 pl-8 outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                 />
               </div>
@@ -330,9 +351,9 @@ export default function StockManage({ productId }: StockManageProps) {
             {currentMovements.length === 0 ? (
               <p className="text-sm text-gray-400">No stock movements yet.</p>
             ) : (
-              currentMovements.map((m) => (
+              currentMovements.map((m, index) => (
                 <div
-                  key={m.id}
+                  key={`${m.productUuid}-${m.type}-${m.quantity}-${index}`}
                   className="flex items-center justify-between border-b pb-4 last:border-0"
                 >
                   <div className="flex items-center gap-4">
@@ -340,10 +361,18 @@ export default function StockManage({ productId }: StockManageProps) {
                       <FiArrowDownLeft size={20} />
                     </div>
                     <div>
-                      <p className="font-semibold">{`${m.type} / Manual`}</p>
+                      <p className="font-semibold">{`STOCK ${m.type}`}</p>
                       <p className="text-xs text-gray-400">
-                        on {new Date(m.date).toLocaleString()}
+                        {new Date(m.created_at)
+                          .toLocaleDateString("en-GB")
+                          .replace(/\//g, "-")}{" "}
+                        {new Date(m.created_at).toLocaleTimeString("en-US", {
+                          hour: "numeric",
+                          minute: "2-digit",
+                          hour12: true,
+                        })}
                       </p>
+
                       {m.note && (
                         <p className="text-xs text-gray-400">{m.note}</p>
                       )}
@@ -357,12 +386,14 @@ export default function StockManage({ productId }: StockManageProps) {
                     >
                       {m.type === "OUT" ? `-${m.quantity}` : `+${m.quantity}`}
                     </span>
+                    {/* 
                     <button
-                      onClick={() => handleRequestDelete(m.id)}
+                      onClick={() => handleRequestDelete(m.productUuid)}
                       className="rounded-full bg-red-100 p-2 text-red-400 hover:text-red-600"
                     >
                       <FiTrash2 className="h-5 w-5" />
                     </button>
+                    */}
                   </div>
                 </div>
               ))

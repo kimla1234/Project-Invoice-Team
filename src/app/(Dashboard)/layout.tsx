@@ -5,6 +5,7 @@ import { Providers } from "../providers";
 import { Sidebar } from "@/components/Layouts/sidebar";
 import { Header } from "@/components/Layouts/header";
 import { Toaster } from "@/components/ui/toaster";
+import StoreProvider from "../StoreProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,10 +26,11 @@ export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
-}>) {
+}>){
   return (
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
+        <StoreProvider>
         <Providers>
           <div className="flex min-h-screen">
             <Sidebar />
@@ -41,6 +43,7 @@ export default function RootLayout({
           </div>
           <Toaster />
         </Providers>
+        </StoreProvider>
       </body>
     </html>
   );
