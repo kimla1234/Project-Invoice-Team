@@ -9,13 +9,8 @@ import { Edit2, Plus, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import RichTextEditor from "@/components/ui/RichTextEditor";
 import { GrSubtractCircle } from "react-icons/gr";
-import { ProductData } from "@/types/product";
+import { MyEventResponse } from "@/types/product";
 import { useRouter } from "next/navigation";
-import {
-  getProductById,
-  updateProduct,
-  deleteProduct,
-} from "@/components/Tables/fetch";
 import { ConfirmDeleteModal } from "../ConfirmDeleteModal";
 import { ChevronUpIcon } from "@/assets/icons";
 import {
@@ -28,6 +23,13 @@ import EditProductSkeleton from "@/components/skeletons/EditProductSkeleton";
 import { HiOutlinePhoto } from "react-icons/hi2";
 import { IoMdAddCircleOutline } from "react-icons/io";
 import { FaRegEdit } from "react-icons/fa";
+import {
+  useDeleteProductMutation,
+  useGetProductsByUuidQuery,
+  usePostImageMutation,
+  useUpdateProductMutation,
+} from "@/redux/service/products";
+import { set } from "idb-keyval";
 
 interface EditProductProps {
   productId: string;
@@ -37,8 +39,7 @@ export default function EditProduct({ productId }: EditProductProps) {
   const router = useRouter();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const { toast } = useToast();
-  const [loading, setLoading] = useState(true);
-  const [product, setProduct] = useState<ProductData | null>(null);
+
   const [stockAction, setStockAction] = useState<
     "in" | "out" | "adjust" | null
   >(null);
@@ -46,116 +47,124 @@ export default function EditProduct({ productId }: EditProductProps) {
   // Form state
   const [isOpen, setIsOpen] = useState(false);
   const [productName, setProductName] = useState("");
-  const [currency, setCurrency] = useState("USD");
-  const currencyOptions = ["USD", "KHR", "EUR"];
-  const [image, setImage] = useState<string>(product?.image ?? "");
+  const [currency_type, setCurrency_type] = useState("USD");
+  const currencyOptions = ["USD", "KHR"];
+  const [image, setImage] = useState<string>("");
 
   const [unitPrice, setUnitPrice] = useState(0);
-  const [description, setDescription] = useState("");
   const [stockTracked, setStockTracked] = useState(false);
   const [openingStock, setOpeningStock] = useState(0);
   const [lowStockThreshold, setLowStockThreshold] = useState(0);
+  const [description, setDescription] = useState("");
 
   const options: ("Product" | "Service")[] = ["Product", "Service"];
+  const [updateProductMutation] = useUpdateProductMutation();
+  const [deleteProductMutation] = useDeleteProductMutation();
 
   // Fetch product by id
+  const { data: product, isLoading } = useGetProductsByUuidQuery(productId);
+  const [postImage, { isLoading: isUploading }] = usePostImageMutation();
+
   useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      const data = await getProductById(productId);
+    if (!product) return;
 
-      if (!data) {
-        setLoading(false);
-        return;
-      }
+    setProductName(product.name);
+    setUnitPrice(product.price);
+    setImage(product.image_url ?? "");
+    setOpeningStock(product.stockQuantity ?? 0);
+    setLowStockThreshold(product.low_stock ?? 0);
+    setDescription(product.description ?? "");
+    setCurrency_type(product.currency_type ?? "USD");
+  }, [product]);
 
-      setProduct(data);
-      setProductName(data.name);
-      //setProductType(data.type);
-      setUnitPrice(data.unitPrice);
-      setImage(data.image ?? "");
-      setDescription(data.description ?? "");
-      setStockTracked(data.stock !== undefined);
-      setOpeningStock(data.stock ?? 0);
-      setLowStockThreshold(data.lowStockThreshold ?? 0);
-      setCurrency(data.currency ?? "USD"); // <- Add this
-      setLoading(false);
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Optional: validate size
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "Image too large",
+        description: "Maximum size is 10MB",
+        variant: "destructive",
+      });
+      return;
     }
 
-    fetchData();
-  }, [productId]);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await postImage(formData).unwrap();
+      setImage(response.uri);
+      
+    } catch (error) {
+      toast({
+        title: "Upload Failed",
+        description: "Could not upload image. Try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Update product
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const payload: Partial<ProductData> = {
-      name: productName,
-      currency,
-      unitPrice,
-      image,
-      description,
-      stock: stockTracked ? openingStock : undefined,
-      lowStockThreshold,
-    };
+    try {
+      await updateProductMutation({
+        uuid: productId,
+        body: {
+          name: productName,
+          price: unitPrice,
+          image_url: image,
+          stockQuantity: openingStock,
+          low_stock: lowStockThreshold,
+          description: description,
+          currency_type: currency_type,
+        },
+      }).unwrap();
 
-    const updated = await updateProduct(productId, payload);
-
-    if (updated) {
-      // Show Success Toast
       toast({
         title: "Product Updated",
-        description: "Changes have been saved successfully.",
-        className: "bg-green-600 text-white", // Green success styling
-        duration: 3000,
+        description: "Changes saved successfully",
+        className: "bg-green-600 text-white",
       });
 
       router.push("/products");
-    } else {
-      // Show Error Toast
+    } catch {
       toast({
         title: "Update Failed",
-        description: "Could not save changes to the product.",
-        variant: "destructive", // Red error styling
-        duration: 3000,
+        variant: "destructive",
       });
     }
   };
 
   const handleDelete = async () => {
-    const success = await deleteProduct(productId);
+    try {
+      await deleteProductMutation(productId).unwrap();
 
-    if (success) {
-      // Show success toast before redirecting
       toast({
-        title: "Product Deleted",
+        title: "Product deleted",
         description: "The product has been removed successfully.",
-        variant: "default",
-        className: "bg-green-600 text-white", // Success styling
-        duration: 3000,
+        className: "bg-green-600 text-white",
+        //duration: 3000,
       });
 
-      // Redirect to the products list
       router.push("/products");
-    } else {
-      // Show error toast
+    } catch {
       toast({
         title: "Deletion Failed",
-        description: "There was a problem deleting this product.",
         variant: "destructive",
-        duration: 3000,
       });
     }
   };
 
-
   const handleManageStock = (action: "in" | "out" | "adjust") => {
-  router.push(`/products/${productId}/stocks?action=${action}`);
-};
+    router.push(`/products/${productId}/stocks?action=${action}`);
+  };
 
-
-
-  if (loading) {
+  if (isLoading) {
     return <EditProductSkeleton />;
   }
 
@@ -224,7 +233,7 @@ export default function EditProduct({ productId }: EditProductProps) {
                         }}
                         className="flex w-full cursor-pointer items-center justify-between rounded-lg border p-2"
                       >
-                        {currency}
+                        {currency_type}
                         <ChevronUpIcon
                           className={cn(
                             "h-[18px] w-[18px] rotate-180 transition-transform",
@@ -242,12 +251,12 @@ export default function EditProduct({ productId }: EditProductProps) {
                         <div
                           key={cur}
                           onClick={() => {
-                            setCurrency(cur);
+                            setCurrency_type(cur);
                             setIsOpen(false);
                           }}
                           className={cn(
                             "cursor-pointer rounded-md px-3 py-2 text-sm hover:bg-gray-100",
-                            currency === cur && "bg-gray-100 font-medium",
+                            currency_type === cur && "bg-gray-100 font-medium",
                           )}
                         >
                           {cur}
@@ -276,16 +285,7 @@ export default function EditProduct({ productId }: EditProductProps) {
                     <input
                       type="file"
                       accept="image/png, image/jpeg"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setImage(reader.result as string); // Save base64 string
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
+                      onChange={handleImageChange}
                       className="hidden"
                     />
                   </label>
@@ -299,7 +299,12 @@ export default function EditProduct({ productId }: EditProductProps) {
             {/* Description */}
             <div className="">
               <label className="mb-1.5 block font-medium">Description</label>
-              <RichTextEditor value={description} onChange={setDescription} />
+              {product && (
+                <RichTextEditor
+                  value={description || ""} // raw HTML string is ok
+                  onChange={setDescription}
+                />
+              )}
             </div>
 
             {/* Stock */}
@@ -337,12 +342,15 @@ export default function EditProduct({ productId }: EditProductProps) {
                   <label className="space-y-2">
                     <div>Low Stock Threshold</div>
                     <input
-                      type="number"
+                      type="text"
                       placeholder="Low Stock Threshold"
-                      value={lowStockThreshold}
-                      onChange={(e) =>
-                        setLowStockThreshold(+e.target.value || 0)
-                      }
+                      value={lowStockThreshold.toString().padStart(0, "0")}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (/^\d*$/.test(val)) {
+                          setLowStockThreshold(parseInt(val || "0", 10));
+                        }
+                      }}
                       className="w-full rounded-lg border p-2"
                     />
                   </label>

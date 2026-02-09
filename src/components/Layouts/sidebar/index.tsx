@@ -3,7 +3,7 @@
 import { Logo } from "../../logo";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { NAV_DATA } from "./data";
 import { ArrowLeftIcon, ChevronUp } from "./icons";
@@ -12,7 +12,10 @@ import { useSidebarContext } from "./sidebar-context";
 import Image from "next/image";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 
+import { toast } from "@/hooks/use-toast";
+
 export function Sidebar() {
+    const router = useRouter();
   const pathname = usePathname();
   const { setIsOpen, isOpen, isMobile, toggleSidebar } = useSidebarContext();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
@@ -70,11 +73,47 @@ export function Sidebar() {
     });
   }, [pathname]);
 
-  const handleSignOut = () => {
-    // Clear registered user
-    localStorage.removeItem("registered_user");
-    // Redirect to login page
-    window.location.href = "/login";
+ const handleLogout = async () => {
+    try {
+      const res = await fetch(`/api/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast({
+          title: data.message || "Logout Successful!",
+          description: "You have been safely logged out.",
+          variant: "success", // Ensure your toaster supports this variant
+          duration: 3000,
+        });
+
+        // Redirect and reload
+        router.push(`/login`);
+        //window.location.reload();
+      } else {
+        // If 400 (Token not found), the user is effectively logged out anyway
+        toast({
+          title: "Session Expired",
+          description: data.message || "Your session was already cleared.",
+          variant: "destructive", // Shadcn default for errors
+          duration: 3000,
+        });
+
+        // Optional: Redirect anyway since the token is missing/invalid
+        router.push(`/`);
+      }
+    } catch (error) {
+      toast({
+        title: "Connection Error",
+        description: "Failed to reach the server. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
+      console.error("Logout Error:", error);
+    }
   };
 
   return (
@@ -199,7 +238,7 @@ export function Sidebar() {
           open={showSignOutModal}
           title="Confirm Sign Out"
           description="Are you sure you want to sign out?"
-          onConfirm={handleSignOut}
+          onConfirm={handleLogout}
           onCancel={() => setShowSignOutModal(false)}
         />
     </>

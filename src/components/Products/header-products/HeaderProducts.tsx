@@ -4,48 +4,40 @@ import React, { useEffect, useState } from "react";
 import SummaryCard from "./SummaryCard";
 
 import { FileText, Wrench, ShoppingBag } from "lucide-react";
-import { fetchProductSummary } from "@/components/Tables/fetch";
+import { useGetMyProductsQuery } from "@/redux/service/products";
+import { useMemo } from "react";
 
 export default function HeaderProducts({ refreshKey }: { refreshKey: number }) {
-  const [summary, setSummary] = useState({
-    totalItems: 0,
-    totalProducts: 0,
-    outOfStock: 0,
-    lowStock: 0,
+  const { data: products = [], isLoading } = useGetMyProductsQuery(undefined, {
+    refetchOnMountOrArgChange: true,
   });
+  // ✅ គណនា summary ពី products
+  const summary = useMemo(() => {
+    let totalItems = products.length;
+    let outOfStock = 0;
+    let lowStock = 0;
 
-  const [loading, setLoading] = useState(true);
+    products.forEach((p) => {
+      if (p.status === "OUT_STOCK") outOfStock++;
+      else if (p.status === "LOW_STOCK") lowStock++;
+    });
 
-  useEffect(() => {
-  const loadSummary = async () => {
-    try {
-      const data = await fetchProductSummary();
+    return {
+      totalItems,
+      totalProducts: totalItems,
+      outOfStock,
+      lowStock,
+    };
+  }, [products, refreshKey]);
 
-      setSummary({
-        totalItems: data.totalItems,
-        totalProducts: data.totalProducts,
-        outOfStock: data.outOfStock,
-        lowStock: data.lowStock,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  loadSummary();
-}, [refreshKey]);
-
-// Calculate inStock dynamically
- const inStock = Math.max(summary.totalItems - summary.outOfStock - summary.lowStock, 0);
-
-
-
-
-
+  const inStock = Math.max(
+    summary.totalItems - summary.outOfStock - summary.lowStock,
+    0
+  );
 
   return (
     <div className="flex justify-around bg-white">
-      {loading ? (
+      {isLoading ? (
         <>
           <SummaryCardSkeleton />
           <SummaryCardSkeleton />

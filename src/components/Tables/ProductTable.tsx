@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -11,23 +11,26 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { MoreHorizontal, Edit2, Trash2, SearchX } from "lucide-react";
-import { addOutOfStockNotification } from "@/utils/notifications";
-
-import { ProductData } from "@/types/product";
-import { getProductsTableData, deleteProduct } from "./fetch";
-import { PaginationControls } from "../ui/pagination-controls";
-import { ConfirmDeleteModal } from "../Products/ConfirmDeleteModal";
 import { SiNginxproxymanager } from "react-icons/si";
 import Link from "next/link";
+import Image from "next/image";
+
+// Hooks & Types
+import { MyEventResponse } from "@/types/product";
+import {
+  useDeleteProductMutation,
+  useGetMyProductsQuery,
+} from "@/redux/service/products";
+
+import { PaginationControls } from "../ui/pagination-controls";
+import { ConfirmDeleteModal } from "../Products/ConfirmDeleteModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import Image from "next/image";
 
 interface ProductTableProps {
   visibleColumns: Record<string, boolean>;
@@ -46,80 +49,60 @@ export function ProductTable({
   onExportDataChange,
   onDeleted,
 }: ProductTableProps) {
-  const [fullData, setFullData] = useState<ProductData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  // 1. RTK Query Data Fetching
+  const { data: fullData = [], isLoading, isError } = useGetMyProductsQuery();
+  // 1. Get the delete mutation hook
+  const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation();
+
+  console.log("data : ", fullData);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const { toast } = useToast();
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(7);
 
-  // Fetch initial data
-  useEffect(() => {
-  async function fetchData() {
-    try {
-      const result = await getProductsTableData();
-      setFullData(result);
-
-      // បន្ថែមតែផលិតផលណាដែលអស់ស្តុក និងមិនទាន់បាន Notify
-      //result.forEach((item) => {
-      //  if (item.type === "Product" && item.stock === 0) {
-      //    addOutOfStockNotification(item.name);
-      //  }
-      //});
-    } catch (error) {
-      console.error("Failed to fetch data:", error);
-    } finally {
-      setLoading(false);
-    }
-  }
-  fetchData();
-}, []);
-
-  const getStockStatus = (stock: number, lowThreshold?: number) => {
-    if (stock === 0) return "out";
-    if (lowThreshold !== undefined && stock <= lowThreshold) return "low";
-    return "in";
-  };
-
-  // Filter logic
+  // 1. Filter Logic
   const filteredData = useMemo(() => {
-    const lowerCaseSearch = searchTerm.toLowerCase();
+  const lowerCaseSearch = searchTerm.toLowerCase();
 
-    return fullData.filter((item) => {
-      // 🔍 Search filter
-      const matchSearch =
-        item.name.toLowerCase().includes(lowerCaseSearch) ||
-        item.type.toLowerCase().includes(lowerCaseSearch) ||
-        item.unitPrice.toString().includes(lowerCaseSearch) ||
-        (item.stock?.toString() || "").includes(lowerCaseSearch);
+  const normalizeStatus = (status: string) => status.toLowerCase().replace("_stock", "");
 
-      // 🏷 Status filter (Product / Service)
-      const stockStatus = getStockStatus(
-        item.stock ?? 0,
-        item.lowStockThreshold,
-      );
+  return fullData.filter((item) => {
+    const matchSearch =
+      item.name.toLowerCase().includes(lowerCaseSearch) ||
+      item.productTypeName.toLowerCase().includes(lowerCaseSearch) ||
+      item.price.toString().includes(lowerCaseSearch);
 
-      const matchStatus =
-        selectedStatuses.length === 0 || selectedStatuses.includes(stockStatus);
+    const matchStatus =
+      selectedStatuses.length === 0 ||
+      selectedStatuses.some((s) => s === normalizeStatus(item.status));
 
-      // 💱 Currency filter
+    const matchCurrency =
+      selectedCurrencies.length === 0 ||
+      selectedCurrencies.includes(item.currency_type);
 
-      const matchCurrency =
-        selectedCurrencies.length === 0 ||
-        selectedCurrencies.some(
-          (cur) =>
-            cur.trim().toUpperCase() ===
-            (item.currency ?? "").trim().toUpperCase(),
-        );
-      return matchSearch && matchStatus && matchCurrency;
-    });
-  }, [fullData, searchTerm, selectedStatuses, selectedCurrencies]);
+    return matchSearch && matchStatus && matchCurrency;
+  });
+}, [fullData, searchTerm, selectedStatuses, selectedCurrencies]);
 
-  // Reset page on search term change
+
+  // 2. Export Data Logic (ប្រើ JSON.stringify ដើម្បីការពារ Infinite Loop)
+  const exportData = useMemo(() => {
+    return filteredData.map((item) => ({
+      ID: item.id,
+      Name: item.name,
+      Type: item.productTypeName,
+      Stock: item.stockQuantity,
+      Price: item.price,
+      Status: item.status,
+    }));
+  }, [filteredData]);
+
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, selectedStatuses, selectedCurrencies]);
+    // បាញ់ទៅ parent តែពេលមានទិន្នន័យពិតប្រាកដ និងមិនមែន array ទទេ
+    if (fullData && fullData.length > 0) {
+      onExportDataChange(exportData);
+    }
+  }, [JSON.stringify(exportData), onExportDataChange, fullData.length]);
 
   // Paginated data
   const paginatedData = useMemo(() => {
@@ -130,66 +113,71 @@ export function ProductTable({
   const totalItems = filteredData.length;
   const totalPages = Math.ceil(totalItems / rowsPerPage);
 
-  // Dynamic column span for "No Data"
+  // Dynamic column span
   const activeColumnsCount =
-    Object.values(visibleColumns).filter(Boolean).length + 1; // +1 for Stock
+    Object.values(visibleColumns).filter(Boolean).length + 1;
 
   const handleRowsPerPageChange = (newRowsPerPage: number) => {
     setRowsPerPage(newRowsPerPage);
     setCurrentPage(1);
   };
 
-  // ProductTable.tsx
-
   const handleConfirmDelete = async () => {
     if (!deleteId) return;
 
-    const success = await deleteProduct(deleteId.toString());
+    try {
+      // 2. Execute mutation
+      await deleteProduct(deleteId).unwrap();
 
-    if (success) {
-      // 1. Update State ក្នុង Table ឱ្យបាត់ Item ហ្នឹងភ្លាម
-      setFullData((prev) => prev.filter((item) => item.id !== deleteId));
-
-      // 2. ហៅ onDeleted ដើម្បីឱ្យ Parent Component (Products.tsx) ដឹងថាមានការលុប
-      // បន្ទាប់មកវានឹងទៅ Update refreshKey ដើម្បីឱ្យ Header រត់ឡើងវិញ
-      if (onDeleted) {
-        onDeleted();
-      }
-
-      // 3. Show Success Toast
+      // 3. Success Feedback
       toast({
         title: "Product deleted",
         description: "The product has been removed successfully.",
         className: "bg-green-600 text-white",
-        duration: 3000,
+       
       });
-    } else {
+
+      // Notify parent to refresh header stats if necessary
+      if (onDeleted) onDeleted();
+    } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete the product.",
+        description: "Failed to delete the product. Please try again.",
         variant: "destructive",
-        duration: 3000,
+        
+      });
+    } finally {
+      setDeleteId(null);
+    }
+  };
+
+  const currencySymbol: Record<string, string> = {
+    USD: "$",
+    KHR: "៛",
+    EUR: "€",
+  };
+
+  const formatPrice = (price: number, currency?: string) => {
+    if (currency === "KHR") {
+      // Riel usually no decimals
+      return price.toLocaleString("en-US", {
+        maximumFractionDigits: 0,
       });
     }
 
-    setDeleteId(null);
+    return price.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
   };
 
-  // 📤 EXPORT DATA SYNC
-  useEffect(() => {
-    onExportDataChange(
-      filteredData.map((item) => ({
-        ID: item.id,
-        Name: item.name,
-        Type: item.type,
-        Stock: item.stock ?? "N/A",
-        "Unit Price": item.unitPrice,
-        Currency: item.currency,
-      })),
+  if (isLoading) return <TableSkeleton />;
+  if (isError)
+    return (
+      <div className="p-10 text-center text-red-500">
+        Failed to load products.
+      </div>
     );
-  }, [filteredData, onExportDataChange]);
-
-  if (loading) return <TableSkeleton />;
 
   return (
     <div className="space-y-4">
@@ -200,17 +188,13 @@ export function ProductTable({
               {visibleColumns.ID && (
                 <TableHead className="xl:pl-7.5">ID</TableHead>
               )}
-              {visibleColumns.Image && (
-                <TableHead className="">Image</TableHead>
-              )}
+              {visibleColumns.Image && <TableHead>Image</TableHead>}
               {visibleColumns.Name && (
                 <TableHead className="min-w-[100px] xl:pl-7.5">Name</TableHead>
               )}
               {visibleColumns.UnitPrice && <TableHead>Unit Price</TableHead>}
               <TableHead className="w-[70px]">Stock</TableHead>
-              {visibleColumns.StockStatus && (
-                <TableHead>Stock Status</TableHead>
-              )}
+              {visibleColumns.StockStatus && <TableHead>Status</TableHead>}
               {visibleColumns.Actions && (
                 <TableHead className="text-right xl:pr-7.5">Actions</TableHead>
               )}
@@ -221,7 +205,7 @@ export function ProductTable({
             {paginatedData.length > 0 ? (
               paginatedData.map((item) => (
                 <TableRow
-                  key={item.id}
+                  key={item.uuid}
                   className="border-[#eee] dark:border-dark-3"
                 >
                   {visibleColumns.ID && (
@@ -233,8 +217,9 @@ export function ProductTable({
                     <TableCell className="w-[50px]">
                       <div className="relative h-11 w-11 overflow-hidden rounded-md border">
                         <Image
+                          unoptimized
                           src={
-                            item.image ||
+                            item.image_url ||
                             "https://t4.ftcdn.net/jpg/06/57/37/01/360_F_657370150_pdNeG5pjI976ZasVbKN9VqH1rfoykdYU.jpg"
                           }
                           alt={item.name}
@@ -252,100 +237,77 @@ export function ProductTable({
                       </h5>
                     </TableCell>
                   )}
-
                   {visibleColumns.UnitPrice && (
                     <TableCell>
                       <p className="font-medium text-dark dark:text-white">
-                        {item.currency?.toUpperCase() === "USD"
-                          ? `${item.unitPrice.toFixed(2)} $`
-                          : item.currency?.toUpperCase() === "KHR"
-                            ? `${item.unitPrice.toLocaleString()} KHR`
-                            : `${item.unitPrice}`}
+                        {currencySymbol[item.currency_type] ?? "$"}
+                        {formatPrice(item.price, item.currency_type)}
                       </p>
                     </TableCell>
                   )}
+
                   <TableCell className="w-[100px] xl:pl-7">
                     <p
                       className={cn(
                         "font-medium text-dark dark:text-white",
-                        item.stock === 0 && "text-red-500",
+                        item.stockQuantity === 0 && "text-red-500",
                       )}
                     >
-                      {item.stock ?? "N/A"}
+                      {item.stockQuantity}
                     </p>
                   </TableCell>
 
                   {visibleColumns.StockStatus && (
                     <TableCell>
-                      {(() => {
-                        const status = getStockStatus(
-                          item.stock ?? 0,
-                          item.lowStockThreshold,
-                        );
-
-                        return (
-                          <div
-                            className={cn(
-                              "rounded-md  w-[100px] py-1 flex  justify-center  text-sm font-medium",
-                              status === "in" && "bg-green-100 text-green-700",
-                              status === "low" &&
-                                "bg-yellow-100 text-yellow-700",
-                              status === "out" && "bg-red-100 text-red-700",
-                            )}
-                          >
-                            <div>{status === "in" && "In Stock"}
-                            {status === "low" && "Low Stock"}
-                            {status === "out" && "Out Stock"}</div>
-                          </div>
-                        );
-                      })()}
+                      <div
+                        className={cn(
+                          "flex w-[100px] justify-center rounded-md py-1 text-xs font-medium uppercase",
+                          item.status === "IN_STOCK" &&
+                            "bg-green-100 text-green-700",
+                          item.status === "LOW_STOCK" &&
+                            "bg-yellow-100 text-yellow-700",
+                          item.status === "OUT_STOCK" &&
+                            "bg-red-100 text-red-700",
+                        )}
+                      >
+                        {item.status.replace("_", " ")}
+                      </div>
                     </TableCell>
                   )}
 
                   {visibleColumns.Actions && (
-                    // shadcn components use portals internally, fixing the clipping issue automatically
                     <TableCell className="text-right xl:pr-7.5">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          {/* Use a button inside the trigger for proper semantics/styling */}
                           <button className="rounded-full p-2 hover:bg-gray-100 dark:hover:bg-dark-3">
                             <MoreHorizontal className="size-5 text-gray-500" />
                           </button>
                         </DropdownMenuTrigger>
-
-                        {/* Align the menu to the right side of the trigger */}
                         <DropdownMenuContent align="end" className="w-44">
                           <div className="border-b px-2 py-1">Actions</div>
-                          <div>
-                            <DropdownMenuItem asChild>
-                              <Link
-                                href={`/products/${item.id}/edit`}
-                                className="flex items-center focus:bg-primary/10"
-                              >
-                                <Edit2 className="mr-2 size-4" /> Edit
-                              </Link>
-                            </DropdownMenuItem>
-                            {item.type === "Product" && (
-                              <DropdownMenuItem asChild>
-                                <Link
-                                  href={`/products/${item.id}/stocks`}
-                                  className="flex items-center focus:bg-primary/10"
-                                >
-                                  <SiNginxproxymanager className="mr-2 size-4" />
-                                  Manage Stock
-                                </Link>
-                              </DropdownMenuItem>
-                            )}
-
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setDeleteId(item.id);
-                              }}
-                              className="flex items-center text-red-600 focus:bg-red-50"
+                          <DropdownMenuItem asChild>
+                            <Link
+                              href={`/products/${item.uuid}/edit`}
+                              className="flex items-center"
                             >
-                              <Trash2 className="mr-2 size-4" /> Delete
-                            </DropdownMenuItem>
-                          </div>
+                              <Edit2 className="mr-2 size-4" /> Edit
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link
+                              href={`/products/${item.uuid}/stocks`}
+                              className="flex items-center"
+                            >
+                              <SiNginxproxymanager className="mr-2 size-4" />{" "}
+                              Manage Stock
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setDeleteId(item.uuid)}
+                            className="flex items-center text-red-600 focus:bg-red-50"
+                          >
+                            <Trash2 className="mr-2 size-4" /> Delete
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -359,18 +321,10 @@ export function ProductTable({
                   className="h-[300px] text-center"
                 >
                   <div className="flex flex-col items-center justify-center space-y-3">
-                    <div className="rounded-full bg-gray-100 p-4 dark:bg-dark-3">
-                      <SearchX className="size-8 text-gray-400" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-lg font-semibold text-dark dark:text-white">
-                        No results found
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        We couldn&apos;t find any products matching &quot;
-                        {searchTerm}&quot;
-                      </p>
-                    </div>
+                    <SearchX className="size-8 text-gray-400" />
+                    <p className="text-lg font-semibold">
+                      No results found for &quot;{searchTerm}&quot;
+                    </p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -379,7 +333,6 @@ export function ProductTable({
         </Table>
       </div>
 
-      {/* Pagination */}
       {totalItems > 0 && (
         <PaginationControls
           currentPage={currentPage}
@@ -388,82 +341,21 @@ export function ProductTable({
           totalItems={totalItems}
           onPageChange={setCurrentPage}
           onRowsPerPageChange={handleRowsPerPageChange}
-          availableRowsPerPage={[8, 10, 20, 50]}
+          availableRowsPerPage={[7, 10, 20, 50]}
         />
       )}
 
       <ConfirmDeleteModal
         open={deleteId !== null}
-        onCancel={() => setDeleteId(null)}
+        onCancel={() => !isDeleting && setDeleteId(null)} // Prevent close while deleting
         onConfirm={handleConfirmDelete}
       />
     </div>
   );
 }
 
-// Table skeleton for loading
 const TableSkeleton = () => (
   <div className="animate-pulse space-y-4">
-    <div className="rounded-[10px] border border-stroke bg-white shadow-sm dark:border-dark-3 dark:bg-gray-dark">
-      <div className="overflow-hidden">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-[#F7F9FC] dark:bg-dark-2">
-              <th className="py-4 pl-7.5 text-left">
-                <div className="h-4 w-24 rounded bg-gray-200 dark:bg-gray-700"></div>
-              </th>
-              <th className="px-4 py-4 text-left">
-                <div className="h-4 w-16 rounded bg-gray-200 dark:bg-gray-700"></div>
-              </th>
-              <th className="px-4 py-4 text-left">
-                <div className="h-4 w-16 rounded bg-gray-200 dark:bg-gray-700"></div>
-              </th>
-              <th className="px-4 py-4 text-left">
-                <div className="h-4 w-20 rounded bg-gray-200 dark:bg-gray-700"></div>
-              </th>
-              <th className="py-4 pr-7.5 text-right">
-                <div className="ml-auto h-4 w-12 rounded bg-gray-200 dark:bg-gray-700"></div>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {[...Array(6)].map((_, index) => (
-              <tr
-                key={index}
-                className="border-b border-[#eee] dark:border-dark-3"
-              >
-                <td className="py-4 pl-7.5">
-                  <div className="h-4 w-32 rounded bg-gray-200 dark:bg-gray-700"></div>
-                </td>
-                <td className="px-4 py-4">
-                  <div className="h-6 w-20 rounded-full bg-gray-100 dark:bg-gray-800"></div>
-                </td>
-                <td className="px-4 py-4">
-                  <div className="h-4 w-12 rounded bg-gray-200 dark:bg-gray-700"></div>
-                </td>
-                <td className="px-4 py-4">
-                  <div className="h-4 w-16 rounded bg-gray-200 dark:bg-gray-700"></div>
-                </td>
-                <td className="py-4 pr-7.5 text-right">
-                  <div className="ml-auto h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-800"></div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div className="flex items-center justify-end gap-6">
-      <div className="h-4 w-32 rounded bg-gray-200 dark:bg-gray-700"></div>
-      <div className="h-8 w-20 rounded bg-gray-200 dark:bg-gray-700"></div>
-      <div className="flex gap-2">
-        {[...Array(4)].map((_, i) => (
-          <div
-            key={i}
-            className="h-9 w-9 rounded-md bg-gray-200 dark:bg-gray-700"
-          ></div>
-        ))}
-      </div>
-    </div>
+    <div className="h-80 w-full rounded-[10px] border bg-white dark:bg-gray-dark" />
   </div>
 );
