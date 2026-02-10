@@ -177,28 +177,48 @@ export function ProductTable({
     );
 
   const getDynamicColor = (name: string) => {
+    // បន្ថែមពណ៌ឱ្យកាន់តែច្រើន ដើម្បីកុំឱ្យងាយជាន់គ្នា
     const colors = [
-      "bg-red-100/50 text-red-700",
-      "bg-blue-100/50 text-blue-700",
-      "bg-green-100/50 text-green-700",
-      "bg-yellow-100/50 text-yellow-700",
-      "bg-purple-100/50 text-purple-700",
-      "bg-pink-100/50 text-pink-700",
-      "bg-indigo-100/50 text-indigo-700",
-      "bg-orange-100/50 text-orange-700",
+      "bg-red-100 text-red-700",
+      "bg-blue-100 text-blue-700",
+      "bg-green-100 text-green-700",
+      "bg-yellow-100 text-yellow-700",
+      "bg-purple-100 text-purple-700",
+      "bg-pink-100 text-pink-700",
+      "bg-indigo-100 text-indigo-700",
+      "bg-orange-100 text-orange-700",
+      "bg-cyan-100 text-cyan-700",
+      "bg-teal-100 text-teal-700",
+      "bg-rose-100 text-rose-700",
+      "bg-emerald-100 text-emerald-700",
     ];
 
-    // បង្កើតលេខសម្គាល់មួយចេញពីឈ្មោះ (Simple Hash)
+    // បង្កើត Hash ពីឈ្មោះ
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
 
-    // ជ្រើសរើសពណ៌តាមរយៈលេខ Hash (ប្រើ modulo ដើម្បីកុំឱ្យលើសចំនួន Array)
+    // ជ្រើសរើស Index
     const index = Math.abs(hash) % colors.length;
     return colors[index];
   };
 
+  const getUniqueColor = (name: string) => {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    // បង្កើតកម្រិតពណ៌ (Hue) ចន្លោះពី 0 ដល់ 360
+    const h = Math.abs(hash) % 360;
+
+    // បញ្ចេញជា Inline Style សម្រាប់ប្រើក្នុង React
+    return {
+      backgroundColor: `hsla(${h}, 70%, 90%, 0.5)`,
+      color: `hsla(${h}, 70%, 30%, 1)`,
+    };
+  };
   return (
     <div className="space-y-4">
       <div className="rounded-[10px] border bg-white dark:border-dark-3 dark:bg-gray-dark">
@@ -210,7 +230,9 @@ export function ProductTable({
               )}
               {visibleColumns.Image && <TableHead>Image</TableHead>}
               {visibleColumns.Name && (
-                <TableHead className="min-w-[100px] xl:pl-7.5">Product Name</TableHead>
+                <TableHead className="min-w-[100px] xl:pl-7.5">
+                  Product Name
+                </TableHead>
               )}
               {visibleColumns.Name && (
                 <TableHead className="min-w-[100px] xl:pl-7.5">
@@ -266,7 +288,12 @@ export function ProductTable({
                   {visibleColumns.Name && (
                     <TableCell className="min-w-[100px] max-w-[180px] xl:pl-7.5">
                       <h5
-                        className={`w-fit rounded-sm px-2 py-1 font-medium ${getDynamicColor(item.productTypeName)}`}
+                        key={item.id}
+                        className={cn(
+                          "w-fit rounded-sm px-2 py-1 text-xs font-medium",
+                          // ហៅ Function ដើម្បីទាញយកពណ៌មកប្រើតាមឈ្មោះ Product Type
+                          getDynamicColor(item.productTypeName || "Default"),
+                        )}
                       >
                         {item.productTypeName}
                       </h5>

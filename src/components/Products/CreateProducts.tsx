@@ -14,14 +14,29 @@ import { MyEventResponse } from "@/types/product";
 import { useToast } from "@/hooks/use-toast";
 import {
   useCreateProductMutation,
+  useGetProductsTypeQuery,
   usePostImageMutation,
 } from "@/redux/service/products";
+
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "../ui/sheet";
+import { CreateProductTypeForm } from "./CreateProductTypeForm";
 
 const currencyOptions: ("USD" | "KHR")[] = ["USD", "KHR"];
 
 export default function CreateProducts() {
   // Inside CreateProducts component...
   const [createProduct, { isLoading }] = useCreateProductMutation();
+  const { data: typesResponse } = useGetProductsTypeQuery();
+  const productTypes = typesResponse?.data || []; // Extract from BaseMessage wrapper
+  const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
@@ -137,10 +152,10 @@ export default function CreateProducts() {
       image_url: imagePreview || "/images/default.png", // Match backend key
       price: unitPrice, // Match backend key
       currency_type: currency,
-      productTypeId: 1, // Hardcoded or from a select
       quantity: stock, // Match backend key
       low_stock: lowStockThreshold,
       description: description,
+      productTypeId: selectedTypeId,
     };
 
     try {
@@ -319,7 +334,62 @@ export default function CreateProducts() {
             </div>
 
             <div>
-              <div>Produt Type</div>
+              <div className="mb-2 flex items-center justify-between">
+                <label className="font-medium text-slate-700 dark:text-gray-300">
+                  Product Type
+                </label>
+
+                {/* Use the controlled state here */}
+                <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                  <SheetTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex items-center bg-red-50 px-2 py-2 rounded-md  gap-1 text-xs font-bold text-red-500 hover:underline"
+                    >
+                       Add New Type
+                    </button>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-[400px] bg-white">
+                    <SheetHeader>
+                      <SheetTitle>Create Product Type</SheetTitle>
+                      <SheetDescription>
+                        Add a new category for your products. e.g., ELECTRONICS,
+                        FOOD.
+                      </SheetDescription>
+                    </SheetHeader>
+
+                    <CreateProductTypeForm
+                      onSuccess={() => {
+                        setIsSheetOpen(false); // ✅ This will now close the sheet
+                      }}
+                    />
+                  </SheetContent>
+                </Sheet>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {productTypes.map((type) => (
+                  <button
+                    key={type.id}
+                    type="button"
+                    onClick={() => setSelectedTypeId(type.id)}
+                    className={cn(
+                      "rounded-lg border px-4 py-2 text-sm font-medium transition-all",
+                      selectedTypeId === type.id
+                        ? "border-primary bg-primary text-white "
+                        : "border-gray-200 bg-white text-slate-600 hover:border-primary hover:text-primary",
+                    )}
+                  >
+                    {type.name}
+                  </button>
+                ))}
+              </div>
+
+              {!selectedTypeId && (
+                <p className="mt-1 text-xs text-red-500">
+                  Please select a product type
+                </p>
+              )}
             </div>
 
             {/* Row 4: Description */}

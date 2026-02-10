@@ -26,3 +26,16 @@ export interface Movement {
   created_at:string
 }
 
+
+export interface MyProductTypeResponse {
+  id: number;
+  name: string;
+  status: boolean;
+  createdAt: string; // ISO Date string from Java LocalDateTime
+  createdBy: string; // The user name we mapped in the service
+}
+
+export interface BaseMessage<T> {
+  message: string;
+  data: T;
+}

@@ -26,10 +26,20 @@ import { FaRegEdit } from "react-icons/fa";
 import {
   useDeleteProductMutation,
   useGetProductsByUuidQuery,
+  useGetProductsTypeQuery,
   usePostImageMutation,
   useUpdateProductMutation,
 } from "@/redux/service/products";
 import { set } from "idb-keyval";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { CreateProductTypeForm } from "../CreateProductTypeForm";
 
 interface EditProductProps {
   productId: string;
@@ -65,6 +75,11 @@ export default function EditProduct({ productId }: EditProductProps) {
   const { data: product, isLoading } = useGetProductsByUuidQuery(productId);
   const [postImage, { isLoading: isUploading }] = usePostImageMutation();
 
+  const { data: typesResponse } = useGetProductsTypeQuery();
+  const productTypes = typesResponse?.data || [];
+const [selectedTypeId, setSelectedTypeId] = useState<number | undefined>(undefined);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+
   useEffect(() => {
     if (!product) return;
 
@@ -75,6 +90,7 @@ export default function EditProduct({ productId }: EditProductProps) {
     setLowStockThreshold(product.low_stock ?? 0);
     setDescription(product.description ?? "");
     setCurrency_type(product.currency_type ?? "USD");
+    setSelectedTypeId(product.productTypeId ?? undefined);
   }, [product]);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,7 +113,6 @@ export default function EditProduct({ productId }: EditProductProps) {
 
       const response = await postImage(formData).unwrap();
       setImage(response.uri);
-      
     } catch (error) {
       toast({
         title: "Upload Failed",
@@ -122,6 +137,7 @@ export default function EditProduct({ productId }: EditProductProps) {
           low_stock: lowStockThreshold,
           description: description,
           currency_type: currency_type,
+          productTypeId: selectedTypeId ?? undefined,
         },
       }).unwrap();
 
@@ -293,6 +309,53 @@ export default function EditProduct({ productId }: EditProductProps) {
                     JPG, PNG up to 2MB
                   </p>
                 </div>
+              </div>
+            </div>
+
+            {/* Product Type Section */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="font-medium">Product Type</label>
+
+                <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                  <SheetTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 rounded-md bg-red-50 px-2 py-1.5 text-xs font-bold text-red-500 hover:bg-red-100"
+                    >
+                      + Add New Type
+                    </button>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-[400px] bg-white">
+                    <SheetHeader>
+                      <SheetTitle>Create Product Type</SheetTitle>
+                      <SheetDescription>
+                        Add a new category for your products.
+                      </SheetDescription>
+                    </SheetHeader>
+                    <CreateProductTypeForm
+                      onSuccess={() => setIsSheetOpen(false)}
+                    />
+                  </SheetContent>
+                </Sheet>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {productTypes.map((type) => (
+                  <button
+                    key={type.id}
+                    type="button"
+                    onClick={() => setSelectedTypeId(type.id)}
+                    className={cn(
+                      "rounded-lg border px-4 py-2 text-sm font-medium transition-all",
+                      selectedTypeId === type.id
+                        ? "border-primary bg-primary text-white"
+                        : "border-gray-200 bg-white text-slate-600 hover:border-primary hover:text-primary",
+                    )}
+                  >
+                    {type.name}
+                  </button>
+                ))}
               </div>
             </div>
 

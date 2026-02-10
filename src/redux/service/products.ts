@@ -1,10 +1,11 @@
 import { normPlovApi } from "@/redux/api";
-import { Movement, MyEventResponse } from "@/types/product";
+import { BaseMessage, Movement, MyEventResponse, MyProductTypeResponse } from "@/types/product";
 
 // src/redux/service/products.ts
 
 export const productsApi = normPlovApi.injectEndpoints({
     overrideExisting: true,
+    
   endpoints: (builder) => ({
     getMyProducts: builder.query<MyEventResponse[], void>({
       query: () => ({
@@ -97,6 +98,25 @@ export const productsApi = normPlovApi.injectEndpoints({
       invalidatesTags: ["userProfile"],
     }),
 
+    getProductsType: builder.query<BaseMessage<MyProductTypeResponse[]>, void>({
+      query: () => ({
+        url: `api/v1/products/type`,
+        method: "GET",
+      }),
+      transformResponse: (response: BaseMessage<MyProductTypeResponse[]>) => response,
+      providesTags: ["ProductType"],
+    }),
+
+    // Mutation to create a type
+    createProductType: builder.mutation<BaseMessage<MyProductTypeResponse>, { name: string }>({
+      query: (newType) => ({
+        url: "api/v1/products/type",
+        method: "POST",
+        body: newType,
+      }),
+      invalidatesTags: ["ProductType"], // This triggers the getProductsType to re-run
+    }),
+
 
   }),
 });
@@ -109,5 +129,7 @@ export const {
   useUpdateProductMutation,
   useUpdateStockMutation,
   useGetStockMovementQuery,
-  usePostImageMutation
+  usePostImageMutation,
+  useGetProductsTypeQuery,
+  useCreateProductTypeMutation
 } = productsApi;

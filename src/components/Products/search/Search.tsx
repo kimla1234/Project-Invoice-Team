@@ -16,7 +16,7 @@ export default function SearchInput({ searchTerm, onSearchChange }: SearchInputP
       
       <input
         type="text"
-        placeholder="name product"
+        placeholder="Search by name, description, or type"
         value={searchTerm} // Use the prop value
         onChange={(e) => onSearchChange(e.target.value)} // Call the handler
         className="
