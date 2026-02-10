@@ -1,156 +1,232 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { InvoiceData } from "@/types/invoice";
-import html2pdf from "html2pdf.js";
-import { mockClients } from "@/components/Tables/clients";
+import { useRef } from "react";
 import Link from "next/link";
 import { FiSkipBack } from "react-icons/fi";
+import { useGetInvoiceByIdQuery } from "@/redux/service/invoices";
+import { mockClients } from "@/components/Tables/clients";
+import DownloadPDFButton from "../create-invoice/DownloadPDFButton";
 
 interface ViewInvoiceProps {
   id: number;
 }
 
 export default function ViewInvoice({ id }: ViewInvoiceProps) {
-  const [invoice, setInvoice] = useState<InvoiceData | null>(null);
   const invoiceRef = useRef<HTMLDivElement>(null);
+  
+  // Use Redux RTK Query to fetch invoice data
+  const { 
+    data: invoice, 
+    isLoading, 
+    isError, 
+    error 
+  } = useGetInvoiceByIdQuery(id, {
+    skip: !id,
+  });
 
-  useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("invoices") || "[]");
-    if (Array.isArray(stored)) {
-      const found = stored.find((i: InvoiceData) => i.id === id);
-      setInvoice(found || null);
-    }
-  }, [id]);
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="text-center">
+          <div className="spinner-border mx-auto h-12 w-12 animate-spin rounded-full border-4 border-purple-600 border-t-transparent"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading invoice...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const handleDownload = () => {
-    if (invoiceRef.current) {
-      html2pdf().from(invoiceRef.current).save(`invoice-${id}.pdf`);
-    }
-  };
-
-  if (!invoice) return <p className="p-4">Invoice not found.</p>;
-
-  return (
-    <div className="flex flex-col items-center space-y-6 p-6">
-      {/* Header */}
-      <div className="flex w-full max-w-2xl items-center justify-between gap-4 py-2">
-        <h3 className="flex items-center rounded-lg border border-gray-200 bg-white px-4 py-2 font-medium text-primary dark:border-dark-3 dark:bg-gray-800 dark:hover:text-blue-400">
-          View Invoice
-        </h3>
-
+  // Error state
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center space-y-4 p-6">
+        <p className="text-red-500">Error loading invoice: {error?.toString()}</p>
         <Link
           href="/invoices"
-          className="flex items-center rounded-lg border border-gray-200 bg-white px-4 py-2 font-medium text-primary transition hover:border-red-400 hover:text-red-400 dark:border-dark-3 dark:bg-gray-800 dark:hover:text-blue-400"
+          className="flex items-center rounded-lg border border-gray-200 bg-white px-4 py-2 font-medium text-purple-600 transition hover:border-purple-400 hover:text-purple-700 dark:border-dark-3 dark:bg-gray-800"
         >
           <FiSkipBack className="mr-2 h-5 w-5" />
-          Back to Invoice
+          Back to Invoices
         </Link>
       </div>
+    );
+  }
 
-      {/* Invoice content */}
-      <div
-        ref={invoiceRef}
-        className="w-full max-w-2xl rounded-md border border-gray-200 bg-white p-6 shadow-md dark:border-dark-3 dark:bg-gray-dark"
-      >
-        <h2 className="mb-4 text-center text-2xl font-bold text-gray-900 dark:text-gray-100">
-          Invoice
-        </h2>
+  // No invoice found
+  if (!invoice) {
+    return (
+      <div className="flex flex-col items-center space-y-4 p-6">
+        <p className="p-4 text-gray-700 dark:text-gray-300">Invoice not found.</p>
+        <Link
+          href="/invoices"
+          className="flex items-center rounded-lg border border-gray-200 bg-white px-4 py-2 font-medium text-purple-600 transition hover:border-purple-400 hover:text-purple-700 dark:border-dark-3 dark:bg-gray-800"
+        >
+          <FiSkipBack className="mr-2 h-5 w-5" />
+          Back to Invoices
+        </Link>
+      </div>
+    );
+  }
 
-        <div className="mb-4 space-y-1 text-sm">
-          <p>
-            <strong>Client:</strong>{" "}
-            {mockClients.find((c) => c.id === invoice.clientId)?.name ||
-              "Unknown Client"}
-          </p>
-          <p>
-            <strong>Invoice No:</strong> {invoice.invoiceNo}
-          </p>
-          <p>
-            <strong>Issue Date:</strong>{" "}
-            {invoice.issueDate
-              ? new Date(invoice.issueDate).toLocaleDateString("en-GB")
-              : "N/A"}
-          </p>
-          <p>
-            <strong>Due Date:</strong>{" "}
-            {invoice.dueDate
-              ? new Date(invoice.dueDate).toLocaleDateString("en-GB")
-              : "N/A"}
-          </p>
-        </div>
+  const client = mockClients.find((c) => c.id === invoice.clientId);
 
-        <table className="w-full border-collapse border text-sm">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border p-2">No</th>
-              <th className="border p-2">Product Name</th>
-              <th className="border p-2">Qty</th>
-              <th className="border p-2">Unit Price</th>
-              <th className="border p-2">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {invoice.items && invoice.items.length > 0 ? (
-              invoice.items.map((item, index) => (
-                <tr key={index}>
-                  <td className="border p-2 text-center">{index + 1}</td>
-                  <td className="border p-2 text-center">{item.name}</td>
-                  <td className="border p-2 text-center">{item.qty}</td>
-                  <td className="border p-2 text-center">
-                    ${Number(item.unitPrice ?? 0).toFixed(2)}
-                  </td>
-                  <td className="border p-2 text-center">
-                    ${Number(item.total ?? 0).toFixed(2)}
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={5} className="p-4 text-center">
-                  No items found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+  return (
+      <div className="mx-auto max-w-4xl">
+       
 
-        <div className="mt-4 flex justify-end">
-          <div className="w-64 rounded-lg border border-gray-300 bg-gray-50 p-4 dark:border-dark-3 dark:bg-gray-dark">
-            <div className="mb-2 flex justify-between">
-              <span className="font-medium text-gray-700 dark:text-white">
-                Subtotal:
-              </span>
-              <span className="font-semibold text-gray-900 dark:text-white">
-                ${Number(invoice.subtotal ?? 0).toFixed(2)}
-              </span>
-            </div>
-            <div className="mb-2 flex justify-between">
-              <span className="font-medium text-gray-700 dark:text-white">
-                Tax:
-              </span>
-              <span className="font-semibold text-gray-900 dark:text-white">
-                ${Number(invoice.tax ?? 0).toFixed(2)}
-              </span>
-            </div>
-            <div className="flex justify-between border-t border-gray-300 pt-2 dark:border-dark-2">
-              <span className="font-medium text-gray-700 dark:text-white">
-                Grand Total:
-              </span>
-              <span className="font-bold text-gray-900 dark:text-white">
-                ${Number(invoice.totalAmount ?? 0).toFixed(2)}
-              </span>
+        {/* Invoice Card */}
+        <div
+          ref={invoiceRef}
+          className="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
+        >
+          {/* Header Section */}
+          <div className="border-b border-gray-200 p-8 dark:border-gray-700">
+            <div className="flex items-start justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                  Invoice
+                </h1>
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                  Invoice No: {invoice.invoiceNo}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-gray-600 dark:text-gray-400">Issue Date</p>
+                <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">
+                  {invoice.createdAt
+                    ? new Date(invoice.createdAt).toLocaleDateString("en-GB")
+                    : "N/A"}
+                </p>
+              </div>
             </div>
           </div>
+
+          {/* Company & Client Info */}
+          <div className="grid gap-8 border-b border-gray-200 p-8 dark:border-gray-700 md:grid-cols-2">
+            <div>
+              <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-purple-600 dark:text-purple-400">
+                From
+              </h3>
+              <p className="font-semibold text-gray-900 dark:text-white">
+                Your Company Name
+              </p>
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                Company Address
+              </p>
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                Email | Phone
+              </p>
+            </div>
+            <div>
+              <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-purple-600 dark:text-purple-400">
+                Bill To
+              </h3>
+              <p className="font-semibold text-gray-900 dark:text-white">
+                {client?.name || "Unknown Client"}
+              </p>
+              {client?.address && (
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                  Address: {client.address}
+                </p>
+              )}
+              {client?.contact && (
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                  Phone: {client.contact}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Items Table */}
+          <div className="p-8">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b-2 border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700">
+                  <th className="p-3 text-left text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">
+                    No
+                  </th>
+                  <th className="p-3 text-left text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">
+                    Product Name
+                  </th>
+                  <th className="p-3 text-right text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">
+                    Qty
+                  </th>
+                  <th className="p-3 text-right text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">
+                    Unit Price ($)
+                  </th>
+                  <th className="p-3 text-right text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">
+                    Total ($)
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoice.items && invoice.items.length > 0 ? (
+                  invoice.items.map((item, index) => (
+                    <tr
+                      key={index}
+                      className="border-b border-gray-200 dark:border-gray-700"
+                    >
+                      <td className="p-3 text-sm text-gray-600 dark:text-gray-400">
+                        {index + 1}
+                      </td>
+                      <td className="p-3 text-sm text-gray-900 dark:text-white">
+                        {item.name}
+                      </td>
+                      <td className="p-3 text-right text-sm text-gray-600 dark:text-gray-400">
+                        {item.quantity}
+                      </td>
+                      <td className="p-3 text-right text-sm text-gray-600 dark:text-gray-400">
+                        ${Number(item.unitPrice ?? 0).toFixed(2)}
+                      </td>
+                      <td className="p-3 text-right text-sm font-semibold text-gray-900 dark:text-white">
+                        ${Number(item.subtotal ?? 0).toFixed(2)}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="p-8 text-center text-gray-500">
+                      No items found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+
+            {/* Totals */}
+            <div className="mt-8 flex justify-end">
+              <div className="w-64 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Subtotal:</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">
+                    ${Number(invoice.subtotal ?? 0).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Tax:</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">
+                    ${Number(invoice.tax ?? 0).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between border-t-2 border-gray-300 pt-2 dark:border-gray-600">
+                  <span className="font-bold text-purple-600 dark:text-purple-400">
+                    Grand Total:
+                  </span>
+                  <span className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                    ${Number(invoice.grandTotal ?? 0).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+         
+        </div>
+
+        {/* Download Button */}
+        <div className="mt-6">
+          <DownloadPDFButton id={invoice.id} />
         </div>
       </div>
-
-      <button
-        onClick={handleDownload}
-        className="mt-6 rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-      >
-        Download as PDF
-      </button>
-    </div>
   );
 }
