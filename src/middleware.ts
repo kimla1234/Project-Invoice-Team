@@ -3,14 +3,24 @@ import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
   const token = request.cookies.get('final-refresh-token')?.value;
+  const { pathname } = request.nextUrl;
 
-  if (
-    request.nextUrl.pathname.startsWith('/login') ||
-    request.nextUrl.pathname.startsWith('/_next') ||
-     request.nextUrl.pathname.startsWith('/register') 
-  ) {
+  // Token (Public Routes)
+  const publicRoutes = [
+    '/login',
+    '/register',
+    '/_next',
+    '/auth/google/callback', 
+    '/oauth2/callback'        
+  ];
+
+
+  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
+
+  if (isPublicRoute) {
     return NextResponse.next();
   }
+
 
   if (!token) {
     return NextResponse.redirect(new URL('/login', request.url));
@@ -20,5 +30,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
+
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };

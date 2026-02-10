@@ -21,22 +21,41 @@ export async function POST() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refreshToken }),
-      }
+      },
     );
 
-    
+    // នៅក្នុង app/api/refresh/route.ts
+    // ២. Handle Error ពី Backend
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("❌ Backend rejected refresh:", errorText);
+      const errorText = await response.text(); // ប្រើ .text() សិនដើម្បីការពារ JSON parse error
+      console.error(`❌ Backend error (${response.status}):`, errorText);
+
+      // បើ Backend បោះ 400, 401 ឬ 404 មានន័យថា Session នេះលែងប្រើបានហើយ
+      if ([400, 401, 404].includes(response.status)) {
+        const nextResponse = NextResponse.json(
+          { message: "Session expired or invalid" },
+          { status: 401 }
+        );
+
+        // លុប Cookie ចោលដើម្បីឱ្យ Middleware ទាត់ទៅ Login វិញ និងបញ្ឈប់ការ Loop
+       // nextResponse.cookies.delete(cookieName);
+        return nextResponse;
+      }
+      
       return NextResponse.json({ message: "Refresh failed" }, { status: response.status });
     }
+
+    
 
     const data = await response.json();
     const { accessToken, refreshToken: newRefreshToken } = data;
 
     if (!accessToken || !newRefreshToken) {
       console.error("❌ Missing tokens in backend response:", data);
-      return NextResponse.json({ message: "Invalid token response" }, { status: 500 });
+      return NextResponse.json(
+        { message: "Invalid token response" },
+        { status: 500 },
+      );
     }
 
     // Save new refresh token in httpOnly cookie
@@ -50,10 +69,13 @@ export async function POST() {
 
     return NextResponse.json(
       { accessToken },
-      { headers: { "Set-Cookie": serialized } }
+      { headers: { "Set-Cookie": serialized } },
     );
   } catch (error) {
     console.error("🔥 Next.js Internal Error:", error);
-    return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

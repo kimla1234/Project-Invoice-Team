@@ -102,6 +102,10 @@ export default function Login() {
       }
     },
   });
+  const handleGoogleLogin = () => {
+  // បញ្ជូនទៅកាន់ Endpoint ដែលយើងបានកំណត់ក្នុង Spring Boot
+  window.location.href = "http://localhost:8081/oauth2/authorization/google";
+};
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-gray-50 md:bg-white">
@@ -149,6 +153,7 @@ export default function Login() {
 
               <button
                 type="button"
+                onClick={handleGoogleLogin}
                 className="mb-6 flex w-full items-center justify-center rounded-xl border border-gray-300 px-4 py-3 font-medium text-gray-700 transition-all duration-300 hover:bg-gray-50 active:scale-95"
               >
                 <img
