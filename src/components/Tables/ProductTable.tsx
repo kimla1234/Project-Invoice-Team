@@ -62,28 +62,28 @@ export function ProductTable({
 
   // 1. Filter Logic
   const filteredData = useMemo(() => {
-  const lowerCaseSearch = searchTerm.toLowerCase();
+    const lowerCaseSearch = searchTerm.toLowerCase();
 
-  const normalizeStatus = (status: string) => status.toLowerCase().replace("_stock", "");
+    const normalizeStatus = (status: string) =>
+      status.toLowerCase().replace("_stock", "");
 
-  return fullData.filter((item) => {
-    const matchSearch =
-      item.name.toLowerCase().includes(lowerCaseSearch) ||
-      item.productTypeName.toLowerCase().includes(lowerCaseSearch) ||
-      item.price.toString().includes(lowerCaseSearch);
+    return fullData.filter((item) => {
+      const matchSearch =
+        item.name.toLowerCase().includes(lowerCaseSearch) ||
+        item.productTypeName.toLowerCase().includes(lowerCaseSearch) ||
+        item.price.toString().includes(lowerCaseSearch);
 
-    const matchStatus =
-      selectedStatuses.length === 0 ||
-      selectedStatuses.some((s) => s === normalizeStatus(item.status));
+      const matchStatus =
+        selectedStatuses.length === 0 ||
+        selectedStatuses.some((s) => s === normalizeStatus(item.status));
 
-    const matchCurrency =
-      selectedCurrencies.length === 0 ||
-      selectedCurrencies.includes(item.currency_type);
+      const matchCurrency =
+        selectedCurrencies.length === 0 ||
+        selectedCurrencies.includes(item.currency_type);
 
-    return matchSearch && matchStatus && matchCurrency;
-  });
-}, [fullData, searchTerm, selectedStatuses, selectedCurrencies]);
-
+      return matchSearch && matchStatus && matchCurrency;
+    });
+  }, [fullData, searchTerm, selectedStatuses, selectedCurrencies]);
 
   // 2. Export Data Logic (ប្រើ JSON.stringify ដើម្បីការពារ Infinite Loop)
   const exportData = useMemo(() => {
@@ -134,7 +134,6 @@ export function ProductTable({
         title: "Product deleted",
         description: "The product has been removed successfully.",
         className: "bg-green-600 text-white",
-       
       });
 
       // Notify parent to refresh header stats if necessary
@@ -144,7 +143,6 @@ export function ProductTable({
         title: "Error",
         description: "Failed to delete the product. Please try again.",
         variant: "destructive",
-        
       });
     } finally {
       setDeleteId(null);
@@ -154,7 +152,6 @@ export function ProductTable({
   const currencySymbol: Record<string, string> = {
     USD: "$",
     KHR: "៛",
-    EUR: "€",
   };
 
   const formatPrice = (price: number, currency?: string) => {
@@ -179,6 +176,29 @@ export function ProductTable({
       </div>
     );
 
+  const getDynamicColor = (name: string) => {
+    const colors = [
+      "bg-red-100/50 text-red-700",
+      "bg-blue-100/50 text-blue-700",
+      "bg-green-100/50 text-green-700",
+      "bg-yellow-100/50 text-yellow-700",
+      "bg-purple-100/50 text-purple-700",
+      "bg-pink-100/50 text-pink-700",
+      "bg-indigo-100/50 text-indigo-700",
+      "bg-orange-100/50 text-orange-700",
+    ];
+
+    // បង្កើតលេខសម្គាល់មួយចេញពីឈ្មោះ (Simple Hash)
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    // ជ្រើសរើសពណ៌តាមរយៈលេខ Hash (ប្រើ modulo ដើម្បីកុំឱ្យលើសចំនួន Array)
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+  };
+
   return (
     <div className="space-y-4">
       <div className="rounded-[10px] border bg-white dark:border-dark-3 dark:bg-gray-dark">
@@ -190,8 +210,14 @@ export function ProductTable({
               )}
               {visibleColumns.Image && <TableHead>Image</TableHead>}
               {visibleColumns.Name && (
-                <TableHead className="min-w-[100px] xl:pl-7.5">Name</TableHead>
+                <TableHead className="min-w-[100px] xl:pl-7.5">Product Name</TableHead>
               )}
+              {visibleColumns.Name && (
+                <TableHead className="min-w-[100px] xl:pl-7.5">
+                  Product Type
+                </TableHead>
+              )}
+
               {visibleColumns.UnitPrice && <TableHead>Unit Price</TableHead>}
               <TableHead className="w-[70px]">Stock</TableHead>
               {visibleColumns.StockStatus && <TableHead>Status</TableHead>}
@@ -234,6 +260,15 @@ export function ProductTable({
                     <TableCell className="min-w-[100px] max-w-[180px] xl:pl-7.5">
                       <h5 className="font-medium text-dark dark:text-white">
                         {item.name}
+                      </h5>
+                    </TableCell>
+                  )}
+                  {visibleColumns.Name && (
+                    <TableCell className="min-w-[100px] max-w-[180px] xl:pl-7.5">
+                      <h5
+                        className={`w-fit rounded-sm px-2 py-1 font-medium ${getDynamicColor(item.productTypeName)}`}
+                      >
+                        {item.productTypeName}
                       </h5>
                     </TableCell>
                   )}

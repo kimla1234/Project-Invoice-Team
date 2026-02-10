@@ -30,7 +30,7 @@ const CallbackHandler: React.FC = () => {
       }
 
       try {
-        // ១. ត្រូវ "await" និងពិនិត្យ Response ជាមុនសិន
+        
         const response = await fetch('/api/set-cookie', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -41,15 +41,17 @@ const CallbackHandler: React.FC = () => {
           throw new Error("Failed to store session. Please try again.");
         }
 
-        // ២. បើ Set Cookie ជោគជ័យ ទើបធ្វើការ Dispatch និងប្តូរ Page
+        
         dispatch(setAccessToken(accessToken));
         
         toast({
-          title: "Login Successful",
-          description: "Welcome back!",
-        });
+            title: "Logged in Successfully 🎉",
+            description: "Your action was completed successfully.",
+            variant: "success", 
+            duration: 2000,
+          });
 
-        // ប្រើ window.location.href ឬ router.refresh() បើ Middleware នៅតែរឹងទទឹង
+
         router.push('/');
         
       } catch (err: any) {
@@ -66,7 +68,7 @@ const CallbackHandler: React.FC = () => {
     handleCallback();
   }, [router, dispatch, toast]);
 
-  // UI សម្រាប់ Error
+
   if (error) {
     return (
       <div className="flex justify-center items-center h-screen flex-col gap-4">
@@ -82,7 +84,7 @@ const CallbackHandler: React.FC = () => {
     );
   }
 
-  // UI សម្រាប់ Loading
+
   return (
     <div className="flex justify-center items-center h-screen flex-col gap-4 bg-gray-50">
        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-600"></div>
