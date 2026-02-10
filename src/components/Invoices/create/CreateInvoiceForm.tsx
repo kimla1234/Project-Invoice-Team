@@ -1,60 +1,138 @@
-// components/Invoices/create/component/CreateInvoiceForm.tsx
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useCreateInvoiceMutation } from "@/redux/service/invoices";
 import { useGetMyProductsQuery } from "@/redux/service/products";
 import { useToast } from "@/hooks/use-toast";
 import { InvoiceItemRequest } from "@/types/invoice";
 import { useRouter } from "next/navigation";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2 } from "lucide-react";
+import { ClientModal } from "@/components/Quotations/create-quotation/ClientModal";
+import { ProductModal } from "../create-invoice/ProductModal";
+import { ClientData } from "@/types/client";
+import { mockClients } from "@/components/Tables/clients";
+import { IoAddCircleOutline } from "react-icons/io5";
+import { IoMdAdd } from "react-icons/io";
+import  DownloadPDFButton  from "../create-invoice/DownloadPDFButton"
+
+type ExtendedItem = InvoiceItemRequest & {
+  id: number;
+  name: string;
+  productName?: string;
+  total: number;
+};
 
 export default function CreateInvoiceForm() {
   const router = useRouter();
   const { toast } = useToast();
-  
+
   const { data: products = [], isLoading: loadingProducts } = useGetMyProductsQuery();
   const [createInvoice, { isLoading: creating }] = useCreateInvoiceMutation();
 
-  const [clientId, setClientId] = useState<number>(0);
-  const [taxPercentage, setTaxPercentage] = useState<number>(10); // Default 10%
-  const [items, setItems] = useState<InvoiceItemRequest[]>([]);
+  const [clients, setClients] = useState<ClientData[]>([]);
+  const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
+  const [invoiceNo, setInvoiceNo] = useState("");
+  const [taxPercentage, setTaxPercentage] = useState<number>(10);
+  const [items, setItems] = useState<ExtendedItem[]>([]);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
-  // Add item to invoice
-  const handleAddItem = (productId: number) => {
-    if (!productId) return;
-    
-    const product = products.find(p => p.id === productId);
-    if (!product) return;
+  useEffect(() => {
+    const storedUser = localStorage.getItem("registered_user");
+    if (storedUser) setUser(JSON.parse(storedUser));
+  }, []);
 
-    const newItem: InvoiceItemRequest = {
-      productId: product.id,
-      unitPrice: product.price,
-      quantity: 1,
-      subtotal: product.price * 1,
+  useEffect(() => {
+    const stored = localStorage.getItem("invoice_footer_settings");
+    if (stored) {
+      const parsed = JSON.parse(stored);
+     
+    }
+  }, []);
+
+  // Initialize invoice number
+  useEffect(() => {
+    const oldInvoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+    const maxId = oldInvoices.length > 0 ? Math.max(...oldInvoices.map((i: any) => i.id)) : 0;
+    setInvoiceNo(`INV-${String(maxId + 1).padStart(4, "0")}`);
+  }, []);
+
+  // Initialize clients
+  useEffect(() => {
+    setClients(mockClients);
+  }, []);
+
+  // Handle modal scroll
+  useEffect(() => {
+    if (isProductModalOpen || isClientModalOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
     };
+  }, [isProductModalOpen, isClientModalOpen]);
 
-    setItems([...items, newItem]);
+  const handleAddProducts = (selectedProducts: any[]) => {
+    const newItems: ExtendedItem[] = selectedProducts.map((p, index) => ({
+      id: p.id,
+      productId: p.id,
+      name: p.name,
+      productName: p.name,
+      quantity: 1,
+      unitPrice: p.price,
+      subtotal: p.price,
+      total: p.price,
+    }));
+    setItems((prev) => [...prev, ...newItems]);
   };
 
   // Update item quantity
   const handleUpdateQuantity = (index: number, quantity: number) => {
     if (quantity < 1) return;
-    
-    const updated = [...items];
-    updated[index].quantity = quantity;
-    updated[index].subtotal = updated[index].unitPrice * quantity;
-    setItems(updated);
+
+    setItems((prev) =>
+      prev.map((item, i) => {
+        if (i !== index) return item;
+        const updated = {
+          ...item,
+          quantity,
+          subtotal: quantity * item.unitPrice,
+          total: quantity * item.unitPrice
+        };
+        return updated;
+      }),
+    );
   };
 
   // Update item unit price
   const handleUpdateUnitPrice = (index: number, unitPrice: number) => {
     if (unitPrice < 0) return;
-    
-    const updated = [...items];
-    updated[index].unitPrice = unitPrice;
-    updated[index].subtotal = unitPrice * updated[index].quantity;
-    setItems(updated);
+
+    setItems((prev) =>
+      prev.map((item, i) => {
+        if (i !== index) return item;
+        const updated = {
+          ...item,
+          unitPrice,
+          subtotal: unitPrice * item.quantity,
+          total: unitPrice * item.quantity
+        };
+        return updated;
+      }),
+    );
+  };
+
+  // Update item name
+  const handleUpdateName = (index: number, name: string) => {
+    setItems((prev) =>
+      prev.map((item, i) => {
+        if (i !== index) return item;
+        return { ...item, name, productName: name };
+      }),
+    );
   };
 
   // Remove item
@@ -63,15 +141,15 @@ export default function CreateInvoiceForm() {
   };
 
   // Calculate totals
-  const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
-  const taxAmount = (subtotal * taxPercentage) / 100; // Calculate tax as percentage
+  const subtotal = items.reduce((sum, item) => sum + (item.total || item.subtotal), 0);
+  const taxAmount = (subtotal * taxPercentage) / 100;
   const grandTotal = subtotal + taxAmount;
 
   // Submit invoice
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!clientId) {
+    if (!selectedClient) {
       toast({
         title: "Validation Error",
         description: "Please select a client.",
@@ -90,12 +168,21 @@ export default function CreateInvoiceForm() {
     }
 
     try {
+      // Convert items to InvoiceItemRequest format
+      const invoiceItems: InvoiceItemRequest[] = items.map(item => ({
+        productId: item.productId,
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+        subtotal: item.subtotal,
+        name: item.name
+      }));
+
       await createInvoice({
-        clientId,
+        clientId: selectedClient.id!,
         subtotal,
-        tax: taxAmount, // Send calculated tax amount
+        tax: taxAmount,
         grandTotal,
-        items,
+        items: invoiceItems,
         status: "pending"
       }).unwrap();
 
@@ -115,6 +202,38 @@ export default function CreateInvoiceForm() {
     }
   };
 
+  const handleSendToClient = () => {
+    if (!items.length || !selectedClient) {
+      toast({
+        title: "Cannot send",
+        description: "Please complete the invoice first",
+        className: "bg-red-600 text-white",
+      });
+      return;
+    }
+
+    const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+    const invoice = invoices.find((i: any) => i.invoiceNo === invoiceNo);
+
+    if (!invoice) {
+      toast({
+        title: "Save invoice first",
+        description: "Please create invoice before sending",
+        className: "bg-red-600 text-white",
+      });
+      return;
+    }
+
+    const link = `${window.location.origin}/invoices/${invoice.id}`;
+    navigator.clipboard.writeText(link);
+
+    toast({
+      title: "Link copied",
+      description: "Invoice link copied. Send it to client!",
+      className: "bg-green-600 text-white",
+    });
+  };
+
   if (loadingProducts) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -124,186 +243,379 @@ export default function CreateInvoiceForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Client Selection */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Client ID <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="number"
-          value={clientId || ""}
-          onChange={(e) => setClientId(Number(e.target.value))}
-          className="border border-gray-300 rounded-lg px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="Enter client ID"
-          required
-        />
-      </div>
+    <div className="flex justify-center space-x-6">
+      {/* Main Form - Left Column - EXACTLY like the quotation layout */}
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-4xl space-y-8 rounded-xl bg-white p-8"
+      >
+        <header className="flex items-center justify-between border-b pb-6">
+          <h1 className="text-3xl font-bold text-gray-800">Invoice</h1>
+          <div className="text-sm">
+            <p className="text-gray-500">Invoice No.</p>
+            <p className="font-semibold text-gray-700">{invoiceNo}</p>
+          </div>
+        </header>
 
-      {/* Items Section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-700">Invoice Items</h3>
+        {/* Address and Date Details Section */}
+        <div className="grid gap-6 border-b pb-6 text-sm text-gray-600 md:grid-cols-3">
+          <div>
+            <p className="text-lg font-semibold text-gray-800">
+              {user?.companyName || "Company Name"}
+            </p>
+            <p>{`${user?.houseNo || ""} ${user?.street || ""}, ${user?.commune || ""}`}</p>
+            <p>{`${user?.district || ""}, ${user?.province || ""}, ${user?.companyPhone || ""}`}</p>
+            <p className="text-gray-500">{user?.companyEmail}</p>
+          </div>
+
+          {/* <div className="md:col-span-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="mb-1 block font-semibold text-gray-800">
+                  Issue Date
+                </label>
+                <input
+                  type="date"
+                  value={issueDate}
+                  onChange={(e) => setIssueDate(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block font-semibold text-gray-800">
+                  Due Date
+                </label>
+                <input
+                  type="text"
+                  placeholder="Pick a date"
+                  value={expiryDate}
+                  onFocus={(e) => (e.target.type = "date")}
+                  onBlur={(e) => {
+                    if (!e.target.value) e.target.type = "text";
+                  }}
+                  onChange={(e) => setExpiryDate(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-gray-50 p-2 text-gray-400"
+                />
+              </div>
+            </div>
+          </div> */}
         </div>
 
-        {/* Add Product Dropdown */}
-        <div className="flex gap-2">
-          <select
-            onChange={(e) => {
-              handleAddItem(Number(e.target.value));
-              e.target.value = ""; // Reset dropdown
-            }}
-            className="border border-gray-300 rounded-lg px-4 py-2 flex-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">Select a product to add</option>
-            {products.map((p) => (
-              <option key={p.uuid} value={p.id}>
-                {p.name} - ${p.price.toFixed(2)} ({p.stockQuantity} in stock)
-              </option>
-            ))}
-          </select>
-          <button
+        {/* Client Selection Section */}
+        <div className="border-b pb-6">
+          {selectedClient ? (
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+              {/* Label and Name */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-400">
+                  Customer:
+                </span>
+                <span className="font-bold text-gray-900">
+                  {selectedClient.name}
+                </span>
+              </div>
+
+              <div className="hidden h-4 w-px bg-gray-300 md:block" />
+
+              {/* Label and Address */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-400">
+                  Address:
+                </span>
+                <span className="font-semibold text-gray-700">
+                  {selectedClient.address || "N/A"}
+                </span>
+              </div>
+
+              <div className="hidden h-4 w-px bg-gray-300 md:block" />
+
+              {/* Label and Phone */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-400">
+                  Phone:
+                </span>
+                <span className="font-semibold text-gray-700">
+                  {selectedClient.contact || "N/A"}
+                </span>
+              </div>
+
+              {/* Edit Button */}
+              <button
+                type="button"
+                onClick={() => setIsClientModalOpen(true)}
+                className="ml-auto flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700"
+              >
+                <span className="rounded border bg-gray-50 px-1.5 py-0.5 text-[10px] text-gray-500">
+                  ⌘ K
+                </span>
+                Edit
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsClientModalOpen(true)}
+              className="flex items-center gap-2 text-lg font-medium text-blue-600 hover:text-blue-700"
+            >
+              <IoAddCircleOutline className="h-6 w-6" />
+              Select Client
+              <span className="ml-2 rounded border bg-gray-50 px-2 py-0.5 text-sm text-gray-400">
+                ⌘ K
+              </span>
+            </button>
+          )}
+        </div>
+
+        <ClientModal
+          isOpen={isClientModalOpen}
+          onClose={() => setIsClientModalOpen(false)}
+          clients={clients}
+          onSelectClient={setSelectedClient}
+        />
+
+        {/* Items Table Section */}
+        <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    No
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Product Name
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Qty
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Unit Price ($)
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Total ($)
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 bg-white">
+                {items.map((item, index) => (
+                  <tr
+                    key={index}
+                    className="transition duration-150 ease-in-out hover:bg-gray-50"
+                  >
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
+                      {index + 1}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
+                      <input
+                        className="w-full rounded border-gray-200 bg-slate-100 p-2 focus:border-blue-500 focus:ring-blue-500"
+                        value={item.name}
+                        onChange={(e) => handleUpdateName(index, e.target.value)}
+                      />
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
+                      <input
+                        type="number"
+                        min="1"
+                        className="w-full rounded border-gray-200 bg-slate-100 p-2 focus:border-blue-500 focus:ring-blue-500"
+                        value={item.quantity}
+                        onChange={(e) => handleUpdateQuantity(index, Number(e.target.value))}
+                      />
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="w-full rounded border-gray-200 bg-slate-100 p-2 focus:border-blue-500 focus:ring-blue-500"
+                        value={item.unitPrice}
+                        onChange={(e) => handleUpdateUnitPrice(index, Number(e.target.value))}
+                      />
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
+                      ${(item.total || item.subtotal).toFixed(2)}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
+                      <button
+                        type="button"
+                        className="rounded-md bg-red-100 px-2 py-1 text-red-600 hover:text-red-900"
+                        onClick={() => handleRemoveItem(index)}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="flex items-center justify-end border-b bg-gray-50 p-4">
+              <button
+                type="button"
+                onClick={() => setIsProductModalOpen(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-slate-400 bg-slate-200 px-4 py-2 text-sm transition duration-150 ease-in-out hover:bg-slate-100"
+              >
+                <IoMdAdd className="h-5 w-5" />
+                <div className="text-md">Add Item</div>
+              </button>
+            </div>
+          </div>
+          <div className="flex justify-end bg-gray-50 p-4">
+            <div className="w-1/2 space-y-2">
+              <div className="flex justify-between font-medium text-gray-700">
+                <span>Subtotal</span>
+                <span>${subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between font-medium text-gray-700">
+                <span>Tax ({taxPercentage}%)</span>
+                <span>${taxAmount.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-lg font-bold text-gray-600">
+                <span>Grand Total</span>
+                <span>${grandTotal.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Form Submission Button */}
+        <button
+          type="submit"
+          disabled={creating || items.length === 0 || !selectedClient}
+          className="w-full rounded-lg bg-blue-600 py-3 text-lg font-semibold text-white transition duration-150 ease-in-out hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+        >
+          {creating ? "Creating Invoice..." : "Create Invoice"}
+        </button>
+      </form>
+
+      {/* Invoice Settings Sidebar (Right Column) - EXACTLY like the quotation layout */}
+      <div className="sticky top-6 space-y-6">
+        {/* Top action buttons section */}
+        <div className="space-y-3 rounded-lg bg-white p-4">
+          <button 
             type="button"
-            onClick={() => {
-              const select = document.querySelector('select') as HTMLSelectElement;
-              if (select.value) {
-                handleAddItem(Number(select.value));
-                select.value = "";
-              }
-            }}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            onClick={handleSubmit}
+            disabled={creating || items.length === 0 || !selectedClient}
+            className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            <Plus className="w-4 h-4" />
-            Add Item
+            <span className="mr-2">+</span> Preview and send
+          </button>
+          <div 
+            onClick={handleSubmit}  
+            className="flex w-full items-center justify-center rounded-lg bg-purple-600 text-white hover:bg-purple-700"
+          >
+            
+          </div>
+          <button 
+            onClick={handleSendToClient} 
+            disabled={creating || items.length === 0 || !selectedClient}
+            className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            <span className="mr-2">+</span> Send to client
           </button>
         </div>
 
-        {/* Items List */}
-        {items.length === 0 ? (
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-500">
-            No items added yet. Select a product above to add items.
+        {/* Settings Sections */}
+        <div className="space-y-4 rounded-lg bg-white p-4">
+          {/* Tax Settings */}
+          <div>
+            <h2 className="mb-2 font-semibold text-gray-800">Tax Settings</h2>
+            <div className="flex items-center justify-between py-1 text-sm">
+              <span>Tax Percentage</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={taxPercentage}
+                  onChange={(e) => setTaxPercentage(Number(e.target.value))}
+                  className="w-20 rounded border p-1 text-right"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                />
+                <span>%</span>
+              </div>
+            </div>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {items.map((item, index) => {
-              const product = products.find(p => p.id === item.productId);
-              return (
-                <div
-                  key={index}
-                  className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50"
-                >
-                  {/* Product Name */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 truncate">
-                      {product?.name || `Product #${item.productId}`}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Stock: {product?.stockQuantity || 0}
-                    </p>
-                  </div>
 
-                  {/* Unit Price */}
-                  <div className="w-32">
-                    <label className="block text-xs text-gray-500 mb-1">Unit Price</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={item.unitPrice}
-                      onChange={(e) => handleUpdateUnitPrice(index, Number(e.target.value))}
-                      className="border border-gray-300 rounded px-3 py-1.5 w-full text-sm"
-                      min="0"
-                    />
-                  </div>
-
-                  {/* Quantity */}
-                  <div className="w-24">
-                    <label className="block text-xs text-gray-500 mb-1">Quantity</label>
-                    <input
-                      type="number"
-                      value={item.quantity}
-                      onChange={(e) => handleUpdateQuantity(index, Number(e.target.value))}
-                      className="border border-gray-300 rounded px-3 py-1.5 w-full text-sm"
-                      min="1"
-                    />
-                  </div>
-
-                  {/* Subtotal */}
-                  <div className="w-28 text-right">
-                    <label className="block text-xs text-gray-500 mb-1">Subtotal</label>
-                    <p className="font-semibold text-gray-900">
-                      ${item.subtotal.toFixed(2)}
-                    </p>
-                  </div>
-
-                  {/* Remove Button */}
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveItem(index)}
-                    className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded"
-                    title="Remove item"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </div>
-              );
-            })}
+          {/* Accepted Payments */}
+          <div className="border-t pt-4">
+            <h2 className="mb-2 font-semibold text-gray-800">
+              Accepted payments
+            </h2>
+            <div className="flex items-center justify-between py-1 text-sm">
+              <span>Stripe</span>
+              <button className="text-purple-600">Connect</button>
+            </div>
+            <div className="flex items-center justify-between py-1 text-sm">
+              <span>Paypal</span>
+              <button className="text-purple-600">Setup</button>
+            </div>
           </div>
-        )}
+
+          {/* Late Fees */}
+          <div className="border-t pt-4">
+            <h2 className="mb-2 font-semibold text-gray-800">Late fees</h2>
+            <label className="mb-2 flex items-center space-x-2">
+              <input
+                type="checkbox"
+                className="form-checkbox rounded text-purple-600"
+                checked
+                readOnly
+              />
+              <span className="text-sm">
+                Charge late fees if this invoice becomes past due.
+              </span>
+            </label>
+            <select className="w-full rounded border bg-gray-50 p-2 text-sm">
+              <option>Select late fees</option>
+            </select>
+          </div>
+
+          {/* Reminders */}
+          <div className="border-t pt-4">
+            <h2 className="mb-2 font-semibold text-gray-800">Reminders</h2>
+            <div className="space-y-2 text-sm">
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  className="form-checkbox rounded text-purple-600"
+                  checked
+                  readOnly
+                />
+                <span>Reminder 1: 7 days before due date</span>
+              </label>
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  className="form-checkbox rounded text-purple-600"
+                  checked
+                  readOnly
+                />
+                <span>Reminder 2: 14 days before due date</span>
+              </label>
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  className="form-checkbox rounded text-purple-600"
+                  checked
+                  readOnly
+                />
+                <span>Reminder 3: 30 days before due date</span>
+              </label>
+            </div>
+            <button className="mt-3 text-sm text-purple-600 hover:underline">
+              Add reminder option
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Tax Percentage */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Tax Percentage (%)
-        </label>
-        <input
-          type="number"
-          step="0.01"
-          value={taxPercentage}
-          onChange={(e) => setTaxPercentage(Number(e.target.value))}
-          className="border border-gray-300 rounded-lg px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="10"
-          min="0"
-          max="100"
-        />
-        <p className="text-sm text-gray-500 mt-1">
-          Tax Amount: ${taxAmount.toFixed(2)}
-        </p>
-      </div>
-
-      {/* Totals Summary */}
-      <div className="border-t border-gray-200 pt-4 space-y-2">
-        <div className="flex justify-between text-gray-700">
-          <span>Subtotal:</span>
-          <span className="font-medium">${subtotal.toFixed(2)}</span>
-        </div>
-        <div className="flex justify-between text-gray-700">
-          <span>Tax ({taxPercentage}%):</span>
-          <span className="font-medium">${taxAmount.toFixed(2)}</span>
-        </div>
-        <div className="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t">
-          <span>Grand Total:</span>
-          <span>${grandTotal.toFixed(2)}</span>
-        </div>
-      </div>
-
-      {/* Submit Buttons */}
-      <div className="flex gap-3 pt-4">
-        <button
-          type="button"
-          onClick={() => router.push('/invoices')}
-          className="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-lg hover:bg-gray-50 font-medium"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={creating || items.length === 0}
-          className="flex-1 bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
-        >
-          {creating ? "Creating..." : "Create Invoice"}
-        </button>
-      </div>
-    </form>
-);
+      <ProductModal
+        isOpen={isProductModalOpen}
+        onClose={() => setIsProductModalOpen(false)}
+        onSelectProducts={handleAddProducts}
+      />
+    </div>
+  );
 }

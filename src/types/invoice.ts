@@ -1,20 +1,22 @@
 export interface InvoiceItem {
     id: number;
-    invoiceId: number | null; // Added this field from response
-    productId: number; // Changed from 'any' to 'number' based on response
+    invoiceId: number | null; 
+    productId: number; 
     unitPrice: number;
     quantity: number;
     subtotal: number;
     createdAt: string;
     updatedAt: string;
-    deletedAt?: string | null; // Made optional since it's not in response
+    name:string;
+    deletedAt?: string | null; 
 }
 
 export interface Invoice {
+    invoiceNo: string;
     id: number;
     userId: number;
     clientId: number;
-    status: string; // Changed from optional to required since it's in response
+    status: string; 
     subtotal: number;
     grandTotal: number;
     tax: number;
@@ -28,6 +30,7 @@ export interface InvoiceItemRequest {
     unitPrice: number;
     quantity: number;
     subtotal: number;
+    name:string;
 }
 
 export interface InvoiceRequest {
