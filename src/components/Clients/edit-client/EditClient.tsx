@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getClientById, updateClient } from "@/components/Tables/clients";
-import type { ClientData } from "@/types/client";
+import {useGetClientByIdQuery, useUpdateClientMutation,} from "@/redux/service/client";
+import type { ClientUpdateRequest} from "@/types/client";
+
 import { useToast } from "@/hooks/use-toast";
 
 export default function EditClient() {
@@ -12,66 +13,73 @@ export default function EditClient() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [loading, setLoading] = useState(true);
-  const [client, setClient] = useState<ClientData | null>(null);
-  const [form, setForm] = useState<Partial<ClientData>>({});
+  const {
+    data: client,
+    isLoading,
+    isError,
+  } = useGetClientByIdQuery(Number(id), {
+    skip: !id,
+  });
+  const [updateClient, { isLoading: isUpdating }] = useUpdateClientMutation();
+  const [form, setForm] = useState<ClientUpdateRequest>({
+    name: "",
+    gender: "MALE",
+    phoneNumber: "",
+    address: "",
+  });
 
   useEffect(() => {
-    let mounted = true;
-    const run = async () => {
-      if (!id) return;
-      setLoading(true);
-      const found = await getClientById(id);
-      if (mounted) {
-        setClient(found ?? null);
-        setForm(found ?? {});
-        setLoading(false);
-      }
-    };
-    run();
-    return () => {
-      mounted = false;
-    };
-  }, [id]);
+    if (!client) return;
 
-  const handleChange = (key: keyof ClientData, value: string) => {
+    setForm({
+      name: client.name,
+      gender: client.gender,
+      phoneNumber: client.phoneNumber,
+      address: client.address,
+    });
+  }, [client]);
+
+  const handleChange = (key: keyof ClientUpdateRequest, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!id) return;
-    try {
-      const updated = await updateClient(id, form);
-      if (updated) {
-        toast({
-          title: "Client updated",
-          description: `Client #${updated.id} saved successfully`,
-        });
-        router.push("/clients");
-      } else {
-        toast({
-          title: "Update failed",
-          description: "Could not update this client",
-          variant: "destructive",
-        });
-      }
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
-    }
-  };
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!id) return;
 
-  if (loading) {
+  try {
+    await updateClient({
+      id: Number(id),
+      body: {
+        ...form,
+        gender: form.gender, // already MALE/FEMALE
+      },
+    }).unwrap();
+
+    toast({
+      title: "Client updated",
+      description: "Client updated successfully.",
+      className: "bg-green-600 text-white",
+    });
+
+    router.push("/clients");
+  } catch (error) {
+    toast({
+      title: "Update failed",
+      description: "Could not update this client.",
+      variant: "destructive",
+    });
+  }
+};
+
+
+  if (isLoading) {
     return (
       <div className="p-6 text-slate-600">Loading client...</div>
     );
   }
 
-  if (!client) {
+  if (isError || !client) {
     return (
       <div className="p-6 text-red-600">Client not found.</div>
     );
@@ -95,11 +103,11 @@ export default function EditClient() {
           <span className="text-sm text-slate-600">Gender</span>
           <select
             className="rounded-md border px-3 py-2"
-            value={form.gender ?? "Male"}
-            onChange={(e) => handleChange("gender", e.target.value)}
+            value={form.gender}
+            onChange={(e) => handleChange("gender", e.target.value === "Male" ? "MALE" : "FEMALE")}
           >
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
+            <option value="MALE">Male</option>
+            <option value="FEMALE">Female</option>
           </select>
         </label>
 
@@ -107,8 +115,8 @@ export default function EditClient() {
           <span className="text-sm text-slate-600">Contact</span>
           <input
             className="rounded-md border px-3 py-2"
-            value={form.contact ?? ""}
-            onChange={(e) => handleChange("contact", e.target.value)}
+            value={form.phoneNumber ?? ""}
+            onChange={(e) => handleChange("phoneNumber", e.target.value)}
           />
         </label>
 

@@ -13,8 +13,8 @@ import {
 import { cn } from "@/lib/utils";
 import { MoreHorizontal, Edit2, Trash2, SearchX } from "lucide-react";
 
-import { ClientData } from "@/types/client";
-import { getClientsTableData, deleteClient } from "./clients";
+
+
 import { PaginationControls } from "../ui/pagination-controls";
 import { ConfirmDeleteClient } from "../Clients/delete-client/ConfirmDeleteClient";
 import { SiNginxproxymanager } from "react-icons/si";
@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { useGetMyClientsQuery, useDeleteClientMutation } from "@/redux/service/client";
 
 type VisibleColumns = {
   ID: boolean;
@@ -40,7 +41,6 @@ interface ClientTableProps {
   visibleColumns: VisibleColumns;
   searchTerm: string;
   selectedGenders: string[];
-  onExportDataChange?: (rows: ClientData[]) => void;
   onDataChanged?: () => void;
 }
 
@@ -48,87 +48,112 @@ export function ClientTable({
   visibleColumns,
   searchTerm,
   selectedGenders,
-  onExportDataChange,
   onDataChanged,
 }: ClientTableProps) {
-  const [data, setData] = useState<ClientData[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  
+  const { data: apiClients = [], isLoading } = useGetMyClientsQuery();
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(5);
-  const [totalRows, setTotalRows] = useState<number>(0);
+  const [deleteClient, { isLoading: isDeleting }] = useDeleteClientMutation();
   const [deleteClientId, setDeleteClientId] = useState<number | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
   const { toast } = useToast();
+
+  
+
+  
+  const filteredClients = useMemo(() => {
+    return [...apiClients]               // 👈 copy first
+      .sort((a, b) => a.id - b.id)        // 👈 ADD THIS LINE
+      .filter((c) => {
+        const q = searchTerm.trim().toLowerCase();
+
+        const matchesSearch =
+          q === "" ||
+          c.name.toLowerCase().includes(q) ||
+          c.phoneNumber.includes(q) ||
+          String(c.id).includes(q);
+
+        const matchesGender =
+          selectedGenders.length === 0 ||
+          selectedGenders.includes(
+            c.gender === "MALE" ? "Male" : "Female"
+          );
+
+        return matchesSearch && matchesGender;
+      });
+  }, [apiClients, searchTerm, selectedGenders]);
+
+  
+ 
+
+  const totalRows = filteredClients.length;
   const totalPages = useMemo(() => {
     return Math.ceil(totalRows / rowsPerPage);
   }, [totalRows, rowsPerPage]);
 
-  const fetchData = async (page: number, limit: number) => {
-    setIsLoading(true);
-    try {
-      const allClients = await getClientsTableData();
-      // Apply filters
-      const filtered = allClients.filter((c) => {
-        const q = searchTerm.trim().toLowerCase();
-        const matchesSearch = q
-          ? [c.name, c.gender, c.contact, c.address, String(c.id)]
-              .filter(Boolean)
-              .some((field) => String(field).toLowerCase().includes(q))
-          : true;
-        const matchesGender = selectedGenders && selectedGenders.length > 0
-          ? selectedGenders.includes(c.gender)
-          : true;
-        return matchesSearch && matchesGender;
-      });
-      setTotalRows(filtered.length);
-      const startIndex = (page - 1) * limit;
-      const pagedClients = filtered.slice(startIndex, startIndex + limit);
-      setData(pagedClients);
-      // Provide full filtered dataset to export handler
-      onExportDataChange?.(filtered);
-    } catch (error) {
-      console.error("Error fetching client data:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-    useEffect(() => {
-        fetchData(currentPage, rowsPerPage);
-    }, [currentPage, rowsPerPage, searchTerm, selectedGenders]);
+  const pagedClients = useMemo(() => {
+    const start = (currentPage - 1) * rowsPerPage;
+    return filteredClients.slice(start, start + rowsPerPage);
+  }, [filteredClients, currentPage, rowsPerPage]);
 
   const handleDelete = (id: number) => {
     setDeleteClientId(id);
     setIsDeleteModalOpen(true);
   };
-    const confirmDelete = async () => {
+  const confirmDelete = async () => {
     if (deleteClientId === null) return;
+
     try {
-        const success = await deleteClient(deleteClientId.toString());
-        if (success) {
-        toast({
-            title: "Client Deleted",
-            description: "The client has been successfully deleted.",
-            variant: "success",
-        });
-        fetchData(currentPage, rowsPerPage);
-        onDataChanged?.();
-        } else {
-        toast({
-            title: "Deletion Failed",
-            description: "Failed to delete the client. Please try again.",
-            variant: "destructive",
-        });
-        }
+      await deleteClient(deleteClientId).unwrap();
+
+      toast({
+       title: "Client Deleted",
+       description: "The client has been successfully deleted.",
+       className: "bg-green-600 text-white",
+      });
+
+      onDataChanged?.(); // refresh summary cards if any
     } catch (error) {
-        toast({
-        title: "Error",
-        description: "An error occurred while deleting the client.",
-        variant: "destructive",
-        });
+      toast({
+       title: "Deletion Failed",
+       description: "Failed to delete the client. Please try again.",
+       variant: "destructive",
+     });
+    } finally {
+      setIsDeleteModalOpen(false);
+      setDeleteClientId(null);
     }
-    setIsDeleteModalOpen(false);
-    setDeleteClientId(null);
   };
+  
+  //   if (deleteClientId === null) return;
+  //   try {
+  //       const success = await deleteClient(deleteClientId.toString());
+  //       if (success) {
+  //       toast({
+  //           title: "Client Deleted",
+  //           description: "The client has been successfully deleted.",
+  //           variant: "success",
+  //       });
+  //       fetchData(currentPage, rowsPerPage);
+  //       onDataChanged?.();
+  //       } else {
+  //       toast({
+  //           title: "Deletion Failed",
+  //           description: "Failed to delete the client. Please try again.",
+  //           variant: "destructive",
+  //       });
+  //       }
+  //   } catch (error) {
+  //       toast({
+  //       title: "Error",
+  //       description: "An error occurred while deleting the client.",
+  //       variant: "destructive",
+  //       });
+  //   }
+  //   setIsDeleteModalOpen(false);
+  //   setDeleteClientId(null);
+  // };
     const cancelDelete = () => {
     setIsDeleteModalOpen(false);
     setDeleteClientId(null);
@@ -156,21 +181,21 @@ export function ClientTable({
                 Loading...
                 </TableCell>
             </TableRow>
-            ) : data.length === 0 ? (
+            ) : pagedClients.length === 0 ? (
             <TableRow>
             <TableCell colSpan={(visibleColumns.ID?1:0)+(visibleColumns.Name?1:0)+(visibleColumns.Gender?1:0)+(visibleColumns.Contact?1:0)+(visibleColumns.Address?1:0)+1} className="h-24 text-center">
                 No clients found.
                 </TableCell>
             </TableRow>
             ) : (
-            data.map((client) => (
+            pagedClients.map((client, index) => (
               <TableRow key={client.id} className="hover:bg-gray-50 dark:hover:bg-dark-3">
               {visibleColumns.ID && (
-                <TableCell className="font-medium">{client.id}</TableCell>
+                <TableCell className="font-medium">{(currentPage - 1) * rowsPerPage + index + 1}</TableCell>
               )}
               {visibleColumns.Name && <TableCell>{client.name}</TableCell>}
-              {visibleColumns.Gender && <TableCell>{client.gender}</TableCell>}
-              {visibleColumns.Contact && <TableCell>{client.contact}</TableCell>}
+              {visibleColumns.Gender && <TableCell>{client.gender === "MALE" ? "Male" : "Female"}</TableCell>}
+              {visibleColumns.Contact && <TableCell>{client.phoneNumber}</TableCell>}
               {visibleColumns.Address && <TableCell>{client.address}</TableCell>}
               <TableCell >
                       <DropdownMenu>
@@ -219,12 +244,12 @@ export function ClientTable({
           totalItems={totalRows}
           onPageChange={(page) => {
             setCurrentPage(page);
-            fetchData(page, rowsPerPage);
+            
           }}
           onRowsPerPageChange={(rows) => {
             setRowsPerPage(rows);
             setCurrentPage(1);
-            fetchData(1, rows);
+        
           }}
           availableRowsPerPage={[5, 8, 10, 20, 50]}
         />
