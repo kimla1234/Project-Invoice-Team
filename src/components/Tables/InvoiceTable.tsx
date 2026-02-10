@@ -27,12 +27,14 @@ import QuotationTableSkeleton from "../skeletons/QuotationTableSkeleton";
 import { useToast } from "@/hooks/use-toast";
 import { PaginationControls } from "../ui/pagination-controls";
 
-import { ClientData } from "@/types/client";
+
 import { DeleteInvoices } from "../Invoices/delete-invoice/DeleteInvoices";
 import { 
   useGetMyInvoicesQuery, 
   useDeleteInvoiceMutation 
 } from "@/redux/service/invoices";
+import { ClientResponse } from "@/types/client";
+import { getClientsTableData } from "./clients";
 
 interface InvoiceTableProps {
   searchTerm?: string;
@@ -42,7 +44,7 @@ interface InvoiceTableProps {
 export default function InvoiceTable({ searchTerm = "", issueDate }: InvoiceTableProps) {
   const { toast } = useToast();
 
-  const [clients, setClients] = useState<ClientData[]>([]);
+  const [clients, setClients] = useState<ClientResponse[]>([]);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   // Pagination state (0-indexed for backend, 1-indexed for UI)
@@ -68,7 +70,7 @@ export default function InvoiceTable({ searchTerm = "", issueDate }: InvoiceTabl
   useEffect(() => {
     async function fetchClients() {
       const clientsData = await getClientsTableData();
-      setClients(clientsData);
+     // setClients(clientsData);
     }
     fetchClients();
   }, []);

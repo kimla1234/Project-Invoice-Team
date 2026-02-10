@@ -11,7 +11,7 @@ type UserResponse = {
   email: string | null;
   image_profile: string | null;
   dob: string | null;
-  phone: string | null;
+  phone_number: string | null;
   roles: string[];
   country: string | null;
   city: string | null;
@@ -36,9 +36,8 @@ type updateProfileResponse = {
 };
 type updateUserProfile = {
   name?: string | null;
-  address?: string | null;
-  phone?: string | null;
-  profileImage?: string | null;
+  phone_number?: string | null;
+  image_profile?: string | null;
 };
 
 type Items = {
@@ -93,12 +92,13 @@ export const userApi = normPlovApi.injectEndpoints({
         body: { old_password, new_password, confirm_new_password },
       }),
     }),
+
     updateProfileUser: builder.mutation<
       updateProfileResponse,
-      { uuid: string; user: updateUserProfile }
+      {user: updateUserProfile }
     >({
-      query: ({ uuid, user }) => ({
-        url: `api/v1/users/${uuid}`,
+      query: ({ user }) => ({
+        url: `api/v1/users/me`,
         method: "PATCH",
         body: user,
       }),
@@ -123,39 +123,9 @@ export const userApi = normPlovApi.injectEndpoints({
       invalidatesTags: ["userProfile"],
     }),
 
-    postBookmark: builder.mutation<{ message: string }, { uuid: string }>({
-      query: ({ uuid }) => ({
-        url: `api/v1/bookmarks/${uuid}`,
-        method: "POST",
-      }),
-      invalidatesTags: ["bookmarks"],
-    }),
-    getAllUserBookMark: builder.query<
-      UserBookMarkResponse,
-      { page: number; page_size: number }
-    >({
-      query: ({ page = 1, page_size = 10 }) => ({
-        url: `api/v1/bookmarks/?page=${page}&page_size=${page_size}`,
-        method: "GET",
-      }),
-      providesTags: ["bookmarks"],
-    }),
-    deleteUserBookMark: builder.mutation<
-      UserBookMarkDeleteResponse,
-      { uuid: string }
-    >({
-      query: ({ uuid }) => ({
-        url: `api/v1/bookmarks/${uuid}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: ["bookmarks"],
-    }),
-    getTestimonial: builder.query({
-      query: () => ({
-        url: "api/v1/feedback/promoted",
-        method: "GET",
-      }),
-    }),
+    
+    
+   
   }),
   overrideExisting: true,
 });
@@ -165,8 +135,5 @@ export const {
   useChangePasswordMutation,
   useUpdateProfileUserMutation,
   usePostImageMutation,
-  usePostBookmarkMutation,
-  useGetAllUserBookMarkQuery,
-  useDeleteUserBookMarkMutation,
-  useGetTestimonialQuery,
+  
 } = userApi;

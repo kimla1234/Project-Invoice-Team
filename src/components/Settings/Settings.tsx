@@ -11,18 +11,25 @@ export function Settings() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab") || "general";
-
+  const [mounted, setMounted] = useState(false);
   const [currentTab, setCurrentTab] = useState(tabParam);
 
   useEffect(() => {
     setCurrentTab(tabParam);
   }, [tabParam]);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const handleTabChange = (value: string) => {
     setCurrentTab(value);
     router.push(`/setting?tab=${value}`, { scroll: false });
   };
-
+  
+  if (!mounted) {
+    return <div className="h-screen w-full animate-pulse bg-slate-50" />;
+  }
   return (
     <div className="flex w-full flex-col gap-6">
       <Tabs
@@ -30,6 +37,7 @@ export function Settings() {
         value={currentTab}
         onValueChange={handleTabChange}
         className="w-full space-y-4"
+        suppressHydrationWarning
       >
         <TabsList className="w-full space-x-1 rounded-md bg-slate-200 py-2">
           <TabsTrigger value="general" className="w-full">

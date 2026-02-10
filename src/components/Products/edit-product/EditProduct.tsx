@@ -77,7 +77,9 @@ export default function EditProduct({ productId }: EditProductProps) {
 
   const { data: typesResponse } = useGetProductsTypeQuery();
   const productTypes = typesResponse?.data || [];
-const [selectedTypeId, setSelectedTypeId] = useState<number | undefined>(undefined);
+  const [selectedTypeId, setSelectedTypeId] = useState<number | undefined>(
+    undefined,
+  );
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   useEffect(() => {
@@ -137,7 +139,7 @@ const [selectedTypeId, setSelectedTypeId] = useState<number | undefined>(undefin
           low_stock: lowStockThreshold,
           description: description,
           currency_type: currency_type,
-          productTypeId: selectedTypeId ?? undefined,
+          productTypeId: selectedTypeId,
         },
       }).unwrap();
 
@@ -226,15 +228,24 @@ const [selectedTypeId, setSelectedTypeId] = useState<number | undefined>(undefin
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block font-medium">Unit Price</label>
+                  
                   <input
                     type="number"
-                    value={unitPrice}
+                    min="0"
+                    step="0.01"
+                    value={unitPrice === 0 ? "" : unitPrice}
                     onChange={(e) => {
                       const val = e.target.value;
-                      setUnitPrice(val === "" ? 0 : parseFloat(val));
+                      const numericValue = val === "" ? 0 : parseFloat(val);
+                      setUnitPrice(Math.max(0, numericValue));
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "-" || e.key === "e" || e.key === "E") {
+                        e.preventDefault();
+                      }
                     }}
                     placeholder="0.00"
-                    className="w-full rounded-lg border p-2"
+                    className="w-full rounded-lg border p-2 outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 {/* Currency */}
@@ -347,10 +358,10 @@ const [selectedTypeId, setSelectedTypeId] = useState<number | undefined>(undefin
                     type="button"
                     onClick={() => setSelectedTypeId(type.id)}
                     className={cn(
-                      "rounded-lg border px-4 py-2 text-sm font-medium transition-all",
+                      "rounded-sm border border-dashed px-2 py-1 text-sm font-medium transition-all",
                       selectedTypeId === type.id
                         ? "border-primary bg-primary text-white"
-                        : "border-gray-200 bg-white text-slate-600 hover:border-primary hover:text-primary",
+                        : "border-gray-400 bg-white text-slate-600 hover:border-primary hover:text-primary",
                     )}
                   >
                     {type.name}

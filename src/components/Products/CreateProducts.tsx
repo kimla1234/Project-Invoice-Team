@@ -9,7 +9,7 @@ import { Dropdown, DropdownContent, DropdownTrigger } from "../ui/dropdown";
 import { ChevronUpIcon } from "@/assets/icons";
 import { cn } from "@/lib/utils";
 import RichTextEditor from "../ui/RichTextEditor";
-
+import { BiAddToQueue } from "react-icons/bi";
 import { MyEventResponse } from "@/types/product";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -228,10 +228,23 @@ export default function CreateProducts() {
                   <label className="mb-1.5 block font-medium">Unit Price</label>
                   <input
                     type="number"
+                    min="0" 
                     value={unitPrice === 0 ? "" : unitPrice}
                     onChange={(e) => {
                       const val = e.target.value;
-                      setUnitPrice(val === "" ? 0 : parseFloat(val));
+                      if (val === "") {
+                        setUnitPrice(0);
+                      } else {
+                        const parsedVal = parseFloat(val);
+                        if (parsedVal >= 0) {
+                          setUnitPrice(parsedVal);
+                        }
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "-" || e.key === "e" || e.key === "E") {
+                        e.preventDefault();
+                      }
                     }}
                     placeholder="0.00"
                     className="w-full rounded-lg border p-2"
@@ -291,10 +304,17 @@ export default function CreateProducts() {
                 <label className="mb-1.5 block font-medium">Stock</label>
                 <input
                   type="number"
+                  min="0" 
                   value={stock === 0 ? "" : stock}
                   onChange={(e) => {
                     const val = e.target.value;
-                    setStock(val === "" ? 0 : parseInt(val));
+                    const numericValue = val === "" ? 0 : parseInt(val);
+                    setStock(Math.max(0, numericValue));
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "-" || e.key === "." || e.key === "e") {
+                      e.preventDefault();
+                    }
                   }}
                   placeholder="0"
                   className={cn(
@@ -313,11 +333,17 @@ export default function CreateProducts() {
                 </label>
                 <input
                   type="number"
+                  min="0"
                   value={lowStockThreshold === 0 ? "" : lowStockThreshold}
                   onChange={(e) => {
                     const val = e.target.value;
                     // Use parseInt to ensure it's a number, not a string
                     setLowStockThreshold(val === "" ? 0 : parseInt(val, 10));
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "-" || e.key === "." || e.key === "e") {
+                      e.preventDefault();
+                    }
                   }}
                   placeholder="0"
                   className={cn(
@@ -344,9 +370,10 @@ export default function CreateProducts() {
                   <SheetTrigger asChild>
                     <button
                       type="button"
-                      className="flex items-center bg-red-50 px-2 py-2 rounded-md  gap-1 text-xs font-bold text-red-500 hover:underline"
+                      className="flex items-center border border-dashed gap-1 rounded-md bg-red-50 px-2 py-2 text-sm  text-red-500 "
                     >
-                       Add New Type
+                      <BiAddToQueue className="h-5 w-5" />
+                      Add New Type
                     </button>
                   </SheetTrigger>
                   <SheetContent side="right" className="w-[400px] bg-white">
@@ -374,10 +401,10 @@ export default function CreateProducts() {
                     type="button"
                     onClick={() => setSelectedTypeId(type.id)}
                     className={cn(
-                      "rounded-lg border px-4 py-2 text-sm font-medium transition-all",
+                      "rounded-sm border border-dashed px-2 py-1 text-sm font-medium transition-all",
                       selectedTypeId === type.id
-                        ? "border-primary bg-primary text-white "
-                        : "border-gray-200 bg-white text-slate-600 hover:border-primary hover:text-primary",
+                        ? "border-primary bg-primary text-white"
+                        : "border-gray-400 bg-white text-slate-600 hover:border-primary hover:text-primary",
                     )}
                   >
                     {type.name}

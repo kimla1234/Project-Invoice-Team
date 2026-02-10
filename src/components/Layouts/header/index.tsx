@@ -22,7 +22,7 @@ export function Header() {
     }
   }, [userResponse]);
 
-  // Map user for UserInfo component
+   // Map user for UserInfo component
   const mappedUser = userResponse
     ? {
         name: userResponse.name || "No Name",

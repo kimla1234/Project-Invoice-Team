@@ -9,11 +9,12 @@ import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { ClientModal } from "@/components/Quotations/create-quotation/ClientModal";
 import { ProductModal } from "../create-invoice/ProductModal";
-import { ClientData } from "@/types/client";
-import { mockClients } from "@/components/Tables/clients";
+
+//import { mockClients } from "@/components/Tables/clients";
 import { IoAddCircleOutline } from "react-icons/io5";
 import { IoMdAdd } from "react-icons/io";
 import  DownloadPDFButton  from "../create-invoice/DownloadPDFButton"
+import { ClientResponse } from "@/types/client";
 
 type ExtendedItem = InvoiceItemRequest & {
   id: number;
@@ -29,8 +30,8 @@ export default function CreateInvoiceForm() {
   const { data: products = [], isLoading: loadingProducts } = useGetMyProductsQuery();
   const [createInvoice, { isLoading: creating }] = useCreateInvoiceMutation();
 
-  const [clients, setClients] = useState<ClientData[]>([]);
-  const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
+  const [clients, setClients] = useState<ClientResponse[]>([]);
+  const [selectedClient, setSelectedClient] = useState<ClientResponse | null>(null);
   const [invoiceNo, setInvoiceNo] = useState("");
   const [taxPercentage, setTaxPercentage] = useState<number>(10);
   const [items, setItems] = useState<ExtendedItem[]>([]);
@@ -60,7 +61,7 @@ export default function CreateInvoiceForm() {
 
   // Initialize clients
   useEffect(() => {
-    setClients(mockClients);
+    //setClients(mockClients);
   }, []);
 
   // Handle modal scroll
@@ -335,7 +336,7 @@ export default function CreateInvoiceForm() {
                   Phone:
                 </span>
                 <span className="font-semibold text-gray-700">
-                  {selectedClient.contact || "N/A"}
+                 {/* {selectedClient.contact || "N/A"} */}
                 </span>
               </div>
 

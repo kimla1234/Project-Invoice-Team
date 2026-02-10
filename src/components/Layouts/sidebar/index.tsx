@@ -174,7 +174,7 @@ export function Sidebar() {
                   {section.label}
                 </h2>
 
-                <nav role="navigation" aria-label={section.label}>
+                <nav role="navigation " className=" " aria-label={section.label}>
                   <ul className="space-y-1">
                     {section.items.map((item) => {
                       const isSignOut = item.title === "Sign out";
@@ -184,7 +184,7 @@ export function Sidebar() {
                           {isSignOut ? (
                             // Sign out button triggers modal
                             <MenuItem
-                              className="flex items-center gap-3 py-3"
+                              className="flex  items-center gap-3 py-3"
                               onClick={() => setShowSignOutModal(true)}
                               isDestructive
                               isActive={false}
@@ -205,7 +205,7 @@ export function Sidebar() {
                                 <span>{item.title}</span>
                                 <ChevronUp
                                   className={cn(
-                                    "ml-auto rotate-180 transition-transform duration-200",
+                                    "ml-auto   rotate-180 transition-transform duration-200",
                                     expandedItems.includes(item.title) &&
                                       "rotate-0",
                                   )}

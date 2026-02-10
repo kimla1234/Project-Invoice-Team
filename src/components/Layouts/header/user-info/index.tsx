@@ -15,9 +15,10 @@ import { useRouter } from "next/navigation";
 import { ConfirmModal } from "../../../ui/ConfirmModal";
 import NavSheetItem from "../Sheet/NavSheetItem";
 import { ProfileContent } from "../Sheet/ProfileContent";
-import { TicketContent } from "../Sheet/TicketContent";
-import SettingContent from "../Sheet/SettingContent";
+
+
 import { toast } from "@/hooks/use-toast";
+import Link from "next/link";
 // ✅ Unified User type
 export interface User {
   name: string;
@@ -159,15 +160,14 @@ export function UserInfo({ user: propUser }: UserInfoProps) {
             onSelect={(e) => e.preventDefault()}
             className="p-0 focus:bg-transparent"
           >
-            <NavSheetItem
-              icon={
-                <SettingsIcon className="animate-[spin_4s_linear_infinite]" />
-              }
-              label="Settings"
-              title="Settings"
-            >
-              <SettingContent />
-            </NavSheetItem>
+             <Link
+            href="/setting?tab=company"
+            onClick={() => setIsOpen(false)}
+            className="flex items-center gap-2.5 rounded-lg px-2.5 py-[9px] hover:bg-gray-2 dark:hover:bg-dark-3"
+          >
+            <SettingsIcon />
+            <span className="font-medium">Account Settings</span>
+          </Link>
           </DropdownMenuItem>
 
           {/* Logout */}

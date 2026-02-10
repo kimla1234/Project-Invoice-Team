@@ -66,20 +66,20 @@ export default function FilterDropdown({
   
 
   return (
-    <div className="relative inline-block text-left" ref={dropdownRef}>
+    <div className="relative  inline-block text-left" ref={dropdownRef}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center justify-center gap-3 rounded-lg border border-dashed border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
+        className="inline-flex  items-center  justify-center gap-3 rounded-lg border border-dashed border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center   gap-2">
           <MdOutlineAddCircleOutline className="size-5 text-gray-400" />
-          <span>{title}</span>
+          <span className=" w-full ">{title}</span>
         </div>
 
         {/* Selected badges */}
         {selectedValues.length > 0 && (
-          <div className="ml-1 flex w-full flex-wrap gap-1 border-l border-gray-200 pl-2">
+          <div className="ml-1 flex w-full h-auto flex-wrap gap-1 border-l border-gray-200 pl-2">
             {selectedValues.map((val) => (
               <span
                 key={val}

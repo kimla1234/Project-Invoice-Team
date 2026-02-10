@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import logo from "@/assets/ui/icon_excel.svg";
 import { VscAdd } from "react-icons/vsc";
 import Link from "next/link";
@@ -12,6 +12,7 @@ import { ProductTable } from "../Tables/ProductTable";
 import { ColumnToggleDropdown } from "../ui/ColumnToggleDropdown";
 import { exportProductsToExcel } from "@/utils/exportToExcel";
 import { useToast } from "@/hooks/use-toast";
+import { useGetProductsTypeQuery } from "@/redux/service/products";
 
 // Import the new component created previously
 
@@ -27,11 +28,25 @@ const statusOptions = [
 ];
 
 export default function Products() {
+  const { data: productTypeData, isLoading: isLoadingTypes } =
+    useGetProductsTypeQuery();
   const [selectedCurrencies, setSelectedCurrencies] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
-  const { toast } = useToast(); // ✅ ADD
+  const { toast } = useToast();
+  const [selectedProductTypes, setSelectedProductTypes] = useState<string[]>(
+    [],
+  );
+
+  const productTypeOptions = useMemo(() => {
+    if (!productTypeData?.data) return [];
+
+    return productTypeData.data.map((type: any) => ({
+      value: type.name || type.type_name,
+      label: type.name || type.type_name,
+    }));
+  }, [productTypeData]);
 
   // export data
   const [exportData, setExportData] = useState<any[]>([]);
@@ -45,6 +60,7 @@ export default function Products() {
     ID: true,
     Name: true,
     Image: true,
+    Type: true,
     StockStatus: true,
     UnitPrice: true,
     Actions: true,
@@ -122,7 +138,7 @@ export default function Products() {
           {/* Right: Primary Action Button */}
           <Link
             href="/products/create"
-            className="flex items-center space-x-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none "
+            className="flex items-center space-x-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none"
           >
             <div>Create Product or Service</div>
             <VscAdd className="text-xl" />
@@ -142,8 +158,14 @@ export default function Products() {
                 onSearchChange={setSearchTerm}
               />
               <div className="flex gap-4">
-                {/* Currency Filter */}
+                <FilterDropdown
+                  title={isLoadingTypes ? "Loading..." : "ProductType"}
+                  options={productTypeOptions}
+                  selectedValues={selectedProductTypes}
+                  onChange={setSelectedProductTypes}
+                />
 
+                {/* Currency Filter */}
                 <FilterDropdown
                   title="Currency"
                   options={currencyOptions}
@@ -173,6 +195,7 @@ export default function Products() {
               searchTerm={searchTerm} // Pass the search term
               selectedCurrencies={selectedCurrencies}
               selectedStatuses={selectedStatuses}
+              selectedProductTypes={selectedProductTypes}
               onExportDataChange={setExportData}
               onDeleted={triggerRefresh}
             />

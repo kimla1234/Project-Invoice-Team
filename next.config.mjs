@@ -11,6 +11,7 @@ const nextConfig = {
       { protocol: "https", hostname: "i5.walmartimages.com", pathname: "/**" },
       { protocol: "https", hostname: "gearstudiokh.com", pathname: "/**" },
       { protocol: "https", hostname: "t4.ftcdn.net", pathname: "/**" },
+      { protocol: "https", hostname: "lh3.googleusercontent.com", pathname: "/**" },
       {
         protocol: 'http',
         hostname: 'localhost',

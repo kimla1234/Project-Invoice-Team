@@ -37,6 +37,7 @@ interface ProductTableProps {
   searchTerm: string;
   selectedCurrencies: string[];
   selectedStatuses: string[];
+  selectedProductTypes: string[];
   onExportDataChange: (data: any[]) => void;
   onDeleted: () => void;
 }
@@ -46,6 +47,7 @@ export function ProductTable({
   searchTerm,
   selectedCurrencies,
   selectedStatuses,
+  selectedProductTypes,
   onExportDataChange,
   onDeleted,
 }: ProductTableProps) {
@@ -73,6 +75,11 @@ export function ProductTable({
         item.productTypeName.toLowerCase().includes(lowerCaseSearch) ||
         item.price.toString().includes(lowerCaseSearch);
 
+      // Filter  Product Type
+      const matchType =
+      selectedProductTypes.length === 0 ||
+      selectedProductTypes.includes(item.productTypeName);
+
       const matchStatus =
         selectedStatuses.length === 0 ||
         selectedStatuses.some((s) => s === normalizeStatus(item.status));
@@ -81,9 +88,9 @@ export function ProductTable({
         selectedCurrencies.length === 0 ||
         selectedCurrencies.includes(item.currency_type);
 
-      return matchSearch && matchStatus && matchCurrency;
+      return matchSearch && matchType && matchStatus && matchCurrency;
     });
-  }, [fullData, searchTerm, selectedStatuses, selectedCurrencies]);
+  }, [fullData, searchTerm, selectedStatuses, selectedCurrencies , selectedProductTypes]);
 
   // 2. Export Data Logic (ប្រើ JSON.stringify ដើម្បីការពារ Infinite Loop)
   const exportData = useMemo(() => {
@@ -234,7 +241,7 @@ export function ProductTable({
                   Product Name
                 </TableHead>
               )}
-              {visibleColumns.Name && (
+              {visibleColumns.Type && (
                 <TableHead className="min-w-[100px] xl:pl-7.5">
                   Product Type
                 </TableHead>
@@ -271,8 +278,8 @@ export function ProductTable({
                             "https://t4.ftcdn.net/jpg/06/57/37/01/360_F_657370150_pdNeG5pjI976ZasVbKN9VqH1rfoykdYU.jpg"
                           }
                           alt={item.name}
-                          width={44}
-                          height={44}
+                          width={1000}
+                          height={1000}
                           className="object-cover"
                         />
                       </div>
@@ -285,13 +292,13 @@ export function ProductTable({
                       </h5>
                     </TableCell>
                   )}
-                  {visibleColumns.Name && (
+                  {visibleColumns.Type && (
                     <TableCell className="min-w-[100px] max-w-[180px] xl:pl-7.5">
                       <h5
                         key={item.id}
                         className={cn(
                           "w-fit rounded-sm px-2 py-1 text-xs font-medium",
-                          // ហៅ Function ដើម្បីទាញយកពណ៌មកប្រើតាមឈ្មោះ Product Type
+
                           getDynamicColor(item.productTypeName || "Default"),
                         )}
                       >
