@@ -8,22 +8,23 @@ import { FiSkipBack } from "react-icons/fi";
 import { Dropdown, DropdownContent, DropdownTrigger } from "../../ui/dropdown";
 import { ChevronUpIcon } from "@/assets/icons";
 import { cn } from "@/lib/utils";
-import { createClient } from "../../Tables/clients";
-import { ClientData } from "@/types/client";
 import { useToast } from "@/hooks/use-toast";
+import { useCreateClientMutation } from "../../../redux/service/client";
 
 export default function CreateClients() {
   const router = useRouter();
+  const { toast } = useToast();
+
+  const [createClient, { isLoading }] = useCreateClientMutation();
+
+  // Dropdown state
   const [isOpen, setIsOpen] = useState(false);
-  const { toast } = useToast()
+
   // Form state
   const [clientName, setClientName] = useState("");
-  const [clientGender, setClientGender] = useState<"Male" | "Female">(
-    "Male",
-  );
+  const [clientGender, setClientGender] = useState<"MALE" | "FEMALE">("MALE");
   const [contact, setContact] = useState("");
   const [address, setAddress] = useState("");
-  
 
   // Error state
   const [errors, setErrors] = useState({
@@ -33,7 +34,7 @@ export default function CreateClients() {
     address: "",
   });
 
-  const options: ("Male" | "Female")[] = ["Male", "Female"];
+  const options: ("MALE" | "FEMALE")[] = ["MALE", "FEMALE"];
 
   const validateForm = () => {
     const newErrors = {
@@ -41,22 +42,25 @@ export default function CreateClients() {
       clientGender: "",
       contact: "",
       address: "",
-      
     };
+
     let isValid = true;
 
     if (!clientName.trim()) {
       newErrors.clientName = "Client Name is required.";
       isValid = false;
     }
+
     if (!clientGender.trim()) {
       newErrors.clientGender = "Client Gender is required.";
       isValid = false;
     }
+
     if (!contact.trim()) {
       newErrors.contact = "Contact is required.";
       isValid = false;
     }
+
     if (!address.trim()) {
       newErrors.address = "Address is required.";
       isValid = false;
@@ -71,28 +75,23 @@ export default function CreateClients() {
 
     if (!validateForm()) return;
 
-    const newClient: Partial<ClientData> = {
-      name: clientName,
-      gender: clientGender,
-      contact,
-      address,
-    };
+    try {
+      const res = await createClient({
+        name: clientName,
+        gender: clientGender,
+        phoneNumber: contact,
+        address: address,
+      }).unwrap();
 
-    const created = await createClient(newClient);
-
-    if (created) {
-      // 1. Show Success Toast
       toast({
         title: "Client Created",
-        description: `${clientName} has been added to your clients list.`,
-        className: "bg-green-600 text-white", // Success styling
+        description: `${res.data.name} has been added successfully.`,
+        className: "bg-green-600 text-white",
         duration: 3000,
       });
 
-      // 2. Redirect
       router.push("/clients");
-    } else {
-      // 3. Show Error Toast if creation fails
+    } catch (error) {
       toast({
         title: "Creation Failed",
         description:
@@ -113,6 +112,7 @@ export default function CreateClients() {
               Create New Client
             </h3>
           </div>
+
           <Link
             href="/clients"
             className="text-md flex items-center rounded-lg border bg-white p-2 font-medium text-primary hover:text-red-400 dark:hover:text-blue-400"
@@ -125,7 +125,7 @@ export default function CreateClients() {
         {/* Form */}
         <div className="w-full rounded-md border bg-white p-7 text-slate-600 dark:bg-gray-800 dark:text-gray-300">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Row 1: Name & Gender */}
+            {/* Row 1 */}
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>
                 <label className="mb-1.5 block font-medium">Client Name</label>
@@ -146,11 +146,9 @@ export default function CreateClients() {
                 )}
               </div>
 
-              {/* Client Gender */}
-              <div className="w-full">
-                <label className="mb-1.5 block w-full font-medium">
-                  Client Gender
-                </label>
+              {/* Gender */}
+              <div>
+                <label className="mb-1.5 block font-medium">Client Gender</label>
                 <Dropdown isOpen={isOpen} setIsOpen={setIsOpen}>
                   <DropdownTrigger className="w-full">
                     <div
@@ -158,7 +156,7 @@ export default function CreateClients() {
                         e.preventDefault();
                         setIsOpen(!isOpen);
                       }}
-                      className="flex w-full cursor-pointer items-center justify-between rounded-lg border p-2 text-left"
+                      className="flex w-full items-center justify-between rounded-lg border p-2"
                     >
                       {clientGender}
                       <ChevronUpIcon
@@ -170,10 +168,8 @@ export default function CreateClients() {
                       />
                     </div>
                   </DropdownTrigger>
-                  <DropdownContent
-                    className="z-50 mt-1 w-full min-w-[var(--radix-dropdown-trigger-width)] space-y-2 border border-stroke bg-white p-3 shadow-sm dark:border-dark-3 dark:bg-gray-dark"
-                    align="start"
-                  >
+
+                  <DropdownContent className="z-50 mt-1 w-full space-y-2 border bg-white p-3 shadow-sm">
                     {options.map((opt) => (
                       <div
                         key={opt}
@@ -182,10 +178,9 @@ export default function CreateClients() {
                           setIsOpen(false);
                         }}
                         className={cn(
-                          "flex w-full items-center rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-slate-50",
-                          clientGender === opt
-                            ? "bg-gray-100 text-primary dark:bg-dark-3"
-                            : "hover:slate-50 text-dark dark:text-dark-6 dark:hover:text-white",
+                          "cursor-pointer rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-50",
+                          clientGender === opt &&
+                            "bg-gray-100 text-primary"
                         )}
                       >
                         {opt}
@@ -199,52 +194,63 @@ export default function CreateClients() {
                   </p>
                 )}
               </div>
-            </div>
 
-            {/* Row 2: Contact & Address */}
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              {/* Contact */}
               <div>
                 <label className="mb-1.5 block font-medium">Contact</label>
                 <input
                   type="text"
                   value={contact}
                   onChange={(e) => setContact(e.target.value)}
-                  placeholder="Phone number"
+                  placeholder="Input contact number"
                   className={cn(
                     "w-full rounded-lg border p-2",
-                    errors.contact && "border-red-500",
+                    errors.contact && "border-red-500"
                   )}
                 />
                 {errors.contact && (
                   <p className="mt-1 text-sm text-red-500">{errors.contact}</p>
                 )}
               </div>
+            </div>
 
+            {/* Row 2 */}
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              {/* Address */}
               <div>
                 <label className="mb-1.5 block font-medium">Address</label>
                 <input
                   type="text"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Street, City"
+                  placeholder="Input address"
                   className={cn(
                     "w-full rounded-lg border p-2",
-                    errors.address && "border-red-500",
+                    errors.address && "border-red-500"
                   )}
                 />
                 {errors.address && (
                   <p className="mt-1 text-sm text-red-500">{errors.address}</p>
                 )}
               </div>
+
+              {/* Spacer */}
+              <div className="hidden md:block" />
             </div>
 
-            {/* Submit */}
-            <button
-              type="submit"
-              className="w-full rounded-lg bg-primary py-3 font-medium text-white transition hover:bg-opacity-90"
-            >
-              Save Client
-            </button>
+            {/* Actions */}
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className={cn(
+                  "rounded-lg bg-primary px-5 py-2 text-white",
+                  isLoading && "opacity-70"
+                )}
+              >
+                {isLoading ? "Saving..." : "Create Client"}
+              </button>
+            </div>
           </form>
         </div>
       </div>
