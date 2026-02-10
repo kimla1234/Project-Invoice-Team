@@ -26,7 +26,7 @@ import {
 import QuotationTableSkeleton from "../skeletons/QuotationTableSkeleton";
 import { useToast } from "@/hooks/use-toast";
 import { PaginationControls } from "../ui/pagination-controls";
-import { getClientsTableData } from "./clients";
+
 import { ClientData } from "@/types/client";
 import { DeleteInvoices } from "../Invoices/delete-invoice/DeleteInvoices";
 import { 

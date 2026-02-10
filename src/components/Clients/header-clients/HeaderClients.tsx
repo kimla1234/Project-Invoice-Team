@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import SummaryCard from "./SummaryCard";
 
 import { FileText, Wrench, ShoppingBag } from "lucide-react";
-import { fetchClientSummary } from "@/components/Tables/clients";
+
 
 export default function HeaderClients({ refreshKey = 0 }: { refreshKey?: number }) {
   const [summary, setSummary] = useState({
@@ -12,20 +12,7 @@ export default function HeaderClients({ refreshKey = 0 }: { refreshKey?: number 
   });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadSummary = async () => {
-      try {
-        const data = await fetchClientSummary();
-        setSummary(data);
-      } catch (err) {
-        console.error("Failed to fetch summary:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadSummary();
-  }, [refreshKey]);
+  
 
   return (
     <div className="flex justify-around bg-white">
