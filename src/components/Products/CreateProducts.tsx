@@ -9,19 +9,26 @@ import { Dropdown, DropdownContent, DropdownTrigger } from "../ui/dropdown";
 import { ChevronUpIcon } from "@/assets/icons";
 import { cn } from "@/lib/utils";
 import RichTextEditor from "../ui/RichTextEditor";
-import { createProduct } from "../Tables/fetch";
-import { ProductData } from "@/types/product";
+
+import { MyEventResponse } from "@/types/product";
 import { useToast } from "@/hooks/use-toast";
+import {
+  useCreateProductMutation,
+  usePostImageMutation,
+} from "@/redux/service/products";
 
 const currencyOptions: ("USD" | "KHR")[] = ["USD", "KHR"];
 
 export default function CreateProducts() {
+  // Inside CreateProducts component...
+  const [createProduct, { isLoading }] = useCreateProductMutation();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [currency, setCurrency] = useState<"USD" | "KHR">("USD");
+  const [postImage, { isLoading: isUploading }] = usePostImageMutation();
 
   // Form state
   const [productName, setProductName] = useState("");
@@ -77,7 +84,7 @@ export default function CreateProducts() {
     return isValid;
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -96,47 +103,61 @@ export default function CreateProducts() {
     // Preview
     const reader = new FileReader();
     reader.onloadend = () => {
-      setImagePreview(reader.result as string);
+      setImagePreview(reader.result as string); // show preview immediately
     };
     reader.readAsDataURL(file);
+
+    // ✅ Upload image to server
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await postImage(formData).unwrap();
+      // response example:
+      // { name, contentType, uri, size, extension }
+
+      // Save the backend URI to be sent in create product
+      setImagePreview(response.uri); // overwrite preview with backend URI
+    } catch (error) {
+      toast({
+        title: "Upload Failed",
+        description: "Could not upload image. Try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) return;
 
-    const newProduct: Partial<ProductData> = {
+    // Map local state to API requirements
+    const payload = {
       name: productName,
-      unitPrice,
-      stock,
-      lowStockThreshold,
-      description,
-      currency, // ✅ ADD
-      image: imagePreview || "",
+      image_url: imagePreview || "/images/default.png", // Match backend key
+      price: unitPrice, // Match backend key
+      currency_type: currency,
+      productTypeId: 1, // Hardcoded or from a select
+      quantity: stock, // Match backend key
+      low_stock: lowStockThreshold,
+      description: description,
     };
 
-    const created = await createProduct(newProduct);
+    try {
+      await createProduct(payload).unwrap();
 
-    if (created) {
-      // 1. Show Success Toast
       toast({
-        title: "Product Created",
-        description: `${productName} has been added to your inventory.`,
-        className: "bg-green-600 text-white", // Success styling
-        duration: 3000,
+        title: "Success!",
+        description: `${productName} created successfully.`,
+        className: "bg-green-600 text-white",
       });
 
-      // 2. Redirect
       router.push("/products");
-    } else {
-      // 3. Show Error Toast if creation fails
+    } catch (error) {
       toast({
-        title: "Creation Failed",
-        description:
-          "There was an error creating the product. Please try again.",
+        title: "Error",
+        description: "Failed to create product. Please try again.",
         variant: "destructive",
-        duration: 3000,
       });
     }
   };
@@ -280,7 +301,8 @@ export default function CreateProducts() {
                   value={lowStockThreshold === 0 ? "" : lowStockThreshold}
                   onChange={(e) => {
                     const val = e.target.value;
-                    setLowStockThreshold(val === "" ? 0 : parseInt(val));
+                    // Use parseInt to ensure it's a number, not a string
+                    setLowStockThreshold(val === "" ? 0 : parseInt(val, 10));
                   }}
                   placeholder="0"
                   className={cn(

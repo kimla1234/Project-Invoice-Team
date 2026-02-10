@@ -1,17 +1,41 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+
+import {
+  setAccessToken,
+  //setAuthenticated,
+} from "@/redux/feature/auth/authSlice";
+import { useToast } from "@/hooks/use-toast";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import Image from "next/image";
+import { IoCloseSharp } from "react-icons/io5";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [loginError, setLoginError] = useState<string | null>(null); // State for auth errors
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { toast } = useToast();
+  const searchParams = useSearchParams();
+  //const token = useSelector((state: RootState) => state.auth.token);
 
+ const [redirectPath, setRedirectPath] = useState("/");
+
+  // Parse redirect query from URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get("redirect") || "/";
+    setRedirectPath(redirect);
+  }, []);
+
+ 
   const formik = useFormik({
     initialValues: {
       email: "",
@@ -24,35 +48,55 @@ export default function Login() {
     }),
     onSubmit: async (values) => {
       setLoading(true);
-      setLoginError(null);
 
       try {
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        // --- START OF ACTUAL API LOGIC ---
+        const response = await fetch(`/api/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: values.email,
+            password: values.password,
+          }),
+        });
 
-        // 1. Look for the "registered_user" 
-        const savedUserData = localStorage.getItem("registered_user");
+        const data = await response.json();
 
-        if (!savedUserData) {
-          setLoginError("No account found. Please register first.");
+        if (!response.ok) {
+          toast({
+            title: "Authentication Failed",
+            description: data.message || "Invalid email or password.",
+            variant: "destructive",
+          });
           setLoading(false);
           return;
         }
 
-        const user = JSON.parse(savedUserData);
+        const { accessToken } = data;
+        if (accessToken) {
+          dispatch(setAccessToken(accessToken));
 
-        // 2. Verify credentials
-        if (user.email === values.email && user.password === values.password) {
-          // Create a session so the app knows we are logged in
-          localStorage.setItem(
-            "user_session",
-            JSON.stringify({ ...user, isLoggedIn: true }),
-          );
-          router.push("/");
-        } else {
-          setLoginError("Invalid email or password.");
+          console.log("Dispatched Access Token:", accessToken);
+          toast({
+            title: "Logged in Successfully 🎉",
+            description: "Your action was completed successfully.",
+            variant: "success", // Use "destructive" for error messages
+            duration: 2000,
+          });
+          // toast.success("Logged in Successfully.", {
+          //   autoClose: 3000,
+          // });
+          router.push(`/`);
+
+          console.log("Access token: ", data.accessToken);
         }
+        // --- END OF ACTUAL API LOGIC ---
       } catch (error) {
-        setLoginError("An error occurred.");
+        toast({
+          title: "Error",
+          description: "An unexpected error occurred. Please try again.",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
@@ -60,157 +104,179 @@ export default function Login() {
   });
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-gray-50">
+    <div className="flex min-h-screen w-full items-center justify-center bg-gray-50 md:bg-white">
       <link
         rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
       />
 
-      <div className="w-full max-w-md animate-[fadeIn_0.6s_ease-out] overflow-hidden rounded-xl border bg-white shadow-sm">
-        <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-blue-500 p-6 text-center">
-          <h2 className="relative z-10 text-2xl font-bold text-white">
-            Welcome Back
-          </h2>
-          <p className="relative z-10 mt-1 text-blue-100">
-            Sign in to your account
-          </p>
+      <div className="flex h-full w-full bg-white">
+        {/* LEFT SIDE: IMAGE/VISUAL (Hidden on mobile) */}
+        <div className="relative hidden h-screen w-[60%] bg-blue-600 md:block">
+          <img
+            src="https://images.unsplash.com/photo-1557200134-90327ee9fafa?auto=format&fit=crop&q=80"
+            alt="Security Visual"
+            className="h-full w-full object-cover opacity-40 mix-blend-multiply"
+          />
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-12 text-center text-white">
+            <h1 className="mb-4 text-4xl font-bold">Secure Your Account</h1>
+            <p className="text-lg text-blue-100">
+              Don't worry, it happens to the best of us. Let's get you back in.
+            </p>
+          </div>
         </div>
 
-        <div className="p-8">
-          {/* Display Login Errors */}
-          {loginError && (
-            <div className="mb-4 flex items-center rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-600">
-              <i className="fas fa-exclamation-circle mr-2"></i>
-              {loginError}
-            </div>
-          )}
-
-          <button className="mb-6 flex w-full items-center justify-center rounded-lg border border-gray-300 px-4 py-3 font-medium text-gray-700 transition-all duration-300 hover:bg-gray-50">
-            <img
-              src="https://logowik.com/content/uploads/images/985_google_g_icon.jpg"
-              alt="Google"
-              className="mr-3 h-5 w-auto"
-            />
-            Continue with Google
-          </button>
-
-          <div className="my-6 flex items-center">
-            <div className="flex-grow border-t border-gray-200"></div>
-            <span className="mx-4 text-xs font-bold uppercase text-gray-400">
-              OR
-            </span>
-            <div className="flex-grow border-t border-gray-200"></div>
+        {/* RIGHT SIDE: FORM */}
+        <div className="flex h-screen w-full flex-col justify-center p-8 md:w-1/2 lg:p-12">
+          {/* Header (Top) */}
+          <div className="flex items-center justify-end py-6">
+            <button
+              onClick={() => router.push("/")}
+              className="rounded-full bg-purple-100 p-2 text-gray-500 transition hover:bg-red-100"
+            >
+              <IoCloseSharp size={24} />
+            </button>
           </div>
 
-          <form onSubmit={formik.handleSubmit} className="space-y-5">
-            {/* Email Field */}
-            <div>
-              <div
-                className={`rounded-lg border bg-gray-50 transition-all duration-300 ${formik.touched.email && formik.errors.email ? "border-red-500" : "border-gray-300 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500"}`}
-              >
-                <label className="block px-4 pt-3 text-[10px] font-bold uppercase text-gray-400">
-                  Email Address
-                </label>
-                <div className="flex items-center px-4 pb-2">
-                  <i className="fas fa-envelope mr-2 text-sm text-gray-400"></i>
-                  <input
-                    type="email"
-                    {...formik.getFieldProps("email")}
-                    className="w-full bg-transparent py-1 text-sm outline-none"
-                    placeholder="you@example.com"
-                  />
-                </div>
+          <div className="flex-1 items-center">
+            <div className="w-full p-8">
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold text-gray-800">Sign In</h2>
+                <p className="mt-2 text-gray-500">
+                  Please enter your details to login.
+                </p>
               </div>
-              {formik.touched.email && formik.errors.email && (
-                <div className="ml-1 mt-1 text-xs text-red-500">
-                  {formik.errors.email}
-                </div>
-              )}
-            </div>
 
-            {/* Password Field */}
-            <div>
-              <div
-                className={`rounded-lg border bg-gray-50 transition-all duration-300 ${formik.touched.password && formik.errors.password ? "border-red-500" : "border-gray-300 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500"}`}
+              <button
+                type="button"
+                className="mb-6 flex w-full items-center justify-center rounded-xl border border-gray-300 px-4 py-3 font-medium text-gray-700 transition-all duration-300 hover:bg-gray-50 active:scale-95"
               >
-                <label className="block px-4 pt-3 text-[10px] font-bold uppercase text-gray-400">
-                  Password
-                </label>
-                <div className="flex items-center px-4 pb-2">
-                  <i className="fas fa-lock mr-2 text-sm text-gray-400"></i>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    {...formik.getFieldProps("password")}
-                    className="w-full bg-transparent py-1 text-sm outline-none"
-                    placeholder="••••••••"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="text-gray-400 transition-colors hover:text-blue-500"
-                  >
-                    <i
-                      className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"} text-xs`}
-                    ></i>
-                  </button>
-                </div>
-              </div>
-              {formik.touched.password && formik.errors.password && (
-                <div className="ml-1 mt-1 text-xs text-red-500">
-                  {formik.errors.password}
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember"
-                  name="remember"
-                  type="checkbox"
-                  onChange={formik.handleChange}
-                  checked={formik.values.remember}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                <img
+                  src="https://logowik.com/content/uploads/images/985_google_g_icon.jpg"
+                  alt="Google"
+                  className="mr-3 h-5 w-auto"
                 />
-                <label
-                  htmlFor="remember"
-                  className="ml-2 cursor-pointer text-sm text-gray-600"
-                >
-                  Remember me
-                </label>
+                Continue with Google
+              </button>
+
+              <div className="my-6 flex items-center">
+                <div className="flex-grow border-t border-gray-200"></div>
+                <span className="mx-4 text-xs font-bold uppercase text-gray-400">
+                  OR
+                </span>
+                <div className="flex-grow border-t border-gray-200"></div>
               </div>
-              <a
-                href="#"
-                className="text-sm font-medium text-blue-600 hover:text-blue-700"
-              >
-                Forgot password?
-              </a>
+
+              <form onSubmit={formik.handleSubmit} className="space-y-4">
+                {/* Email Field */}
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-gray-700">
+                    Email Address
+                  </label>
+                  <div
+                    className={`flex items-center rounded-xl border bg-gray-50 px-4 py-3 transition-all ${
+                      formik.touched.email && formik.errors.email
+                        ? "border-red-500 ring-1 ring-red-500"
+                        : "border-gray-200 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-primary"
+                    }`}
+                  >
+                    <i className="fas fa-envelope mr-3 text-gray-400"></i>
+                    <input
+                      type="email"
+                      {...formik.getFieldProps("email")}
+                      className="w-full bg-transparent text-sm outline-none"
+                      placeholder="name@company.com"
+                    />
+                  </div>
+                  {formik.touched.email && formik.errors.email && (
+                    <p className="mt-1 text-xs text-red-500">
+                      {formik.errors.email}
+                    </p>
+                  )}
+                </div>
+
+                {/* Password Field */}
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-gray-700">
+                    Password
+                  </label>
+                  <div
+                    className={`flex items-center rounded-xl border bg-gray-50 px-4 py-3 transition-all ${
+                      formik.touched.password && formik.errors.password
+                        ? "border-red-500 ring-1 ring-red-500"
+                        : "border-gray-200 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-primary"
+                    }`}
+                  >
+                    <i className="fas fa-lock mr-3 text-gray-400"></i>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      {...formik.getFieldProps("password")}
+                      className="w-full bg-transparent text-sm outline-none"
+                      placeholder="••••••••"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-gray-400 hover:text-primary"
+                    >
+                      <i
+                        className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"} text-xs`}
+                      ></i>
+                    </button>
+                  </div>
+                  {formik.touched.password && formik.errors.password && (
+                    <p className="mt-1 text-xs text-red-500">
+                      {formik.errors.password}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <input
+                      id="remember"
+                      type="checkbox"
+                      {...formik.getFieldProps("remember")}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                    <label
+                      htmlFor="remember"
+                      className="ml-2 cursor-pointer text-sm text-gray-600"
+                    >
+                      Remember me
+                    </label>
+                  </div>
+                  <Link
+                    href="/forgot-password"
+                    className="text-sm font-semibold text-primary hover:text-primary"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full transform rounded-xl bg-primary py-3 font-bold text-white shadow-lg shadow-blue-200 transition-all hover:bg-primary active:scale-[0.98] disabled:opacity-70"
+                >
+                  {loading ? (
+                    <i className="fas fa-circle-notch fa-spin mr-2"></i>
+                  ) : (
+                    "Sign In"
+                  )}
+                </button>
+              </form>
+
+              <p className="mt-8 text-center text-sm text-gray-600">
+                Don't have an account?
+                <Link
+                  href={`/register`}
+                  className="ml-1 font-bold text-primary hover:underline"
+                >
+                  Sign up
+                </Link>
+              </p>
             </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full transform rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white shadow-md transition-all duration-300 hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {loading ? (
-                <>
-                  <i className="fas fa-circle-notch fa-spin mr-2"></i> Signing
-                  In...
-                </>
-              ) : (
-                "Sign In"
-              )}
-            </button>
-          </form>
-
-          <div className="mt-8 text-center text-sm text-gray-600">
-            Don't have an account?
-            <Link
-              href="/register"
-              className="ml-1 font-bold text-blue-600 hover:underline"
-            >
-              Sign up for free
-            </Link>
           </div>
         </div>
       </div>

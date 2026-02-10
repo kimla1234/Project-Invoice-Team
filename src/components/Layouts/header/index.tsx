@@ -8,9 +8,29 @@ import { MenuIcon } from "./icons";
 import { Notification } from "./notification";
 import { ThemeToggleSwitch } from "./theme-toggle";
 import { UserInfo } from "./user-info";
+import { useGetUserQuery } from "@/redux/service/user";
+import { useEffect } from "react";
 
 export function Header() {
   const { toggleSidebar, isMobile } = useSidebarContext();
+  // Fetch user data
+  const { data: userResponse, isLoading, error } = useGetUserQuery();
+  useEffect(() => {
+    if (userResponse) {
+      console.log("User Response:", userResponse);
+      console.log("User Payload:", userResponse);
+    }
+  }, [userResponse]);
+
+  // Map user for UserInfo component
+  const mappedUser = userResponse
+    ? {
+        name: userResponse.name || "No Name",
+        email: userResponse.email || "",
+        image_profile: userResponse.image_profile,
+      }
+    : undefined;
+
 
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between border-b border-stroke bg-white px-4 py-3  dark:border-stroke-dark dark:bg-gray-dark md:px-5 2xl:px-10">
@@ -48,7 +68,7 @@ export function Header() {
         <Notification />
 
         <div className="shrink-0">
-          <UserInfo />
+          <UserInfo user={mappedUser} />
         </div>
       </div>
     </header>

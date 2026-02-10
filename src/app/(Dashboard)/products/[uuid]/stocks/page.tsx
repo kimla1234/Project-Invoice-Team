@@ -4,10 +4,11 @@ import React from 'react'
 import { useParams } from "next/navigation";
 
 export default function page() {
-  const params = useParams();
-  const productId = params.id as string;
+  const { uuid } = useParams();
+
+  if (!uuid) return null;
   
   return (
-    <StockManage productId={productId}/>
+    <StockManage productId={uuid as string}/>
   )
 }
