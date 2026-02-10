@@ -25,7 +25,7 @@ import {
   Repeat,
 } from "lucide-react";
 import { QuotationData } from "@/types/quotation";
-import { ClientData } from "@/types/client";
+import { ClientData } from "../Quotations/create-quotation/DownloadPDFButton";
 import { InvoiceData } from "@/types/invoice";
 import QuotationTableSkeleton from "../skeletons/QuotationTableSkeleton";
 import { useToast } from "@/hooks/use-toast";
