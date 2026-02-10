@@ -13,6 +13,7 @@ import Image from "next/image";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 
 import { toast } from "@/hooks/use-toast";
+import { useGetMySettingsQuery } from "@/redux/service/setting";
 
 export function Sidebar() {
     const router = useRouter();
@@ -20,40 +21,15 @@ export function Sidebar() {
   const { setIsOpen, isOpen, isMobile, toggleSidebar } = useSidebarContext();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const { data } = useGetMySettingsQuery();
 
-  // --- New State for Company Info ---
-  const [companyData, setCompanyData] = useState({
-    name: "Loading...",
-    email: "",
-    logo: null as string | null,
-  });
-  useEffect(() => {
-    const fetchUserData = () => {
-      const savedData = localStorage.getItem("registered_user");
-      if (savedData) {
-        try {
-          const user = JSON.parse(savedData);
-          setCompanyData({
-            name: user.companyName || "My Company",
-            email: user.companyEmail || "",
-            logo: user.companyLogo || null,
-          });
-        } catch (e) {
-          console.error("Error parsing sidebar data", e);
-        }
-      }
-    };
-
-    fetchUserData(); // ទាញទិន្នន័យលើកដំបូង
-
-    // ចាប់ផ្ដើមស្ដាប់នៅពេលមានការបាញ់ Event "company-updated"
-    window.addEventListener("company-updated", fetchUserData);
-
-    return () => {
-      window.removeEventListener("company-updated", fetchUserData);
-    };
-  }, []);
-  // ----------------------------------
+  // Company info from backend (RTK Query)
+  const companyName = data?.companyName ?? "My Company";
+  const companyEmail = data?.companyEmail ?? "";
+  const companyLogoUrl = data?.companyLogoUrl ?? null;
+  const logoSrc = companyLogoUrl
+    ? `${process.env.NEXT_PUBLIC_NORMPLOV_API_URL}${companyLogoUrl}`
+    : null;
 
   const toggleExpanded = (title: string) => {
     setExpandedItems((prev) => (prev.includes(title) ? [] : [title]));
@@ -141,26 +117,25 @@ export function Sidebar() {
           {/* --- New Company Profile Preview --- */}
           <div className="mt-8 flex items-center gap-3 pr-4">
             <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-gray-200 bg-gray-100">
-              {companyData.logo ? (
-                <Image
-                  src={companyData.logo}
+              {logoSrc ? (
+                <img
+                  src={logoSrc}
                   alt="Logo"
-                  fill // Keeps the image responsive to the parent div
                   className="object-cover"
                   sizes="40px" // Optional: Helps Next.js optimize the image size
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-blue-500 text-sm font-bold text-white">
-                  {companyData.name.charAt(0).toUpperCase()}
+                  {companyName.charAt(0).toUpperCase()}
                 </div>
               )}
             </div>
             <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
               <p className="truncate text-lg font-semibold text-gray-900 dark:text-white">
-                {companyData.name}
+                {companyName}
               </p>
               <p className="truncate text-xs text-gray-500">
-                {companyData.email}
+                {companyEmail}
               </p>
             </div>
           </div>

@@ -14,7 +14,7 @@ import { ColumnToggleDropdown } from "../ui/ColumnToggleDropdown";
 import { initQuotations } from "@/utils/initLocalStorage";
 import { useToast } from "@/hooks/use-toast";
 import { exportProductsToExcel } from "@/utils/exportToExcel";
-import { getClientsTableData } from "../Tables/clients";
+
 import { ClientData } from "@/types/client";
 import { QuotationData } from "@/types/quotation";
 

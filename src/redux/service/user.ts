@@ -1,25 +1,12 @@
 import { normPlovApi } from "../api";
+import { UserResponse } from "@/types/user";
 type ChangePasswordResponse = { message: string };
 type ChangePasswordRequest = {
   old_password: string;
   new_password: string;
   confirm_new_password: string;
 };
-type UserResponse = {
-  uuid: string;
-  name: string | null;
-  email: string | null;
-  image_profile: string | null;
-  dob: string | null;
-  phone: string | null;
-  roles: string[];
-  country: string | null;
-  city: string | null;
-  isBlock: boolean;
-  isDelete: boolean;
-  createdAt: string | null;
-  lastModifiedAt: string | null;
-};
+
 
 type UserPayload = {
   uuid: string;
