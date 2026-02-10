@@ -1,22 +1,54 @@
-// types/invoice.ts
-
 export interface InvoiceItem {
-  id: number;
-  name: string;
-  qty: number;
-  unitPrice: number;
-  total: number;
+    id: number;
+    invoiceId: number | null; // Added this field from response
+    productId: number; // Changed from 'any' to 'number' based on response
+    unitPrice: number;
+    quantity: number;
+    subtotal: number;
+    createdAt: string;
+    updatedAt: string;
+    deletedAt?: string | null; // Made optional since it's not in response
 }
 
-export interface InvoiceData {
-  id: number;
-  invoiceNo: string;       // e.g., INV-0001
-  clientId: number;        // link to client table
-  issueDate: string;       // date invoice was issued
-  dueDate?: string;        // optional due date
-  items?: InvoiceItem[];   // items/services in the invoice
-  subtotal: number;        // sum of all items before tax
-  tax?: number;            // optional tax
-  totalAmount: number;     // subtotal + tax
-  status?: "Paid" | "Unpaid" | "Partial"; // invoice payment status
+export interface Invoice {
+    id: number;
+    userId: number;
+    clientId: number;
+    status: string; // Changed from optional to required since it's in response
+    subtotal: number;
+    grandTotal: number;
+    tax: number;
+    createdAt: string;
+    updatedAt: string;
+    items: InvoiceItem[];
+}
+
+export interface InvoiceItemRequest {
+    productId: number;
+    unitPrice: number;
+    quantity: number;
+    subtotal: number;
+}
+
+export interface InvoiceRequest {
+    clientId: number;
+    subtotal: number;
+    tax: number;
+    grandTotal: number;
+    items?: InvoiceItemRequest[];
+    status: string;
+}
+
+export interface PaginatedInvoiceResponse {
+    content: Invoice[];
+    pageable: {
+        pageNumber: number;
+        pageSize: number;
+    };
+    totalElements: number;
+    totalPages: number;
+    last: boolean;
+    first: boolean;
+    size: number;
+    number: number;
 }
