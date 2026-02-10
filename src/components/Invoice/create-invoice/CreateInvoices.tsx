@@ -10,7 +10,7 @@ import { mockClients } from "@/components/Tables/clients";
 import { IoAddCircleOutline } from "react-icons/io5";
 import { IoMdAdd } from "react-icons/io";
 import { ClientModal } from "./ClientModal";
-import { DownloadPDFButton } from "./DownloadPDFButton";
+import { DownloadPDFButton } from "@/components/Quotations/create-quotation/DownloadPDFButton";
 type Item = {
   id: number;
   name: string;

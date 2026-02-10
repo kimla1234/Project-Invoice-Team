@@ -1,36 +1,19 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import SummaryCard from "./SummaryCard";
 import { FileText } from "lucide-react";
+import { useGetMyInvoicesQuery } from "@/redux/service/invoices";
 
-export default function HeaderInvoices({
-  refreshKey = 0,
-}: {
-  refreshKey?: number;
-}) {
-  const [totalInvoices, setTotalInvoices] = useState(0);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadSummary = () => {
-      try {
-        const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
-        setTotalInvoices(Array.isArray(invoices) ? invoices.length : 0);
-      } catch (err) {
-        console.error("Failed to load invoices from localStorage:", err);
-        setTotalInvoices(0);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadSummary();
-  }, [refreshKey]);
+export default function HeaderInvoices() {
+  // Fetch only first page to get total count
+  const { data, isLoading } = useGetMyInvoicesQuery({ page: 0, size: 1 });
+  
+  const totalInvoices = data?.totalElements ?? 0;
 
   return (
     <div className="flex justify-around bg-white">
-      {loading ? (
+      {isLoading ? (
         <SummaryCardSkeleton />
       ) : (
         <SummaryCard

@@ -1,4 +1,4 @@
-import Invoices from '@/components/Invoice/Invoices'
+import Invoices from '@/components/Invoices/Invoices'
 import React from 'react'
 
 function page() {
