@@ -2,21 +2,18 @@
 
 import React, { useEffect, useState } from "react";
 import SummaryCard from "./SummaryCard";
-
+import { useGetMyClientsQuery } from "@/redux/service/client";
 import { FileText, Wrench, ShoppingBag } from "lucide-react";
 
 
 export default function HeaderClients({ refreshKey = 0 }: { refreshKey?: number }) {
-  const [summary, setSummary] = useState({
-    totalClients: 0,
-  });
-  const [loading, setLoading] = useState(true);
-
+  const { data: clients = [], isLoading } = useGetMyClientsQuery();
+  const totalClients = clients.length;
   
 
   return (
     <div className="flex justify-around bg-white">
-      {loading ? (
+      {isLoading ? (
         <>
           <SummaryCardSkeleton />
           <SummaryCardSkeleton />
@@ -26,7 +23,7 @@ export default function HeaderClients({ refreshKey = 0 }: { refreshKey?: number 
         <>
           <SummaryCard
             title="Total Clients"
-            count={summary.totalClients}
+            count={totalClients}
             icon={FileText}
             iconBgColor="bg-blue-100"
             iconTextColor="text-blue-600"
