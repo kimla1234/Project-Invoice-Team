@@ -104,7 +104,8 @@ export const normPlovApi = createApi({
     "SingleChat",
     "bookmarks",
     "AllTestAsess",
-    "Invoices"
+    "Invoices",
+    "Clients"
   ],
   endpoints: () => ({}),
 });

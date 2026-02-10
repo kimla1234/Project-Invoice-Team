@@ -318,6 +318,10 @@ export default function CreateProducts() {
               </div>
             </div>
 
+            <div>
+              <div>Produt Type</div>
+            </div>
+
             {/* Row 4: Description */}
             <div>
               <label className="mb-1.5 block font-medium">Description</label>

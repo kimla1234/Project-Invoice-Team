@@ -26,8 +26,13 @@ import {
 import QuotationTableSkeleton from "../skeletons/QuotationTableSkeleton";
 import { useToast } from "@/hooks/use-toast";
 import { PaginationControls } from "../ui/pagination-controls";
+<<<<<<< HEAD
 import { getClientsTableData } from "./clients";
 import { ClientData } from "../Quotations/create-quotation/DownloadPDFButton";
+=======
+
+import { ClientData } from "@/types/client";
+>>>>>>> 28577502cd5a3ba78a2cf4ba1e86c398fec4fb55
 import { DeleteInvoices } from "../Invoices/delete-invoice/DeleteInvoices";
 import { 
   useGetMyInvoicesQuery, 

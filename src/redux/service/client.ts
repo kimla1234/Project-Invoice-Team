@@ -1,5 +1,5 @@
 import { normPlovApi } from "../api";
-import {ClientCreateRequest, ClientResponse,} from "../../types/client";
+import {ClientCreateRequest, ClientResponse, ClientUpdateRequest} from "../../types/client";
 
 export const clientApi = normPlovApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -12,12 +12,56 @@ export const clientApi = normPlovApi.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: ["Invoices"], // or create "Clients" tag later
+      invalidatesTags: ["Clients"], 
     }),
+
+    updateClient: builder.mutation<
+      { message: string; data: ClientResponse },
+      { id: number; body: ClientUpdateRequest }
+    >({
+      query: ({ id, body }) => ({
+        url: `/api/v1/client/${id}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["Clients"],
+    }),
+
+    deleteClient: builder.mutation<
+      { message: string; data: ClientResponse },
+      number
+    >({
+      query: (id) => ({
+        url: `/api/v1/client/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Clients"],
+    }),
+
+    getMyClients: builder.query<ClientResponse[], void>({
+      query: () => ({
+        url: "/api/v1/client",
+        method: "GET",
+      }),
+      providesTags: ["Clients"],
+    }),
+
+    getClientById: builder.query<ClientResponse, number>({
+      query: (id) => ({
+        url: `/api/v1/client/${id}`,
+        method: "GET",
+      }),
+    }),
+
+
   }),
   overrideExisting: false,
 });
 
 export const {
   useCreateClientMutation,
+  useUpdateClientMutation,
+  useDeleteClientMutation,
+  useGetMyClientsQuery,
+  useGetClientByIdQuery,
 } = clientApi;
