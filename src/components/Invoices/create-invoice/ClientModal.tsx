@@ -1,18 +1,18 @@
-import { ClientData } from "@/types/client";
+import { ClientResponse } from "@/types/client";
 import { useState } from "react";
 import { Search, X, Plus, Check, UserCircle2 } from "lucide-react";
 
 type ClientModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  clients: ClientData[];
-  onSelectClient: (client: ClientData) => void;
+  clients: ClientResponse[];
+  onSelectClient: (client: ClientResponse) => void;
   onCreateNew?: () => void;
 };
 
 const ClientModal = ({ isOpen, onClose, clients, onSelectClient }: ClientModalProps) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeClient, setActiveClient] = useState<ClientData | null>(null);
+  const [activeClient, setActiveClient] = useState<ClientResponse | null>(null);
 
   if (!isOpen) return null;
 
@@ -88,7 +88,7 @@ const ClientModal = ({ isOpen, onClose, clients, onSelectClient }: ClientModalPr
                     <dd className="text-gray-700">{activeClient.name}</dd>
 
                     <dt className="font-semibold text-gray-900">Contact</dt>
-                    <dd className="text-gray-700">{activeClient.contact || 'N/A'}</dd>
+                    <dd className="text-gray-700">{activeClient.phoneNumber || 'N/A'}</dd>
 
                     <dt className="font-semibold text-gray-900">Address</dt>
                     <dd className="text-gray-700">{activeClient.address || 'N/A'}</dd>
