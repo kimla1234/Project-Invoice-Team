@@ -1,27 +1,55 @@
-export interface QuotationItem {
-  id: number;
-  name: string;
-  qty: number;
+
+// ITEM TYPES
+export interface QuotationItemRequest {
+  productId: number;
+  quantity: number;
   unitPrice: number;
-  total: number;
 }
 
-
-// types/quotation.ts
-export interface QuotationData {
+export interface QuotationItemResponse {
   id: number;
-  clientId: number; // <-- link to client table
-  amount: number;
-  issueDate: string;
-  notes?: string;
-  terms?: string;
-  expiryDate?: string;
-  quotationNo?: string;
-  items?: {
-    id: number;
-    name: string;
-    qty: number;
-    unitPrice: number;
-    total: number;
-  }[];
+  quotationId: number;
+  productId: number;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+// REQUEST (POST / PUT)
+export interface QuotationCreateRequest {
+  userId: number;
+  clientId: number;
+  invoiceId?: number;
+
+  quotationDate: string;      // ISO date string
+  quotationExpire?: string;   // ISO date string
+
+  items: QuotationItemRequest[];
+}
+
+// RESPONSE (GET)
+export interface Quotation {
+  id: number;
+  userId: number;
+  clientId: number;
+  invoiceId?: number;
+
+  quotationDate: string;
+  quotationExpire?: string;
+
+  totalAmount: number;
+
+  items: QuotationItemResponse[];
+
+  createdAt: string;
+  updatedAt?: string;
+}
+
+// PAGINATION (OPTIONAL)
+export interface PaginatedQuotationResponse {
+  content: Quotation[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
 }
