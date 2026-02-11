@@ -138,7 +138,7 @@ export default function Products() {
           {/* Right: Primary Action Button */}
           <Link
             href="/products/create"
-            className="flex items-center space-x-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none"
+            className="flex items-center space-x-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-300 hover:text-purple-600 focus:outline-none transition-transform duration-150 active:scale-95"
           >
             <div>Create Product or Service</div>
             <VscAdd className="text-xl" />

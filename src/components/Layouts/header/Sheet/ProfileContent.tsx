@@ -145,7 +145,7 @@ export function ProfileContent({}: ProfileContentProps) {
       <div className="flex-grow space-y-8">
         <div className="flex flex-col items-center">
           <div className="group relative">
-            <div className="size-28 overflow-hidden rounded-full border-2 border-gray-50 bg-gray-100 shadow-sm">
+            <div className="size-28 overflow-hidden rounded-full border-[2px] border-purple-600 bg-gray-100 shadow-sm">
               <Image
                 unoptimized
                 src={apiUser?.image_profile || "/logo.png"}
@@ -235,7 +235,7 @@ export function ProfileContent({}: ProfileContentProps) {
         {!isEditing ? (
           <button
             onClick={() => setIsEditing(true)}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-medium text-white transition-all hover:bg-primary/50"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-purple-600 py-3.5 font-medium text-white transition-all hover:bg-purple-600/50"
           >
             <Edit2 className="size-4" /> Edit Profile
           </button>

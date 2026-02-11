@@ -86,29 +86,21 @@ export function UserInfo({ user: propUser }: UserInfoProps) {
     }
   };
 
-  // ប្រើ propUser ផ្ទាល់ ដើម្បីឱ្យវា Update តាម NavbarComponent
   const user = propUser;
 
-  const avatarSrc =
-    user?.image_profile && user.image_profile.trim() !== ""
-      ? user.image_profile
-      : "/logo.png";
-
   if (!user) {
-    // Optional: fallback skeleton while user loads
     return <div className="h-10 w-10 animate-pulse rounded-full bg-gray-100" />;
   }
 
   return (
     <Dropdown isOpen={isOpen} setIsOpen={setIsOpen}>
       <DropdownTrigger className="rounded align-middle outline-none ring-primary ring-offset-2 focus-visible:ring-1 dark:ring-offset-gray-dark">
-        <figure className="flex cursor-pointer items-center gap-3">
+        <figure className="flex hover:bg-purple-50 px-1 py-0.5  rounded-sm cursor-pointer items-center gap-3">
           <Image
             unoptimized
-            // Use user?.profileImage which now matches the mappedUser key
             src={user?.image_profile || "/images/logo/logo-dark.svg"}
-            width={44}
-            height={44}
+            width={1000}
+            height={1000}
             className="h-11 w-11 rounded-full border-2 border-purple-600 object-cover"
             alt={user?.name || "Avatar"}
           />

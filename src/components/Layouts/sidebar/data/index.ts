@@ -22,12 +22,7 @@ export const NAV_DATA = [
         icon: Icons.Invoice, // Change to Icons.FileText if available
         items: [],
       },
-      {
-        title: "Payments Received",
-        url: "/payments",
-        icon: Icons.Payments,
-        items: [],
-      },
+
       {
         title: "Products & Services",
         url: "/products",
@@ -40,12 +35,7 @@ export const NAV_DATA = [
         icon: Icons.User,
         items: [],
       },
-      {
-        title: "Reports",
-        url: "/reports",
-        icon: Icons.Reports,
-        items: [],
-      },
+
     ],
   },
   {

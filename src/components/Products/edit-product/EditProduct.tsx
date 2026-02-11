@@ -40,6 +40,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { CreateProductTypeForm } from "../CreateProductTypeForm";
+import { BiAddToQueue } from "react-icons/bi";
 
 interface EditProductProps {
   productId: string;
@@ -332,9 +333,10 @@ export default function EditProduct({ productId }: EditProductProps) {
                   <SheetTrigger asChild>
                     <button
                       type="button"
-                      className="flex items-center gap-1 rounded-md bg-red-50 px-2 py-1.5 text-xs font-bold text-red-500 hover:bg-red-100"
+                      className="flex  items-center gap-1 rounded-md bg-red-50 px-2 py-1.5 text-xs font-bold text-red-500 hover:bg-red-100 transition-transform duration-150 active:scale-95"
                     >
-                      + Add New Type
+                      <BiAddToQueue className="h-5 w-5" />
+                      Add New Type
                     </button>
                   </SheetTrigger>
                   <SheetContent side="right" className="w-[400px] bg-white">

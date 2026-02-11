@@ -11,12 +11,12 @@ import { MenuItem } from "./menu-item";
 import { useSidebarContext } from "./sidebar-context";
 import Image from "next/image";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
-
+import logoImg from "../../../../public/logo.png";
 import { toast } from "@/hooks/use-toast";
 import { useGetMySettingsQuery } from "@/redux/service/setting";
 
 export function Sidebar() {
-    const router = useRouter();
+  const router = useRouter();
   const pathname = usePathname();
   const { setIsOpen, isOpen, isMobile, toggleSidebar } = useSidebarContext();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
@@ -33,11 +33,6 @@ export function Sidebar() {
 
   const toggleExpanded = (title: string) => {
     setExpandedItems((prev) => (prev.includes(title) ? [] : [title]));
-
-    // Uncomment the following line to enable multiple expanded items
-    // setExpandedItems((prev) =>
-    //   prev.includes(title) ? prev.filter((t) => t !== title) : [...prev, title],
-    // );
   };
 
   useEffect(() => {
@@ -49,7 +44,7 @@ export function Sidebar() {
     });
   }, [pathname]);
 
- const handleLogout = async () => {
+  const handleLogout = async () => {
     try {
       const res = await fetch(`/api/logout`, {
         method: "POST",
@@ -115,51 +110,44 @@ export function Sidebar() {
       >
         <div className="flex h-full flex-col pl-[25px] pr-[7px]">
           {/* --- New Company Profile Preview --- */}
-          <div className="mt-8 flex items-center gap-3 pr-4">
-            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-gray-200 bg-gray-100">
-              {logoSrc ? (
-                <img
-                  src={logoSrc}
-                  alt="Logo"
-                  className="object-cover"
-                  sizes="40px" // Optional: Helps Next.js optimize the image size
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-blue-500 text-sm font-bold text-white">
-                  {companyName.charAt(0).toUpperCase()}
-                </div>
-              )}
-            </div>
-            <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
-              <p className="truncate text-lg font-semibold text-gray-900 dark:text-white">
-                {companyName}
-              </p>
-              <p className="truncate text-xs text-gray-500">
-                {companyEmail}
-              </p>
+          <div className="mt-2 flex  gap-3 pr-4">
+            <div className="relative  h-[60px] bg-purple-500 py-1 rounded-md   w-full ">
+              {" "}
+              {/* កំណត់ទំហំតាមរយៈ Div រុំ */}
+              <Image
+                src={logoImg}
+                alt="logo"
+                fill
+                className="object-contain w-fit rounded-md"
+                priority
+              />
             </div>
           </div>
           {/* ---------------------------------- */}
 
           {/* Navigation */}
-          <div className="custom-scrollbar mt-6 flex-1 overflow-y-auto pr-3 min-[850px]:mt-10">
+          <div className="custom-scrollbar mt-6  flex-1 overflow-y-auto pr-3 min-[850px]:mt-10">
             {NAV_DATA.map((section) => (
               <div key={section.label} className="mb-5">
                 <h2 className="mb-5 text-sm font-medium text-dark-4 dark:text-dark-6">
                   {section.label}
                 </h2>
 
-                <nav role="navigation " className=" " aria-label={section.label}>
-                  <ul className="space-y-1">
+                <nav
+                  role="navigation  "
+                  className=" "
+                  aria-label={section.label}
+                >
+                  <ul className="space-y-1 ">
                     {section.items.map((item) => {
                       const isSignOut = item.title === "Sign out";
 
                       return (
-                        <li key={item.title}>
+                        <li key={item.title} className=" text-purple-600 transition-transform duration-150 active:scale-95">
                           {isSignOut ? (
                             // Sign out button triggers modal
                             <MenuItem
-                              className="flex  items-center gap-3 py-3"
+                              className="flex items-center gap-3 py-3"
                               onClick={() => setShowSignOutModal(true)}
                               isDestructive
                               isActive={false}
@@ -169,18 +157,18 @@ export function Sidebar() {
                             </MenuItem>
                           ) : item.items.length ? (
                             // existing collapsible menu logic
-                            <div>
+                            <div className="">
                               <MenuItem
                                 isActive={item.items.some(
                                   ({ url }) => url === pathname,
                                 )}
                                 onClick={() => toggleExpanded(item.title)}
                               >
-                                <item.icon className="size-6 shrink-0" />
-                                <span>{item.title}</span>
+                                <item.icon className="size-6 shrink-0 " />
+                                <span >{item.title}</span>
                                 <ChevronUp
                                   className={cn(
-                                    "ml-auto   rotate-180 transition-transform duration-200",
+                                    "ml-auto rotate-180  transition-transform duration-200",
                                     expandedItems.includes(item.title) &&
                                       "rotate-0",
                                   )}
@@ -190,7 +178,7 @@ export function Sidebar() {
                           ) : (
                             // normal link item
                             <MenuItem
-                              className="flex items-center gap-3 py-3"
+                              className="flex  items-center gap-3 py-3"
                               as="link"
                               href={item.url || "/"}
                               isActive={pathname === item.url}
@@ -210,12 +198,12 @@ export function Sidebar() {
         </div>
       </aside>
       <ConfirmModal
-          open={showSignOutModal}
-          title="Confirm Sign Out"
-          description="Are you sure you want to sign out?"
-          onConfirm={handleLogout}
-          onCancel={() => setShowSignOutModal(false)}
-        />
+        open={showSignOutModal}
+        title="Confirm Sign Out"
+        description="Are you sure you want to sign out?"
+        onConfirm={handleLogout}
+        onCancel={() => setShowSignOutModal(false)}
+      />
     </>
   );
 }

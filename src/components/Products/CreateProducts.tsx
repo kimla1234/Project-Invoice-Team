@@ -370,7 +370,7 @@ export default function CreateProducts() {
                   <SheetTrigger asChild>
                     <button
                       type="button"
-                      className="flex items-center border border-dashed gap-1 rounded-md bg-red-50 px-2 py-2 text-sm  text-red-500 "
+                      className="flex items-center border border-dashed gap-1 rounded-md bg-red-50 px-2 py-2 text-sm transition-transform duration-150 active:scale-95  text-red-500 "
                     >
                       <BiAddToQueue className="h-5 w-5" />
                       Add New Type

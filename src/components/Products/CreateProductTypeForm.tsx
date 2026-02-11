@@ -33,7 +33,7 @@ export function CreateProductTypeForm({ onSuccess }: { onSuccess: () => void }) 
       <button
         onClick={handleCreate}
         disabled={isLoading}
-        className="w-full bg-primary text-white py-2 rounded-lg font-bold"
+        className="w-full bg-purple-600 text-white py-2 rounded-lg "
       >
         {isLoading ? "Saving..." : "Save Product Type"}
       </button>

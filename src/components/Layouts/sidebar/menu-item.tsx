@@ -8,7 +8,7 @@ const menuItemBaseStyles = cva(
   {
     variants: {
       isActive: {
-        true: "bg-[rgba(87,80,241,0.07)] text-primary hover:bg-[rgba(87,80,241,0.07)] dark:bg-[#FFFFFF1A] dark:text-white",
+        true: "bg-purple-100 text-purple-700 hover:bg-[rgba(87,80,241,0.07)] dark:bg-[#FFFFFF1A] dark:text-white",
         false: "hover:bg-gray-100 hover:text-dark hover:dark:bg-[#FFFFFF1A] hover:dark:text-white",
       },
       // Add this variant
@@ -36,7 +36,7 @@ export function MenuItem(
 
   const styles = menuItemBaseStyles({
     isActive: props.isActive,
-    isDestructive: props.isDestructive, // Pass it here
+    isDestructive: props.isDestructive, 
     className: props.as === "link" ? "relative block py-2" : "flex w-full items-center gap-2 py-3",
   });
 

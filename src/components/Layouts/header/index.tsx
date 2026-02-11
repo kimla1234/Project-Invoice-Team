@@ -55,8 +55,8 @@ export function Header() {
       )}
 
       <div className="max-xl:hidden">
-        <h1 className="mb-0.5 text-heading-5 font-bold text-dark dark:text-white">
-          Dashboard
+        <h1 className="mb-0.5 text-heading-5 font-bold text-gray-6 dark:text-white">
+          Hi, <span className=" ">{mappedUser?.name}</span>
         </h1>
       </div>
 

@@ -133,10 +133,10 @@ export function ProductTable({
     if (!deleteId) return;
 
     try {
-      // 2. Execute mutation
+      //Execute mutation
       await deleteProduct(deleteId).unwrap();
 
-      // 3. Success Feedback
+      //Success Feedback
       toast({
         title: "Product deleted",
         description: "The product has been removed successfully.",
@@ -184,7 +184,6 @@ export function ProductTable({
     );
 
   const getDynamicColor = (name: string) => {
-    // បន្ថែមពណ៌ឱ្យកាន់តែច្រើន ដើម្បីកុំឱ្យងាយជាន់គ្នា
     const colors = [
       "bg-red-100 text-red-700",
       "bg-blue-100 text-blue-700",
@@ -199,33 +198,15 @@ export function ProductTable({
       "bg-rose-100 text-rose-700",
       "bg-emerald-100 text-emerald-700",
     ];
-
-    // បង្កើត Hash ពីឈ្មោះ
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
-
-    // ជ្រើសរើស Index
     const index = Math.abs(hash) % colors.length;
     return colors[index];
   };
 
-  const getUniqueColor = (name: string) => {
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-
-    // បង្កើតកម្រិតពណ៌ (Hue) ចន្លោះពី 0 ដល់ 360
-    const h = Math.abs(hash) % 360;
-
-    // បញ្ចេញជា Inline Style សម្រាប់ប្រើក្នុង React
-    return {
-      backgroundColor: `hsla(${h}, 70%, 90%, 0.5)`,
-      color: `hsla(${h}, 70%, 30%, 1)`,
-    };
-  };
+  
   return (
     <div className="space-y-4">
       <div className="rounded-[10px] border bg-white dark:border-dark-3 dark:bg-gray-dark">
