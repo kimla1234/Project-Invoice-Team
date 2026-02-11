@@ -28,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PaginationControls } from "../ui/pagination-controls";
 
 
+//import { ClientData } from "@/types/client";
 import { DeleteInvoices } from "../Invoices/delete-invoice/DeleteInvoices";
 import { 
   useGetMyInvoicesQuery, 

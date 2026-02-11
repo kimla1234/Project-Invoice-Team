@@ -1,11 +1,12 @@
 "use client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Account from "./Account/Account";
+
 import Company from "./Conpany/Company";
 import Invoice from "./Invoice/Invoice";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import General from "./General/General";
+import Account from "./Account/Account";
 
 export function Settings() {
   const router = useRouter();
@@ -26,7 +27,7 @@ export function Settings() {
     setCurrentTab(value);
     router.push(`/setting?tab=${value}`, { scroll: false });
   };
-  
+
   if (!mounted) {
     return <div className="h-screen w-full animate-pulse bg-slate-50" />;
   }
