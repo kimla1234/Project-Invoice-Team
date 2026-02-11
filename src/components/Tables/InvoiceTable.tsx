@@ -31,7 +31,8 @@ import { ClientData } from "@/types/client";
 import { DeleteInvoices } from "../Invoices/delete-invoice/DeleteInvoices";
 import { 
   useGetMyInvoicesQuery, 
-  useDeleteInvoiceMutation 
+  useDeleteInvoiceMutation,
+  useUpdateInvoiceMutation 
 } from "@/redux/service/invoices";
 
 interface InvoiceTableProps {
@@ -56,6 +57,7 @@ export default function InvoiceTable({ searchTerm = "", issueDate }: InvoiceTabl
   });
   
   const [deleteInvoice] = useDeleteInvoiceMutation();
+  const [updateInvoice, { isLoading: isUpdating }] = useUpdateInvoiceMutation();
 
   // Extract data from paginated response
   const invoices = data?.content ?? [];
@@ -104,6 +106,53 @@ export default function InvoiceTable({ searchTerm = "", issueDate }: InvoiceTabl
   };
 
   /* ======================
+     STATUS UPDATE
+  ====================== */
+  const handleStatusChange = async (invoiceId: number, newStatus: string) => {
+    const invoice = invoices.find(i => i.id === invoiceId);
+    if (!invoice) return;
+
+    try {
+      // Prepare the invoice data with updated status
+      const updatedInvoiceData = {
+        clientId: invoice.clientId,
+        subtotal: invoice.subtotal,
+        tax: invoice.tax,
+        grandTotal: invoice.grandTotal,
+        status: newStatus,
+        issueDate: invoice.issueDate,
+        expireDate: invoice.expireDate,
+        items: invoice.items.map(item => ({
+          productId: item.productId,
+          unitPrice: item.unitPrice,
+          quantity: item.quantity,
+          subtotal: item.subtotal,
+          name: item.name,
+        })),
+      };
+
+      await updateInvoice({
+        id: invoiceId,
+        body: updatedInvoiceData,
+      }).unwrap();
+
+      toast({
+        title: "Status updated",
+        description: `Invoice status changed to ${newStatus}`,
+        className: "bg-green-600 text-white",
+        duration: 3000,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update invoice status.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
+  };
+
+  /* ======================
      DELETE
   ====================== */
   const handleConfirmDelete = async () => {
@@ -127,6 +176,24 @@ export default function InvoiceTable({ searchTerm = "", issueDate }: InvoiceTabl
       });
     } finally {
       setDeleteId(null);
+    }
+  };
+
+  /* ======================
+     GET STATUS COLOR
+  ====================== */
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'paid':
+        return 'bg-green-100 text-green-700 hover:bg-green-200';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200';
+      case 'overdue':
+        return 'bg-red-100 text-red-700 hover:bg-red-200';
+      case 'cancelled':
+        return 'bg-gray-100 text-gray-700 hover:bg-gray-200';
+      default:
+        return 'bg-gray-100 text-gray-700 hover:bg-gray-200';
     }
   };
 
@@ -176,14 +243,57 @@ export default function InvoiceTable({ searchTerm = "", issueDate }: InvoiceTabl
                   <TableCell>
                     {new Date(i.createdAt).toLocaleDateString("en-GB")}
                   </TableCell>
+                  
+                  {/* STATUS DROPDOWN */}
                   <TableCell>
-                    <span className={`px-2 py-1 rounded text-xs ${
-                      i.status === 'paid' ? 'bg-green-100 text-green-700' :
-                      i.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-gray-100 text-gray-700'
-                    }`}>
-                      {i.status ?? "Pending"}
-                    </span>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button 
+                          className={`px-2 py-1 rounded text-xs cursor-pointer transition-colors ${getStatusColor(i.status)}`}
+                          disabled={isUpdating}
+                        >
+                          {i.status ?? "Pending"}
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-32">
+                        <DropdownMenuItem 
+                          onClick={() => handleStatusChange(i.id, 'pending')}
+                          className="cursor-pointer"
+                        >
+                          <span className="flex items-center">
+                            <span className="mr-2 size-2 rounded-full bg-yellow-500"></span>
+                            Pending
+                          </span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleStatusChange(i.id, 'paid')}
+                          className="cursor-pointer"
+                        >
+                          <span className="flex items-center">
+                            <span className="mr-2 size-2 rounded-full bg-green-500"></span>
+                            Paid
+                          </span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleStatusChange(i.id, 'overdue')}
+                          className="cursor-pointer"
+                        >
+                          <span className="flex items-center">
+                            <span className="mr-2 size-2 rounded-full bg-red-500"></span>
+                            Overdue
+                          </span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleStatusChange(i.id, 'cancelled')}
+                          className="cursor-pointer"
+                        >
+                          <span className="flex items-center">
+                            <span className="mr-2 size-2 rounded-full bg-gray-500"></span>
+                            Cancelled
+                          </span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
 
                   <TableCell className="text-right xl:pr-7.5">

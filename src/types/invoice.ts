@@ -12,6 +12,8 @@ export interface InvoiceItem {
 }
 
 export interface Invoice {
+    expireDate: string;
+    issueDate: string;
     invoiceNo: string;
     id: number;
     userId: number;
@@ -34,6 +36,8 @@ export interface InvoiceItemRequest {
 }
 
 export interface InvoiceRequest {
+    expireDate: string;
+    issueDate: string;
     clientId: number;
     subtotal: number;
     tax: number;
