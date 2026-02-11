@@ -12,6 +12,7 @@ import { IoAddCircleOutline } from "react-icons/io5";
 import { IoMdAdd } from "react-icons/io";
 import { ClientModal } from "./ClientModal";
 import { DownloadPDFButton } from "./DownloadPDFButton";
+
 type Item = {
   id: number;
   name: string;
