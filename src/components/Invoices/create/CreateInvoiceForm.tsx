@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useEffect } from "react";
 import { useCreateInvoiceMutation } from "@/redux/service/invoices";
 import { useGetMyProductsQuery } from "@/redux/service/products";
@@ -15,18 +14,16 @@ import { IoAddCircleOutline } from "react-icons/io5";
 import { IoMdAdd } from "react-icons/io";
 import  DownloadPDFButton  from "../create-invoice/DownloadPDFButton"
 import { ClientResponse } from "@/types/client";
+//import DownloadPDFButton from "../create-invoice/DownloadPDFButton";
 
 type ExtendedItem = InvoiceItemRequest & {
   id: number;
-  name: string;
-  productName?: string;
   total: number;
 };
 
 export default function CreateInvoiceForm() {
   const router = useRouter();
   const { toast } = useToast();
-
   const { data: products = [], isLoading: loadingProducts } = useGetMyProductsQuery();
   const [createInvoice, { isLoading: creating }] = useCreateInvoiceMutation();
 
@@ -38,6 +35,8 @@ export default function CreateInvoiceForm() {
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [issueDate, setIssueDate] = useState("");
+  const [expireDate, setExpireDate] = useState("");
 
   useEffect(() => {
     const storedUser = localStorage.getItem("registered_user");
@@ -48,7 +47,6 @@ export default function CreateInvoiceForm() {
     const stored = localStorage.getItem("invoice_footer_settings");
     if (stored) {
       const parsed = JSON.parse(stored);
-     
     }
   }, []);
 
@@ -76,12 +74,12 @@ export default function CreateInvoiceForm() {
     };
   }, [isProductModalOpen, isClientModalOpen]);
 
+  // Add products to items list - FIXED THIS FUNCTION
   const handleAddProducts = (selectedProducts: any[]) => {
-    const newItems: ExtendedItem[] = selectedProducts.map((p, index) => ({
+    const newItems: ExtendedItem[] = selectedProducts.map((p) => ({
       id: p.id,
       productId: p.id,
       name: p.name,
-      productName: p.name,
       quantity: 1,
       unitPrice: p.price,
       subtotal: p.price,
@@ -93,17 +91,16 @@ export default function CreateInvoiceForm() {
   // Update item quantity
   const handleUpdateQuantity = (index: number, quantity: number) => {
     if (quantity < 1) return;
-
     setItems((prev) =>
       prev.map((item, i) => {
         if (i !== index) return item;
-        const updated = {
+        const subtotal = quantity * item.unitPrice;
+        return {
           ...item,
           quantity,
-          subtotal: quantity * item.unitPrice,
-          total: quantity * item.unitPrice
+          subtotal,
+          total: subtotal,
         };
-        return updated;
       }),
     );
   };
@@ -111,17 +108,16 @@ export default function CreateInvoiceForm() {
   // Update item unit price
   const handleUpdateUnitPrice = (index: number, unitPrice: number) => {
     if (unitPrice < 0) return;
-
     setItems((prev) =>
       prev.map((item, i) => {
         if (i !== index) return item;
-        const updated = {
+        const subtotal = unitPrice * item.quantity;
+        return {
           ...item,
           unitPrice,
-          subtotal: unitPrice * item.quantity,
-          total: unitPrice * item.quantity
+          subtotal,
+          total: subtotal,
         };
-        return updated;
       }),
     );
   };
@@ -131,7 +127,7 @@ export default function CreateInvoiceForm() {
     setItems((prev) =>
       prev.map((item, i) => {
         if (i !== index) return item;
-        return { ...item, name, productName: name };
+        return { ...item, name };
       }),
     );
   };
@@ -142,14 +138,14 @@ export default function CreateInvoiceForm() {
   };
 
   // Calculate totals
-  const subtotal = items.reduce((sum, item) => sum + (item.total || item.subtotal), 0);
+  const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
   const taxAmount = (subtotal * taxPercentage) / 100;
   const grandTotal = subtotal + taxAmount;
 
-  // Submit invoice
+  // Submit invoice - WITH DATE FORMATTING
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     if (!selectedClient) {
       toast({
         title: "Validation Error",
@@ -168,15 +164,38 @@ export default function CreateInvoiceForm() {
       return;
     }
 
+    if (!issueDate) {
+      toast({
+        title: "Validation Error",
+        description: "Please select an issue date.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!expireDate) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a due date.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      // Convert items to InvoiceItemRequest format
+      // Convert items to InvoiceItemRequest format (remove id and total)
       const invoiceItems: InvoiceItemRequest[] = items.map(item => ({
         productId: item.productId,
         unitPrice: item.unitPrice,
         quantity: item.quantity,
         subtotal: item.subtotal,
-        name: item.name
+        name: item.name,
       }));
+
+      // Convert date strings to ISO 8601 datetime format
+      const formatDateToISO = (dateStr: string) => {
+        return `${dateStr}T00:00:00`;
+      };
 
       await createInvoice({
         clientId: selectedClient.id!,
@@ -184,7 +203,9 @@ export default function CreateInvoiceForm() {
         tax: taxAmount,
         grandTotal,
         items: invoiceItems,
-        status: "pending"
+        status: "pending",
+        issueDate: formatDateToISO(issueDate),
+        expireDate: formatDateToISO(expireDate),
       }).unwrap();
 
       toast({
@@ -193,8 +214,88 @@ export default function CreateInvoiceForm() {
         className: "bg-green-600 text-white",
       });
 
-      router.push('/invoices');
+      router.push("/invoices");
     } catch (error: any) {
+      console.error("Invoice creation error:", error);
+      toast({
+        title: "Error",
+        description: error?.data?.message || "Failed to create invoice.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Preview and send handler
+  const handlePreviewAndSend = async () => {
+    if (!selectedClient) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a client.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (items.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please add at least one item.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!issueDate) {
+      toast({
+        title: "Validation Error",
+        description: "Please select an issue date.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!expireDate) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a due date.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const invoiceItems: InvoiceItemRequest[] = items.map(item => ({
+        productId: item.productId,
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+        subtotal: item.subtotal,
+        name: item.name,
+      }));
+
+      const formatDateToISO = (dateStr: string) => {
+        return `${dateStr}T00:00:00`;
+      };
+
+      await createInvoice({
+        clientId: selectedClient.id!,
+        subtotal,
+        tax: taxAmount,
+        grandTotal,
+        items: invoiceItems,
+        status: "pending",
+        issueDate: formatDateToISO(issueDate),
+        expireDate: formatDateToISO(expireDate),
+      }).unwrap();
+
+      toast({
+        title: "Invoice Created",
+        description: "Invoice has been created successfully.",
+        className: "bg-green-600 text-white",
+      });
+
+      router.push("/invoices");
+    } catch (error: any) {
+      console.error("Invoice creation error:", error);
       toast({
         title: "Error",
         description: error?.data?.message || "Failed to create invoice.",
@@ -245,7 +346,7 @@ export default function CreateInvoiceForm() {
 
   return (
     <div className="flex justify-center space-x-6">
-      {/* Main Form - Left Column - EXACTLY like the quotation layout */}
+      {/* Main Form - Left Column */}
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-4xl space-y-8 rounded-xl bg-white p-8"
@@ -268,8 +369,7 @@ export default function CreateInvoiceForm() {
             <p>{`${user?.district || ""}, ${user?.province || ""}, ${user?.companyPhone || ""}`}</p>
             <p className="text-gray-500">{user?.companyEmail}</p>
           </div>
-
-          {/* <div className="md:col-span-2">
+          <div className="md:col-span-2">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="mb-1 block font-semibold text-gray-800">
@@ -280,6 +380,7 @@ export default function CreateInvoiceForm() {
                   value={issueDate}
                   onChange={(e) => setIssueDate(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
+                  required
                 />
               </div>
               <div>
@@ -287,26 +388,21 @@ export default function CreateInvoiceForm() {
                   Due Date
                 </label>
                 <input
-                  type="text"
-                  placeholder="Pick a date"
-                  value={expiryDate}
-                  onFocus={(e) => (e.target.type = "date")}
-                  onBlur={(e) => {
-                    if (!e.target.value) e.target.type = "text";
-                  }}
-                  onChange={(e) => setExpiryDate(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-gray-50 p-2 text-gray-400"
+                  type="date"
+                  value={expireDate}
+                  onChange={(e) => setExpireDate(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
+                  required
                 />
               </div>
             </div>
-          </div> */}
+          </div>
         </div>
 
         {/* Client Selection Section */}
         <div className="border-b pb-6">
           {selectedClient ? (
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-              {/* Label and Name */}
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-400">
                   Customer:
@@ -315,10 +411,7 @@ export default function CreateInvoiceForm() {
                   {selectedClient.name}
                 </span>
               </div>
-
               <div className="hidden h-4 w-px bg-gray-300 md:block" />
-
-              {/* Label and Address */}
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-400">
                   Address:
@@ -327,10 +420,7 @@ export default function CreateInvoiceForm() {
                   {selectedClient.address || "N/A"}
                 </span>
               </div>
-
               <div className="hidden h-4 w-px bg-gray-300 md:block" />
-
-              {/* Label and Phone */}
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-400">
                   Phone:
@@ -339,8 +429,6 @@ export default function CreateInvoiceForm() {
                  {/* {selectedClient.contact || "N/A"} */}
                 </span>
               </div>
-
-              {/* Edit Button */}
               <button
                 type="button"
                 onClick={() => setIsClientModalOpen(true)}
@@ -422,7 +510,9 @@ export default function CreateInvoiceForm() {
                         min="1"
                         className="w-full rounded border-gray-200 bg-slate-100 p-2 focus:border-blue-500 focus:ring-blue-500"
                         value={item.quantity}
-                        onChange={(e) => handleUpdateQuantity(index, Number(e.target.value))}
+                        onChange={(e) =>
+                          handleUpdateQuantity(index, Number(e.target.value))
+                        }
                       />
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
@@ -432,11 +522,13 @@ export default function CreateInvoiceForm() {
                         min="0"
                         className="w-full rounded border-gray-200 bg-slate-100 p-2 focus:border-blue-500 focus:ring-blue-500"
                         value={item.unitPrice}
-                        onChange={(e) => handleUpdateUnitPrice(index, Number(e.target.value))}
+                        onChange={(e) =>
+                          handleUpdateUnitPrice(index, Number(e.target.value))
+                        }
                       />
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
-                      ${(item.total || item.subtotal).toFixed(2)}
+                      ${item.subtotal.toFixed(2)}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
                       <button
@@ -483,35 +575,30 @@ export default function CreateInvoiceForm() {
         {/* Form Submission Button */}
         <button
           type="submit"
-          disabled={creating || items.length === 0 || !selectedClient}
-          className="w-full rounded-lg bg-blue-600 py-3 text-lg font-semibold text-white transition duration-150 ease-in-out hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          disabled={creating || items.length === 0 || !selectedClient || !issueDate || !expireDate}
+          className="w-full rounded-lg bg-blue-600 py-3 text-lg font-semibold text-white transition duration-150 ease-in-out hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-400"
         >
           {creating ? "Creating Invoice..." : "Create Invoice"}
         </button>
       </form>
 
-      {/* Invoice Settings Sidebar (Right Column) - EXACTLY like the quotation layout */}
+      {/* Invoice Settings Sidebar (Right Column) */}
       <div className="sticky top-6 space-y-6">
         {/* Top action buttons section */}
         <div className="space-y-3 rounded-lg bg-white p-4">
-          <button 
+          <button
             type="button"
-            onClick={handleSubmit}
-            disabled={creating || items.length === 0 || !selectedClient}
-            className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            onClick={handlePreviewAndSend}
+            disabled={creating || items.length === 0 || !selectedClient || !issueDate || !expireDate}
+            className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-gray-400"
           >
             <span className="mr-2">+</span> Preview and send
           </button>
-          <div 
-            onClick={handleSubmit}  
-            className="flex w-full items-center justify-center rounded-lg bg-purple-600 text-white hover:bg-purple-700"
-          >
-            
-          </div>
-          <button 
-            onClick={handleSendToClient} 
+          <button
+            type="button"
+            onClick={handleSendToClient}
             disabled={creating || items.length === 0 || !selectedClient}
-            className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-gray-400"
           >
             <span className="mr-2">+</span> Send to client
           </button>
@@ -546,11 +633,11 @@ export default function CreateInvoiceForm() {
             </h2>
             <div className="flex items-center justify-between py-1 text-sm">
               <span>Stripe</span>
-              <button className="text-purple-600">Connect</button>
+              <button type="button" className="text-purple-600">Connect</button>
             </div>
             <div className="flex items-center justify-between py-1 text-sm">
               <span>Paypal</span>
-              <button className="text-purple-600">Setup</button>
+              <button type="button" className="text-purple-600">Setup</button>
             </div>
           </div>
 
@@ -605,7 +692,7 @@ export default function CreateInvoiceForm() {
                 <span>Reminder 3: 30 days before due date</span>
               </label>
             </div>
-            <button className="mt-3 text-sm text-purple-600 hover:underline">
+            <button type="button" className="mt-3 text-sm text-purple-600 hover:underline">
               Add reminder option
             </button>
           </div>
