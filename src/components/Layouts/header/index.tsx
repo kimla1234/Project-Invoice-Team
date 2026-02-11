@@ -27,7 +27,7 @@ export function Header() {
     ? {
         name: userResponse.name || "No Name",
         email: userResponse.email || "",
-        image_profile: userResponse.image_profile,
+        image_profile: userResponse.image_profile || "",
       }
     : undefined;
 

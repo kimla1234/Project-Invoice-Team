@@ -5,7 +5,6 @@ import { Camera, Edit2, X, Check, Loader2 } from "lucide-react";
 import {
   useGetUserQuery,
   useUpdateProfileUserMutation,
-
 } from "@/redux/service/user";
 import { toast } from "@/hooks/use-toast";
 import { set } from "idb-keyval";
@@ -37,15 +36,13 @@ export function ProfileContent({}: ProfileContentProps) {
     image_profile: "",
   });
 
-  // 3️⃣ Avatar upload file
-  const [file, setFile] = useState<File | null>(null);
-
+  
   useEffect(() => {
     if (apiUser) {
       setFormData({
         name: apiUser.name ?? "",
-        phone_number: apiUser.phone_number ?? "", // ✅ លែង Error ហើយ
-        image_profile: apiUser.image_profile ?? "", // ✅ បន្ថែមឱ្យគ្រប់ Field តាម State
+        phone_number: apiUser.phone_number ?? "",
+        image_profile: apiUser.image_profile ?? "",
       });
     }
   }, [apiUser]);
@@ -59,10 +56,9 @@ export function ProfileContent({}: ProfileContentProps) {
       await updateProfileUser({
         user: {
           name: formData.name,
-          phone_number: formData.phone_number, 
+          phone_number: formData.phone_number,
         },
       }).unwrap();
-
 
       const newStoredUser = {
         ...apiUser,
@@ -100,43 +96,41 @@ export function ProfileContent({}: ProfileContentProps) {
 
   // 7️⃣ Handle avatar upload
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  if (!e.target.files || e.target.files.length === 0) return;
+    if (!e.target.files || e.target.files.length === 0) return;
 
-  const selectedFile = e.target.files[0];
-  
-  // ១. បង្កើត FormData ឱ្យត្រូវតាមការចង់បានរបស់ Mutation ថ្មី
-  const formData = new FormData();
-  formData.append("file", selectedFile); // "file" ត្រូវតែដូចឈ្មោះក្នុង Java Controller (@RequestParam)
+    const selectedFile = e.target.files[0];
 
-  try {
+    // ១. បង្កើត FormData ឱ្យត្រូវតាមការចង់បានរបស់ Mutation ថ្មី
+    const formData = new FormData();
+    formData.append("file", selectedFile); // "file" ត្រូវតែដូចឈ្មោះក្នុង Java Controller (@RequestParam)
 
-    const uploadRes = await postImage(formData).unwrap();
+    try {
+      const uploadRes = await postImage(formData).unwrap();
 
-    console.log("Upload Success:", uploadRes);
+      console.log("Upload Success:", uploadRes);
 
-    
-    const imageUri = uploadRes?.payload?.file_url || uploadRes?.uri;
+      const imageUri = uploadRes?.payload?.file_url || uploadRes?.uri;
 
-    if (imageUri) {
+      if (imageUri) {
+        await updateProfileUser({
+          user: { image_profile: imageUri },
+        }).unwrap();
 
-      await updateProfileUser({
-        user: { image_profile: imageUri },
-      }).unwrap();
-
+        toast({
+          title: "Success!",
+          description: "Profile picture updated successfully.",
+        });
+      }
+    } catch (err: any) {
+      console.error("Upload Error Details:", err);
       toast({
-        title: "Success!",
-        description: "Profile picture updated successfully.",
+        title: "Upload Failed",
+        description:
+          err?.data?.message || "Something went wrong during upload.",
+        variant: "destructive",
       });
     }
-  } catch (err: any) {
-    console.error("Upload Error Details:", err);
-    toast({
-      title: "Upload Failed",
-      description: err?.data?.message || "Something went wrong during upload.",
-      variant: "destructive",
-    });
-  }
-};
+  };
 
   if (isFetching)
     return (
@@ -146,96 +140,98 @@ export function ProfileContent({}: ProfileContentProps) {
     );
 
   return (
-    <div className="mx-auto max-w-4xl flex flex-col min-h-[calc(100vh-80px)] py-6">
+    <div className="mx-auto flex min-h-[calc(100vh-80px)] max-w-4xl flex-col py-6">
       {/* Photo Section */}
-     <div className="flex-grow space-y-8">
+      <div className="flex-grow space-y-8">
         <div className="flex flex-col items-center">
-        <div className="group relative">
-          <div className="size-28 overflow-hidden rounded-full border-2 border-gray-50 bg-gray-100 shadow-sm">
-            <Image
-              unoptimized
-              src={apiUser?.image_profile || "/logo.png"}
-              alt="Profile"
-              width={1000}
-              height={1000}
-              className="h-full w-full object-cover"
+          <div className="group relative">
+            <div className="size-28 overflow-hidden rounded-full border-2 border-gray-50 bg-gray-100 shadow-sm">
+              <Image
+                unoptimized
+                src={apiUser?.image_profile || "/logo.png"}
+                alt="Profile"
+                width={1000}
+                height={1000}
+                className="h-full w-full object-cover"
+              />
+            </div>
+            {isEditing && (
+              <label className="absolute bottom-1 right-1 cursor-pointer rounded-full border border-gray-100 bg-white p-2 shadow-lg hover:bg-gray-50">
+                <Camera className="size-4 text-gray-600" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
+              </label>
+            )}
+          </div>
+          <div className="mt-4 text-center">
+            <h2 className="text-xl font-semibold text-gray-800">
+              Profile Information
+            </h2>
+            <p className="text-sm text-gray-500">
+              Update your personal information and preferences
+            </p>
+          </div>
+        </div>
+
+        <hr className="border-gray-100" />
+
+        {/* Form Fields */}
+        <div className="space-y-5">
+          <div className="space-y-1.5">
+            <label className="ml-1 text-sm font-semibold text-gray-700">
+              Full Name
+            </label>
+            <input
+              disabled={!isEditing}
+              className={`w-full rounded-xl p-3 outline-none transition-all ${
+                isEditing
+                  ? "border bg-white ring-1 ring-blue-100"
+                  : "cursor-not-allowed bg-slate-100"
+              }`}
+              value={formData.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
             />
           </div>
-          {isEditing && (
-            <label className="absolute bottom-1 right-1 cursor-pointer rounded-full border border-gray-100 bg-white p-2 shadow-lg hover:bg-gray-50">
-              <Camera className="size-4 text-gray-600" />
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleAvatarChange}
-              />
+
+          <div className="space-y-1.5">
+            <label className="ml-1 text-sm font-semibold text-gray-700">
+              Email
             </label>
-          )}
-        </div>
-        <div className="mt-4 text-center">
-          <h2 className="text-xl font-semibold text-gray-800">
-            Profile Information
-          </h2>
-          <p className="text-sm text-gray-500">
-            Update your personal information and preferences
-          </p>
-        </div>
-      </div>
+            <input
+              disabled
+              className="w-full cursor-not-allowed rounded-xl bg-slate-100 p-3 opacity-70"
+              value={apiUser?.email ?? ""}
+            />
+          </div>
 
-      <hr className="border-gray-100" />
-
-      {/* Form Fields */}
-      <div className="space-y-5">
-        <div className="space-y-1.5">
-          <label className="ml-1 text-sm font-semibold text-gray-700">
-            Full Name
-          </label>
-          <input
-            disabled={!isEditing}
-            className={`w-full rounded-xl p-3 outline-none transition-all ${
-              isEditing
-                ? "border bg-white ring-1 ring-blue-100"
-                : "cursor-not-allowed bg-slate-100"
-            }`}
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          />
+          <div className="space-y-1.5">
+            <label className="ml-1 text-sm font-semibold text-gray-700">
+              Phone Number
+            </label>
+            <input
+              disabled={!isEditing}
+              className={`w-full rounded-xl p-3 outline-none transition-all ${
+                isEditing
+                  ? "border bg-white ring-1 ring-blue-100"
+                  : "cursor-not-allowed bg-slate-100"
+              }`}
+              value={formData.phone_number}
+              onChange={(e) =>
+                setFormData({ ...formData, phone_number: e.target.value })
+              }
+            />
+          </div>
         </div>
-
-        <div className="space-y-1.5">
-          <label className="ml-1 text-sm font-semibold text-gray-700">
-            Email
-          </label>
-          <input
-            disabled
-            className="w-full cursor-not-allowed rounded-xl bg-slate-100 p-3 opacity-70"
-            value={apiUser?.email ?? ""}
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="ml-1 text-sm font-semibold text-gray-700">
-            Phone Number
-          </label>
-          <input
-            disabled={!isEditing}
-            className={`w-full rounded-xl p-3 outline-none transition-all ${
-              isEditing
-                ? "border bg-white ring-1 ring-blue-100"
-                : "cursor-not-allowed bg-slate-100"
-            }`}
-            value={formData.phone_number}
-            onChange={(e) =>
-              setFormData({ ...formData, phone_number: e.target.value })
-            }
-          />
-        </div>
-      </div>
       </div>
 
       {/* Actions */}
-      <div className=" mt-auto ">
+      <div className="mt-auto">
         {!isEditing ? (
           <button
             onClick={() => setIsEditing(true)}

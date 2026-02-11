@@ -12,12 +12,11 @@ export default function HeaderClients({ refreshKey = 0 }: { refreshKey?: number 
   
 
   return (
-    <div className="flex justify-around bg-white">
+    <div className="bg-white">
       {isLoading ? (
         <>
           <SummaryCardSkeleton />
-          <SummaryCardSkeleton />
-          <SummaryCardSkeleton />
+         
         </>
       ) : (
         <>

@@ -106,7 +106,9 @@ export const normPlovApi = createApi({
     "AllTestAsess",
     "Invoices",
     "Clients",
-    "ProductType"
+    "ProductType",
+    "Settings",
+    "Profiles",
   ],
   endpoints: () => ({}),
 });

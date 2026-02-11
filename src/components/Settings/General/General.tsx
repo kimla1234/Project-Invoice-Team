@@ -4,6 +4,11 @@ import React, { useEffect, useState } from "react";
 import { DollarSign, Save, Settings, UploadCloud } from "lucide-react";
 import { AiOutlineInsertRowBelow } from "react-icons/ai";
 import RichTextEditor from "@/components/ui/RichTextEditor";
+import {
+  useGetMySettingsQuery,
+  useUpdateMySettingsMutation,
+  useUploadSignatureMutation,
+} from "@/redux/service/setting";
 
 export default function General() {
   // Currency states
@@ -20,27 +25,23 @@ export default function General() {
 
   // Signature files
   const [files, setFiles] = useState<File[]>([]);
-
+  const {
+  data: settings,
+  isLoading,
+  refetch,
+} = useGetMySettingsQuery();
+  const [updateMySettings, { isLoading: isSaving }] = useUpdateMySettingsMutation();
+  const [uploadSignature, { isLoading: isUploading }] = useUploadSignatureMutation();
   // Load invoice footer & currency settings on mount
   useEffect(() => {
-    // Load invoice footer
-    const invoiceData = localStorage.getItem("invoice_footer_settings");
-    if (invoiceData) {
-      const parsed = JSON.parse(invoiceData);
-      setDefaultTerms(parsed.defaultTerms || defaultTerms);
-      setDefaultNote(parsed.defaultNote || parsed.defaultTerms || defaultTerms);
-    }
+    if (!settings) return;
 
-    // Load currency settings
-    const currencyData = localStorage.getItem("invoice_currency_settings");
-    if (currencyData) {
-      const parsed = JSON.parse(currencyData);
-      setBaseRate(parsed.baseRate || 1);
-      setFromCurrency(parsed.fromCurrency || "USD");
-      setToCurrency(parsed.toCurrency || "KHR");
-      setExchangeRate(parsed.exchangeRate || 4100);
-    }
-  }, []);
+    setDefaultTerms(settings.invoiceFooter ?? "");
+    setDefaultNote(settings.invoiceNote ?? "");
+
+    // reset editor
+    setEditorKey((prev) => prev + 1);
+  }, [settings]);
 
   // Update currency settings
   const handleUpdateCurrency = () => {
@@ -59,30 +60,29 @@ export default function General() {
 
   // Update invoice footer settings
   // Update invoice footer settings (without storing Base64 image)
-  const handleUpdateInvoice = () => {
-    const invoiceSettings = {
-      defaultTerms,
-      defaultNote,
-      signatureName: files[0]?.name || null, // just save the name
-      signatureBase64: null, // avoid localStorage quota issue
-    };
-
-    localStorage.setItem(
-      "invoice_footer_settings",
-      JSON.stringify(invoiceSettings),
-    );
-    alert(
-      `Invoice settings saved locally! ${
-        files[0] ? "Signature will be handled separately." : ""
-      }`,
-    );
-
-    // Optional: handle signature upload separately
-    if (files[0]) {
-      // Example: send to backend or handle in memory
-      console.log("Signature ready for upload:", files[0]);
+const handleUpdateInvoice = async () => {
+  try {
+    if (files.length > 0) {
+      const formData = new FormData();
+      formData.append("file", files[0]);
+      await uploadSignature(formData).unwrap();
     }
-  };
+
+    await updateMySettings({
+      invoiceFooter: defaultTerms,
+      invoiceNote: defaultNote,
+    }).unwrap();
+
+    // 🔥 THIS IS THE KEY
+    setFiles([]);      // clear local preview
+    await refetch();   // reload from backend
+
+    alert("Invoice settings saved!");
+  } catch {
+    alert("Save failed");
+  }
+};
+
 
   // Restore on page load
   useEffect(() => {
@@ -262,6 +262,18 @@ export default function General() {
             PNG, JPG up to 5MB
           </span>
         </label>
+        {settings?.signatureUrl && files.length === 0 && (
+    <div className="mt-6 rounded-lg border bg-slate-50 p-4">
+      <p className="mb-2 text-sm font-medium text-slate-600">
+        Saved Signature
+      </p>
+      <img
+        src={`${process.env.NEXT_PUBLIC_NORMPLOV_API_URL}${settings.signatureUrl}`}
+        alt="Saved signature"
+        className="h-24 w-48 rounded border bg-white object-contain p-2"
+      />
+    </div>
+        )}
 
         {files.length > 0 && (
           <div className="mt-6 flex items-center gap-6 rounded-lg border border-indigo-100 bg-indigo-50/30 p-4">
@@ -284,10 +296,11 @@ export default function General() {
       <div className="flex justify-end pt-4">
         <button
           onClick={handleUpdateInvoice}
+          disabled={isSaving}
           className="flex items-center gap-2 rounded-xl bg-primary px-8 py-4 font-bold text-white hover:-translate-y-1 hover:bg-black"
         >
           <Save className="h-5 w-5" />
-          Save All Invoice Settings
+          {isSaving ? "Saving..." : "Save All Invoice Settings"}
         </button>
       </div>
     </div>
