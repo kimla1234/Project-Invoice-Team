@@ -16,7 +16,8 @@ export async function POST(request: Request) {
 
     const serialized = serialize(cookieName, refreshToken, {
       httpOnly: true, 
-      secure: process.env.NODE_ENV === "development",
+      //secure: process.env.NODE_ENV === "development",
+      secure: false,
       path: "/",
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7, 

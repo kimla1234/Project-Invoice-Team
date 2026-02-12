@@ -103,8 +103,7 @@ export default function Login() {
     },
   });
   const handleGoogleLogin = () => {
-  // បញ្ជូនទៅកាន់ Endpoint ដែលយើងបានកំណត់ក្នុង Spring Boot
-  window.location.href = "http://localhost:8081/oauth2/authorization/google";
+  window.location.href = "https://invoice.kimla.online/oauth2/authorization/google";
 };
 
   return (
