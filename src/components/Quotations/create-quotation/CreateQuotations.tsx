@@ -1,20 +1,29 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { MyEventResponse } from "@/types/product";
-import { ClientData } from "@/types/client";
-//import { getProductsTableData } from "@/components/Tables/fetch";
-import { mockClients } from "@/components/Tables/clients";
 import { IoAddCircleOutline } from "react-icons/io5";
 import { IoMdAdd } from "react-icons/io";
+
 import { ClientModal } from "./ClientModal";
 import { DownloadPDFButton } from "./DownloadPDFButton";
 
+<<<<<<< HEAD
+=======
+import { useGetMyProductsQuery } from "@/redux/service/products";
+import { useCreateQuotationMutation } from "@/redux/service/quotation";
+
+import { MyEventResponse } from "@/types/product";
+import { ClientResponse } from "@/types/client";
+import { QuotationCreateRequest } from "@/types/quotation";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
+
+>>>>>>> 71adfe85072ed740c51f5c2c259edecc93d97200
 type Item = {
   id: number;
+  uuid: string;
   name: string;
   qty: number;
   unitPrice: number;
@@ -27,30 +36,25 @@ type ProductModalProps = {
   onSelectProducts: (selected: MyEventResponse[]) => void;
 };
 
+const user = useSelector((state: RootState) => state.auth.user);
+
 const ProductModal = ({
   isOpen,
   onClose,
   onSelectProducts,
 }: ProductModalProps) => {
-  const [products, setProducts] = useState<ProductData[]>([]);
+  const { data: products = [] } = useGetMyProductsQuery(undefined, {
+    skip: !isOpen,
+  });
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(
     new Set(),
   );
 
-  useEffect(() => {
-    if (!isOpen) return;
-    async function fetchProducts() {
-      const data = await getProductsTableData();
-      setProducts(data);
-    }
-    fetchProducts();
-  }, [isOpen]);
-
   const toggleSelect = (id: number) => {
     const newSet = new Set(selectedProducts);
-    if (newSet.has(id)) newSet.delete(id);
-    else newSet.add(id);
+    newSet.has(id) ? newSet.delete(id) : newSet.add(id);
     setSelectedProducts(newSet);
   };
 
@@ -123,80 +127,51 @@ const ProductModal = ({
 export default function CreateQuotation() {
   const router = useRouter();
   const { toast } = useToast();
-  const [user, setUser] = useState<any>(null);
-const [expiryDate, setExpiryDate] = useState(""); // Add this
 
-  const [clients, setClients] = useState<ClientData[]>([]);
-  const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
+  const [createQuotation] = useCreateQuotationMutation();
+
+  const [selectedClient, setSelectedClient] = useState<ClientResponse | null>(
+    null,
+  );
+
   const [items, setItems] = useState<Item[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [quotationNo, setQuotationNo] = useState("");
+  const [quotationNo] = useState("Auto Generated");
   const [issueDate, setIssueDate] = useState(
     new Date().toISOString().slice(0, 10),
   );
-  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
-
+  const [expiryDate, setExpiryDate] = useState("");
   const [invoiceNote, setInvoiceNote] = useState("");
   const [invoiceTerms, setInvoiceTerms] = useState("");
-
-  useEffect(() => {
-    if (typeof window === "undefined") return; // ensure client-side
-
-    const stored = localStorage.getItem("invoice_footer_settings");
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      setInvoiceNote(parsed.defaultNote || "");
-      setInvoiceTerms(parsed.defaultTerms || "");
-    }
-  }, []);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem("registered_user");
-
-    if (storedUser) setUser(JSON.parse(storedUser));
-  }, []);
-
-  useEffect(() => {
-    const stored = localStorage.getItem("invoice_footer_settings");
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      setInvoiceNote(parsed.defaultNote || "");
-      setInvoiceTerms(parsed.defaultTerms || "");
-    }
-  }, []);
-
-  useEffect(() => setClients(mockClients), []);
-
-  useEffect(() => {
-    const oldQuotations = JSON.parse(
-      localStorage.getItem("quotations") || "[]",
-    );
-    const maxId =
-      oldQuotations.length > 0
-        ? Math.max(...oldQuotations.map((q: any) => q.id))
-        : 0;
-    setQuotationNo(`QUO-${String(maxId + 1).padStart(4, "0")}`);
-  }, []);
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
 
   const handleAddProducts = (products: MyEventResponse[]) => {
-    
-    //setItems((prev) => [...prev, ...newItems]);
+    const newItems: Item[] = products.map((p) => ({
+      id: p.id,
+      uuid: p.uuid,
+      name: p.name,
+      qty: 1,
+      unitPrice: p.price,
+      total: p.price,
+    }));
+
+    setItems((prev) => [...prev, ...newItems]);
   };
 
   const handleItemChange = (
     index: number,
-    field: "name" | "qty" | "unitPrice",
-    value: string | number,
+    field: "name" | "qty" | "phoneNumber" | "unitPrice",
+    value: string,
   ) => {
     setItems((prev) =>
       prev.map((item, i) => {
         if (i !== index) return item;
-        const updated: Item = { ...item };
-        if (field === "qty" || field === "unitPrice")
-          updated[field] = Number(value);
-        else updated[field] = String(value);
-        updated.total = updated.qty * updated.unitPrice;
-        return updated;
+        const qty = Number(value);
+        return {
+          ...item,
+          qty,
+          total: qty * item.unitPrice,
+        };
       }),
     );
   };
@@ -204,119 +179,73 @@ const [expiryDate, setExpiryDate] = useState(""); // Add this
   const removeItem = (index: number) =>
     setItems((prev) => prev.filter((_, i) => i !== index));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!selectedClient) {
       toast({
         title: "Select client",
         description: "Please select a client.",
         className: "bg-red-600 text-white",
-        duration: 3000,
       });
       return;
     }
 
-    // 2. This is what triggers your "No items" toast
     if (items.length === 0) {
       toast({
         title: "No items",
         description: "Please add at least one item.",
         className: "bg-red-600 text-white",
-        duration: 3000,
       });
       return;
     }
 
-    const oldQuotations = JSON.parse(
-      localStorage.getItem("quotations") || "[]",
-    );
-    const maxId =
-      oldQuotations.length > 0
-        ? Math.max(...oldQuotations.map((q: any) => q.id))
-        : 0;
-    const newId = maxId + 1;
+    try {
+      if (!user) {
+        toast({
+          title: "Not logged in",
+          description: "Please log in to create a quotation.",
+          className: "bg-red-600 text-white",
+        });
+        return;
+      }
 
-    const newQuotation = {
-      id: newId,
-      quotationNo: `QUO-${String(newId).padStart(4, "0")}`,
-      clientId: selectedClient.id, // <-- store clientId
-      issueDate,
-      items,
-      amount: items.reduce((sum, i) => sum + i.total, 0),
-    };
+      const userId = user.uuid;
 
-    localStorage.setItem(
-      "quotations",
-      JSON.stringify([...oldQuotations, newQuotation]),
-    );
+      const body: QuotationCreateRequest = {
+        userId,
+        clientId: selectedClient.id,
+        invoiceId: 0, // optional
+        quotationDate: new Date(issueDate).toISOString(),
+        quotationExpire: expiryDate
+          ? new Date(expiryDate).toISOString()
+          : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // default +7 days
+        issueDate,
+        expiryDate,
+        items: items.map((item) => ({
+          productId: item.id,
+          quantity: item.qty,
+          unitPrice: item.unitPrice,
+        })),
+      };
 
-    toast({
-      title: "Quotation Created",
-      description: `${newQuotation.quotationNo} created successfully!`,
-      className: "bg-green-600 text-white",
-      duration: 3000,
-    });
+      const result = await createQuotation(body).unwrap();
 
-    // Reset form
-    setItems([]);
-    setSelectedClient(null);
-    setQuotationNo(`QUO-${String(newId + 1).padStart(4, "0")}`);
-    setIssueDate(new Date().toISOString().slice(0, 10));
+      toast({
+        title: "Quotation Created",
+        description: `${result.quotationNo} created successfully!`,
+        className: "bg-green-600 text-white",
+      });
 
-    router.push(`/quotation/${newId}`);
-  };
-
-  useEffect(() => {
-    if (isModalOpen) {
-      document.body.style.overflow = "hidden"; // Disable background scroll
-    } else {
-      document.body.style.overflow = "";
+      router.push(`/quotation/${result.id}`);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to create quotation",
+        className: "bg-red-600 text-white",
+      });
     }
-
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isModalOpen]);
-
-
-  const handleSendToClient = () => {
-  if (!items.length || !selectedClient) {
-    toast({
-      title: "Cannot send",
-      description: "Please complete the quotation first",
-      className: "bg-red-600 text-white",
-    });
-    return;
-  }
-
-  const quotations = JSON.parse(
-    localStorage.getItem("quotations") || "[]"
-  );
-
-  const quotation = quotations.find(
-    (q: any) => q.quotationNo === quotationNo
-  );
-
-  if (!quotation) {
-    toast({
-      title: "Save quotation first",
-      description: "Please create quotation before sending",
-      className: "bg-red-600 text-white",
-    });
-    return;
-  }
-
-  const link = `${window.location.origin}/invoices/${quotation.id}`;
-
-  navigator.clipboard.writeText(link);
-
-  toast({
-    title: "Link copied",
-    description: "Quotation link copied. Send it to client!",
-    className: "bg-green-600 text-white",
-  });
-};
-
+  };
 
   return (
     <div className="flex justify-center space-x-6">
@@ -335,12 +264,10 @@ const [expiryDate, setExpiryDate] = useState(""); // Add this
         {/* Address and Date Details Section */}
         <div className="grid gap-6 border-b pb-6 text-sm text-gray-600 md:grid-cols-3">
           <div>
-            <p className="text-lg font-semibold text-gray-800">
-              {user?.companyName || "Company Name"}
-            </p>
-            <p>{`${user?.houseNo || ""} ${user?.street || ""}, ${user?.commune || ""}`}</p>
-            <p>{`${user?.district || ""}, ${user?.province || ""}, ${user?.companyPhone || ""}`}</p>
-            <p className="text-gray-500">{user?.companyEmail}</p>
+            <p className="text-lg font-semibold text-gray-800">Company Name</p>
+            <p>Your Company Address</p>
+            <p>City, Province, Phone Number</p>
+            <p className="text-gray-500">company@email.com</p>
           </div>
 
           <div className="md:col-span-2">
@@ -410,7 +337,7 @@ const [expiryDate, setExpiryDate] = useState(""); // Add this
                   Phone:
                 </span>
                 <span className="font-semibold text-gray-700">
-                  {selectedClient.contact || "N/A"}
+                  {selectedClient.phoneNumber || "N/A"}
                 </span>
               </div>
 
@@ -444,7 +371,6 @@ const [expiryDate, setExpiryDate] = useState(""); // Add this
         <ClientModal
           isOpen={isClientModalOpen}
           onClose={() => setIsClientModalOpen(false)}
-          clients={clients}
           onSelectClient={setSelectedClient}
         />
 
@@ -575,25 +501,57 @@ const [expiryDate, setExpiryDate] = useState(""); // Add this
           <button className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700">
             <span className="mr-2">+</span> Preview and send
           </button>
-          <div onClick={handleSubmit}  className="flex w-full items-center justify-center rounded-lg bg-purple-600 text-white hover:bg-purple-700">
+          <div
+            onClick={handleSubmit}
+            className="flex w-full items-center justify-center rounded-lg bg-purple-600 text-white hover:bg-purple-700"
+          >
             <DownloadPDFButton
               quotation={{
-                id: items.length > 0 ? 1 : 0,
-                issueDate: issueDate,
-                expiryDate: expiryDate,
-                items: items,
-                clientId: selectedClient?.id ?? 0,
+                quotationNo,
+                issueDate,
+                expiryDate,
+                items: items.map((item) => ({
+                  id: item.id,
+                  uuid: item.uuid,
+                  name: item.name,
+                  price: item.unitPrice,
+                  image_url: "", // default
+                  status: "IN_STOCK", // "IN_STOCK" | "LOW_STOCK" | "OUT_STOCK"
+                  productTypeId: 0,
+                  productTypeName: "",
+                  stockQuantity: 0,
+                  low_stock: 0,
+                  userId: 0,
+                  currency_type: "USD",
+                })),
                 amount: items.reduce((sum, i) => sum + i.total, 0),
                 notes: invoiceNote,
                 terms: invoiceTerms,
-                quotationNo: quotationNo,
               }}
               client={selectedClient}
               taxRate={0}
-              user={user}
+              // user={undefined}
             />
           </div>
-          <button onClick={handleSendToClient} className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700">
+          <button
+            type="button"
+            onClick={() => {
+              if (!selectedClient) {
+                toast({
+                  title: "Select a client",
+                  description: "Please select a client first.",
+                  variant: "destructive",
+                });
+                return;
+              }
+              toast({
+                title: "Sending...",
+                description: "Quotation will be sent to client.",
+                className: "bg-blue-600 text-white",
+              });
+            }}
+            className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700"
+          >
             <span className="mr-2">+</span> Send to client
           </button>
         </div>
