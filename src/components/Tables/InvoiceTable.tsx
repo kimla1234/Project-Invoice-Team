@@ -35,8 +35,9 @@ import {
   useDeleteInvoiceMutation,
   useUpdateInvoiceMutation 
 } from "@/redux/service/invoices";
+import { useGetMyClientsQuery } from "@/redux/service/client";
 import { ClientResponse } from "@/types/client";
-import { getClientsTableData } from "./clients";
+// import { getClientsTableData } from "./clients";
 
 interface InvoiceTableProps {
   searchTerm?: string;
@@ -46,7 +47,7 @@ interface InvoiceTableProps {
 export default function InvoiceTable({ searchTerm = "", issueDate }: InvoiceTableProps) {
   const { toast } = useToast();
 
-  const [clients, setClients] = useState<ClientResponse[]>([]);
+  const { data: clients = [], isLoading: loadingClients } = useGetMyClientsQuery();
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   // Pagination state (0-indexed for backend, 1-indexed for UI)
@@ -67,16 +68,7 @@ export default function InvoiceTable({ searchTerm = "", issueDate }: InvoiceTabl
   const totalItems = data?.totalElements ?? 0;
   const totalPages = data?.totalPages ?? 0;
 
-  /* ======================
-     FETCH CLIENTS
-  ====================== */
-  useEffect(() => {
-    async function fetchClients() {
-      const clientsData = await getClientsTableData();
-     // setClients(clientsData);
-    }
-    fetchClients();
-  }, []);
+ 
 
   /* ======================
      FILTER (Client-side for search/date)
@@ -244,7 +236,7 @@ export default function InvoiceTable({ searchTerm = "", issueDate }: InvoiceTabl
                   <TableCell>${Number(i.subtotal ?? 0).toFixed(2)}</TableCell>
                   <TableCell>${Number(i.grandTotal ?? 0).toFixed(2)}</TableCell>
                   <TableCell>
-                    {new Date(i.createdAt).toLocaleDateString("en-GB")}
+                    {new Date(i.issueDate).toLocaleDateString("en-GB")}
                   </TableCell>
                   
                   {/* STATUS DROPDOWN */}

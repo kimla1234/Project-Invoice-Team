@@ -1,20 +1,18 @@
-// components/Invoices/edit/component/EditInvoiceForm.tsx
 "use client";
-
 import { useState, useEffect } from "react";
 import { useUpdateInvoiceMutation, useGetInvoiceByIdQuery } from "@/redux/service/invoices";
 import { useGetMyProductsQuery } from "@/redux/service/products";
+import { useGetMyClientsQuery } from "@/redux/service/client";
 import { useToast } from "@/hooks/use-toast";
 import { InvoiceItemRequest } from "@/types/invoice";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { ClientModal } from "@/components/Quotations/create-quotation/ClientModal";
 import { ProductModal } from "../create-invoice/ProductModal";
-import { ClientData } from "@/types/client";
-import { mockClients } from "@/components/Tables/clients";
+import { ClientResponse } from "@/types/client";
 import { IoAddCircleOutline } from "react-icons/io5";
 import { IoMdAdd } from "react-icons/io";
-import  DownloadPDFButton  from "../create-invoice/DownloadPDFButton";
+import DownloadPDFButton from "../create-invoice/DownloadPDFButton";
 
 type ExtendedItem = InvoiceItemRequest & {
   id: number;
@@ -30,13 +28,12 @@ interface EditInvoiceFormProps {
 export default function EditInvoiceForm({ invoiceId }: EditInvoiceFormProps) {
   const router = useRouter();
   const { toast } = useToast();
-  
   const { data: invoice, isLoading: loadingInvoice } = useGetInvoiceByIdQuery(invoiceId);
   const { data: products = [], isLoading: loadingProducts } = useGetMyProductsQuery();
+  const { data: clients = [], isLoading: loadingClients } = useGetMyClientsQuery();
   const [updateInvoice, { isLoading: updating }] = useUpdateInvoiceMutation();
 
-  const [clients, setClients] = useState<ClientData[]>([]);
-  const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
+  const [selectedClient, setSelectedClient] = useState<ClientResponse | null>(null);
   const [status, setStatus] = useState<string>("pending");
   const [taxPercentage, setTaxPercentage] = useState<number>(10);
   const [items, setItems] = useState<ExtendedItem[]>([]);
@@ -45,16 +42,14 @@ export default function EditInvoiceForm({ invoiceId }: EditInvoiceFormProps) {
   const [invoiceNote, setInvoiceNote] = useState("");
   const [invoiceTerms, setInvoiceTerms] = useState("");
   const [user, setUser] = useState<any>(null);
-  const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10));
+  const [issueDate, setIssueDate] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
 
-  // Initialize user from localStorage
   useEffect(() => {
     const storedUser = localStorage.getItem("registered_user");
     if (storedUser) setUser(JSON.parse(storedUser));
   }, []);
 
-  // Initialize invoice footer settings
   useEffect(() => {
     const stored = localStorage.getItem("invoice_footer_settings");
     if (stored) {
@@ -62,11 +57,6 @@ export default function EditInvoiceForm({ invoiceId }: EditInvoiceFormProps) {
       setInvoiceNote(parsed.defaultNote || "");
       setInvoiceTerms(parsed.defaultTerms || "");
     }
-  }, []);
-
-  // Initialize clients
-  useEffect(() => {
-    setClients(mockClients);
   }, []);
 
   // Handle modal scroll
@@ -81,46 +71,55 @@ export default function EditInvoiceForm({ invoiceId }: EditInvoiceFormProps) {
     };
   }, [isProductModalOpen, isClientModalOpen]);
 
+  // Helper function to convert date string to YYYY-MM-DD format without timezone issues
+  const formatDateForInput = (dateString: string): string => {
+    if (!dateString) return "";
+    // Just extract the date part (YYYY-MM-DD) from the datetime string
+    return dateString.split('T')[0];
+  };
+
   // Load invoice data when fetched
   useEffect(() => {
-    if (invoice) {
-      // Find the client from mock clients (you should replace this with actual client fetch)
-      const client = mockClients.find(c => c.id === invoice.clientId);
+    if (invoice && clients.length > 0 && products.length > 0) {
+      const client = clients.find(c => c.id === invoice.clientId);
       setSelectedClient(client || null);
-      
       setStatus(invoice.status || "pending");
-      
-      // Set issue date from invoice
-      if (invoice.createdAt) {
-        setIssueDate(invoice.createdAt);
+
+      // Use the helper function to format dates
+      if (invoice.issueDate) {
+        setIssueDate(formatDateForInput(invoice.issueDate));
       }
-      
-      // Map invoice items to ExtendedItem format
-      const mappedItems: ExtendedItem[] = invoice.items.map((item, index) => {
+
+      if (invoice.expireDate) {
+        setExpiryDate(formatDateForInput(invoice.expireDate));
+      }
+
+      const mappedItems: ExtendedItem[] = invoice.items.map((item: any) => {
         const product = products.find(p => p.id === item.productId);
         return {
-          id: item.id,
+          id: item.id || item.productId,
           productId: item.productId,
-          name: product?.name || `Product #${item.productId}`,
-          productName: product?.name || `Product #${item.productId}`,
+          name: product?.name || item.name || `Product #${item.productId}`,
+          productName: product?.name || item.name || `Product #${item.productId}`,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
-          subtotal: item.subtotal,
-          total: item.subtotal,
+          subtotal: item.subtotal || (item.quantity * item.unitPrice),
+          total: item.subtotal || (item.quantity * item.unitPrice),
         };
       });
+
       setItems(mappedItems);
 
-      if (invoice.subtotal > 0) {
+      if (invoice.subtotal > 0 && invoice.tax !== undefined) {
         const calculatedTaxPercentage = (invoice.tax / invoice.subtotal) * 100;
         setTaxPercentage(Number(calculatedTaxPercentage.toFixed(2)));
       }
     }
-  }, [invoice, products]);
+  }, [invoice, products, clients]);
 
   const handleAddProducts = (selectedProducts: any[]) => {
-    const newItems: ExtendedItem[] = selectedProducts.map((p, index) => ({
-      id: p.id,
+    const newItems: ExtendedItem[] = selectedProducts.map((p) => ({
+      id: Date.now() + Math.random(), // Temporary unique ID
       productId: p.id,
       name: p.name,
       productName: p.name,
@@ -135,7 +134,6 @@ export default function EditInvoiceForm({ invoiceId }: EditInvoiceFormProps) {
   // Update item quantity
   const handleUpdateQuantity = (index: number, quantity: number) => {
     if (quantity < 1) return;
-
     setItems((prev) =>
       prev.map((item, i) => {
         if (i !== index) return item;
@@ -153,7 +151,6 @@ export default function EditInvoiceForm({ invoiceId }: EditInvoiceFormProps) {
   // Update item unit price
   const handleUpdateUnitPrice = (index: number, unitPrice: number) => {
     if (unitPrice < 0) return;
-
     setItems((prev) =>
       prev.map((item, i) => {
         if (i !== index) return item;
@@ -184,68 +181,89 @@ export default function EditInvoiceForm({ invoiceId }: EditInvoiceFormProps) {
   };
 
   // Calculate totals
-  const subtotal = items.reduce((sum, item) => sum + (item.total || item.subtotal), 0);
-  const taxAmount = (subtotal * taxPercentage) / 100;
+  const subtotal = items.reduce((sum, item) => sum + (item.total || item.subtotal || 0), 0);
+  const taxAmount = (subtotal * (taxPercentage || 0)) / 100;
   const grandTotal = subtotal + taxAmount;
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!selectedClient) {
-      toast({
-        title: "Validation Error",
-        description: "Please select a client.",
-        variant: "destructive",
-      });
-      return;
-    }
+  if (!selectedClient) {
+    toast({
+      title: "Validation Error",
+      description: "Please select a client.",
+      variant: "destructive",
+    });
+    return;
+  }
 
-    if (items.length === 0) {
-      toast({
-        title: "Validation Error",
-        description: "Please add at least one item.",
-        variant: "destructive",
-      });
-      return;
-    }
+  if (items.length === 0) {
+    toast({
+      title: "Validation Error",
+      description: "Please add at least one item.",
+      variant: "destructive",
+    });
+    return;
+  }
 
-    try {
-      // Convert items to InvoiceItemRequest format
-      const invoiceItems: InvoiceItemRequest[] = items.map(item => ({
-        name: item.name,
-        productId: item.productId,
-        unitPrice: item.unitPrice,
-        quantity: item.quantity,
-        subtotal: item.subtotal,
-      }));
+  if (!issueDate) {
+    toast({
+      title: "Validation Error",
+      description: "Please select an issue date.",
+      variant: "destructive",
+    });
+    return;
+  }
 
-      await updateInvoice({
-        id: invoiceId,
-        body: {
-          clientId: selectedClient.id!,
-          subtotal,
-          tax: taxAmount,
-          grandTotal,
-          items: invoiceItems,
-          status,
-        },
-      }).unwrap();
+  if (!expiryDate) {
+    toast({
+      title: "Validation Error",
+      description: "Please select a due date.",
+      variant: "destructive",
+    });
+    return;
+  }
 
-      toast({
-        title: "Invoice Updated",
-        description: "Invoice has been updated successfully.",
-        className: "bg-green-600 text-white",
-      });
+  try {
+    // Convert items to InvoiceItemRequest format
+    const invoiceItems: InvoiceItemRequest[] = items.map(item => ({
+      name: item.name,
+      productId: item.productId,
+      unitPrice: item.unitPrice,
+      quantity: item.quantity,
+      subtotal: item.quantity * item.unitPrice,
+    }));
 
-      router.push('/invoices');
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error?.data?.message || "Failed to update invoice.",
-        variant: "destructive",
-      });
-    }
-  };
+    await updateInvoice({
+      id: invoiceId,
+      body: {
+        clientId: selectedClient.id!,
+        subtotal: subtotal,
+        tax: taxAmount,
+        grandTotal: grandTotal,
+        items: invoiceItems,
+        status: status,
+        expireDate: expiryDate,  // Send as YYYY-MM-DD
+        issueDate: issueDate      // Send as YYYY-MM-DD
+      },
+    }).unwrap();
+
+    toast({
+      title: "Invoice Updated",
+      description: "Invoice has been updated successfully.",
+      className: "bg-green-600 text-white",
+    });
+
+    router.push('/invoices');
+  } catch (error: any) {
+    console.error("Update invoice error:", error);
+    toast({
+      title: "Error",
+      description: error?.data?.message || "Failed to update invoice.",
+      variant: "destructive",
+    });
+  }
+};
 
   const handleSendToClient = () => {
     if (!items.length || !selectedClient) {
@@ -264,7 +282,7 @@ export default function EditInvoiceForm({ invoiceId }: EditInvoiceFormProps) {
     });
   };
 
-  if (loadingInvoice || loadingProducts) {
+  if (loadingInvoice || loadingProducts || loadingClients) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-gray-500">Loading invoice...</div>
@@ -282,7 +300,7 @@ export default function EditInvoiceForm({ invoiceId }: EditInvoiceFormProps) {
 
   return (
     <div className="flex justify-center space-x-6">
-      {/* Main Form - Left Column - EXACTLY like the create invoice layout */}
+      {/* Main Form - Left Column */}
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-4xl space-y-8 rounded-xl bg-white p-8"
@@ -303,10 +321,9 @@ export default function EditInvoiceForm({ invoiceId }: EditInvoiceFormProps) {
             </p>
             <p>{`${user?.houseNo || ""} ${user?.street || ""}, ${user?.commune || ""}`}</p>
             <p>{`${user?.district || ""}, ${user?.province || ""}, ${user?.companyPhone || ""}`}</p>
-            <p className="text-gray-500">{user?.companyEmail}</p>
+            <p className="text-gray-500">{user?.companyEmail || ""}</p>
           </div>
-
-          {/* <div className="md:col-span-2">
+          <div className="md:col-span-2">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="mb-1 block font-semibold text-gray-800">
@@ -317,6 +334,7 @@ export default function EditInvoiceForm({ invoiceId }: EditInvoiceFormProps) {
                   value={issueDate}
                   onChange={(e) => setIssueDate(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
+                  required
                 />
               </div>
               <div>
@@ -324,19 +342,15 @@ export default function EditInvoiceForm({ invoiceId }: EditInvoiceFormProps) {
                   Due Date
                 </label>
                 <input
-                  type="text"
-                  placeholder="Pick a date"
+                  type="date"
                   value={expiryDate}
-                  onFocus={(e) => (e.target.type = "date")}
-                  onBlur={(e) => {
-                    if (!e.target.value) e.target.type = "text";
-                  }}
                   onChange={(e) => setExpiryDate(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-gray-50 p-2 text-gray-400"
+                  className="w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
+                  required
                 />
               </div>
             </div>
-          </div> */}
+          </div>
         </div>
 
         {/* Client Selection Section */}
@@ -352,9 +366,7 @@ export default function EditInvoiceForm({ invoiceId }: EditInvoiceFormProps) {
                   {selectedClient.name}
                 </span>
               </div>
-
               <div className="hidden h-4 w-px bg-gray-300 md:block" />
-
               {/* Label and Address */}
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-400">
@@ -364,19 +376,16 @@ export default function EditInvoiceForm({ invoiceId }: EditInvoiceFormProps) {
                   {selectedClient.address || "N/A"}
                 </span>
               </div>
-
               <div className="hidden h-4 w-px bg-gray-300 md:block" />
-
               {/* Label and Phone */}
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-400">
                   Phone:
                 </span>
                 <span className="font-semibold text-gray-700">
-                  {selectedClient.contact || "N/A"}
+                  {selectedClient.phoneNumber || "N/A"}
                 </span>
               </div>
-
               {/* Edit Button */}
               <button
                 type="button"
@@ -408,7 +417,7 @@ export default function EditInvoiceForm({ invoiceId }: EditInvoiceFormProps) {
           isOpen={isClientModalOpen}
           onClose={() => setIsClientModalOpen(false)}
           clients={clients}
-          onSelectClient={setSelectedClient}
+          onSelectClient={(client) => setSelectedClient(client)}
         />
 
         {/* Status Dropdown */}
@@ -459,7 +468,7 @@ export default function EditInvoiceForm({ invoiceId }: EditInvoiceFormProps) {
               <tbody className="divide-y divide-gray-200 bg-white">
                 {items.map((item, index) => (
                   <tr
-                    key={index}
+                    key={item.id || index}
                     className="transition duration-150 ease-in-out hover:bg-gray-50"
                   >
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
@@ -492,7 +501,7 @@ export default function EditInvoiceForm({ invoiceId }: EditInvoiceFormProps) {
                       />
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
-                      ${(item.total || item.subtotal).toFixed(2)}
+                      ${(item.total || item.subtotal || 0).toFixed(2)}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
                       <button
@@ -539,31 +548,31 @@ export default function EditInvoiceForm({ invoiceId }: EditInvoiceFormProps) {
         {/* Form Submission Button */}
         <button
           type="submit"
-          disabled={updating || items.length === 0 || !selectedClient}
-          className="w-full rounded-lg bg-blue-600 py-3 text-lg font-semibold text-white transition duration-150 ease-in-out hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          disabled={updating || items.length === 0 || !selectedClient || !issueDate || !expiryDate}
+          className="w-full rounded-lg bg-blue-600 py-3 text-lg font-semibold text-white transition duration-150 ease-in-out hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-400"
         >
           {updating ? "Updating Invoice..." : "Update Invoice"}
         </button>
       </form>
 
-      {/* Invoice Settings Sidebar (Right Column) - EXACTLY like the create invoice layout */}
+      {/* Invoice Settings Sidebar (Right Column) */}
       <div className="sticky top-6 space-y-6">
         {/* Top action buttons section */}
         <div className="space-y-3 rounded-lg bg-white p-4">
-          <button 
+          <button
             type="button"
             onClick={handleSubmit}
-            disabled={updating || items.length === 0 || !selectedClient}
-            className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled={updating || items.length === 0 || !selectedClient || !issueDate || !expiryDate}
+            className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-gray-400"
           >
             <span className="mr-2">+</span> Preview and send
           </button>
-          <DownloadPDFButton id={invoice.id}            
-          />
-          <button 
-            onClick={handleSendToClient} 
+          {invoice && <DownloadPDFButton id={invoice.id} />}
+          <button
+            type="button"
+            onClick={handleSendToClient}
             disabled={updating || items.length === 0 || !selectedClient}
-            className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-gray-400"
           >
             <span className="mr-2">+</span> Send to client
           </button>
@@ -598,11 +607,11 @@ export default function EditInvoiceForm({ invoiceId }: EditInvoiceFormProps) {
             </h2>
             <div className="flex items-center justify-between py-1 text-sm">
               <span>Stripe</span>
-              <button className="text-purple-600">Connect</button>
+              <button type="button" className="text-purple-600">Connect</button>
             </div>
             <div className="flex items-center justify-between py-1 text-sm">
               <span>Paypal</span>
-              <button className="text-purple-600">Setup</button>
+              <button type="button" className="text-purple-600">Setup</button>
             </div>
           </div>
 
@@ -657,9 +666,6 @@ export default function EditInvoiceForm({ invoiceId }: EditInvoiceFormProps) {
                 <span>Reminder 3: 30 days before due date</span>
               </label>
             </div>
-            <button className="mt-3 text-sm text-purple-600 hover:underline">
-              Add reminder option
-            </button>
           </div>
         </div>
       </div>

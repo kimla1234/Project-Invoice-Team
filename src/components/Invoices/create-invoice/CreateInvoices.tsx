@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { InvoiceItemRequest } from "@/types/invoice";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
-import { ClientModal } from "@/components/Quotations/create-quotation/ClientModal";
+import { ClientModal } from "@/components/Invoices/create-invoice/ClientModal";
 import { ProductModal } from "../create-invoice/ProductModal";
 
 //import { mockClients } from "@/components/Tables/clients";
@@ -425,7 +425,7 @@ export default function CreateInvoiceForm() {
                   Phone:
                 </span>
                 <span className="font-semibold text-gray-700">
-                 {/* {selectedClient.contact || "N/A"} */}
+                 {selectedClient.phoneNumber || "N/A"}
                 </span>
               </div>
               <button

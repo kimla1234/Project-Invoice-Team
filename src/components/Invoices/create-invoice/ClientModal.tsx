@@ -10,7 +10,7 @@ type ClientModalProps = {
   onCreateNew?: () => void;
 };
 
-const ClientModal = ({ isOpen, onClose, clients, onSelectClient }: ClientModalProps) => {
+export const ClientModal = ({ isOpen, onClose, clients, onSelectClient }: ClientModalProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeClient, setActiveClient] = useState<ClientResponse | null>(null);
 
@@ -87,7 +87,7 @@ const ClientModal = ({ isOpen, onClose, clients, onSelectClient }: ClientModalPr
                     <dt className="font-semibold text-gray-900">Name</dt>
                     <dd className="text-gray-700">{activeClient.name}</dd>
 
-                    <dt className="font-semibold text-gray-900">Contact</dt>
+                    <dt className="font-semibold text-gray-900">Phone number</dt>
                     <dd className="text-gray-700">{activeClient.phoneNumber || 'N/A'}</dd>
 
                     <dt className="font-semibold text-gray-900">Address</dt>
