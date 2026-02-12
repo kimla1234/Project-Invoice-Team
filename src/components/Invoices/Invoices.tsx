@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState } from "react";
 import Link from "next/link";
 import { VscAdd } from "react-icons/vsc";
@@ -12,12 +11,15 @@ import { ColumnToggleDropdown } from "../ui/ColumnToggleDropdown";
 export default function Invoices() {
   const [searchTerm, setSearchTerm] = useState("");
   const [issueDate, setIssueDate] = useState<string | undefined>();
+  
+  // Updated column visibility with keys matching InvoiceTable
   const [columnVisibility, setColumnVisibility] = useState({
-    InvoiceNo: true,
-    Client: true,
-    Amount: true,
-    IssueDate: true,
-    Actions: true,
+    invoiceNo: true,
+    client: true,
+    subtotal: true,
+    totalAmount: true,
+    issueDate: true,
+    status: true,
   });
 
   const toggleColumnVisibility = (columnId: string) => {
@@ -27,11 +29,15 @@ export default function Invoices() {
     }));
   };
 
-  const columnOptions = Object.keys(columnVisibility).map((key) => ({
-    id: key,
-    label: key,
-    visible: columnVisibility[key as keyof typeof columnVisibility],
-  }));
+  // Column options with proper labels
+  const columnOptions = [
+    { id: "invoiceNo", label: "Invoice No.", visible: columnVisibility.invoiceNo },
+    { id: "client", label: "Client", visible: columnVisibility.client },
+    { id: "subtotal", label: "Subtotal", visible: columnVisibility.subtotal },
+    { id: "totalAmount", label: "Total Amount", visible: columnVisibility.totalAmount },
+    { id: "issueDate", label: "Issue Date", visible: columnVisibility.issueDate },
+    { id: "status", label: "Status", visible: columnVisibility.status },
+  ];
 
   return (
     <div className="space-y-3">
@@ -63,13 +69,18 @@ export default function Invoices() {
             />
             <FilterDate date={issueDate} onChange={setIssueDate} />
           </div>
+          
           <ColumnToggleDropdown
             columns={columnOptions}
             onToggle={toggleColumnVisibility}
           />
         </div>
 
-        <InvoiceTable searchTerm={searchTerm} issueDate={issueDate} />
+        <InvoiceTable 
+          visibleColumns={columnVisibility}
+          searchTerm={searchTerm}
+          issueDate={issueDate}
+        />
       </div>
     </div>
   );

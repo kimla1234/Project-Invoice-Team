@@ -7,6 +7,7 @@ import Link from "next/link";
 import { FiSkipBack } from "react-icons/fi";
 import { useGetInvoiceByIdQuery } from "@/redux/service/invoices";
 import { mockClients } from "@/components/Tables/clients";
+import { useGetMySettingsQuery } from "@/redux/service/setting";
 
 interface ViewInvoiceProps {
   id: number;
@@ -25,6 +26,9 @@ export default function ViewInvoice({ id }: ViewInvoiceProps) {
     skip: !id,
   });
 
+  const { data: setting, isLoading: loadingSetting } = useGetMySettingsQuery();
+  
+
   const handleDownload = async () => {
     if (!invoice) return;
 
@@ -38,11 +42,27 @@ export default function ViewInvoice({ id }: ViewInvoiceProps) {
     const textColor: [number, number, number] = [50, 50, 50];
     const greyBG: [number, number, number] = [240, 240, 240];
 
+    // Add company logo if available
+    if (setting?.companyLogoUrl) {
+      try {
+        const logoImg = new Image();
+        logoImg.src = setting.companyLogoUrl;
+        await new Promise((resolve, reject) => {
+          logoImg.onload = resolve;
+          logoImg.onerror = reject;
+        });
+        doc.addImage(logoImg, 'PNG', margin, startY - 5, 30, 30);
+        // Adjust startY if logo is added
+      } catch (error) {
+        console.error("Failed to load logo:", error);
+      }
+    }
+
     // Header
     doc.setFontSize(24);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...textColor);
-    doc.text("Invoice", margin, startY);
+    doc.text("Invoice", setting?.companyLogoUrl ? margin + 35 : margin, startY);
 
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
@@ -52,7 +72,15 @@ export default function ViewInvoice({ id }: ViewInvoiceProps) {
 
     startY += 8;
     doc.text(
-      `Issue Date: ${invoice.createdAt ? new Date(invoice.createdAt).toLocaleDateString("en-GB") : "N/A"}`,
+      `Issue Date: ${invoice.issueDate ? new Date(invoice.issueDate).toLocaleDateString("en-GB") : "N/A"}`,
+      pageWidth - margin,
+      startY,
+      { align: "right" }
+    );
+
+    startY += 8;
+    doc.text(
+      `Due Date: ${invoice.expireDate ? new Date(invoice.expireDate).toLocaleDateString("en-GB") : "N/A"}`,
       pageWidth - margin,
       startY,
       { align: "right" }
@@ -60,24 +88,36 @@ export default function ViewInvoice({ id }: ViewInvoiceProps) {
 
     startY += 15;
 
-    // Company info (placeholder - you can customize)
+    // Company info from settings
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...primaryColor);
-    doc.text("Your Company Name", margin, startY);
+    doc.text(setting?.companyName || "Company Name", margin, startY);
 
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...textColor);
-    startY += 6;
-    doc.text("Company Address", margin, startY);
-    startY += 6;
-    doc.text("Email | Phone", margin, startY);
+    
+    if (setting?.companyAddress) {
+      startY += 6;
+      doc.text(setting.companyAddress, margin, startY);
+    }
+    
+    if (setting?.companyEmail || setting?.companyPhoneNumber) {
+      startY += 6;
+      const contactInfo = [
+        setting?.companyEmail,
+        setting?.companyPhoneNumber
+      ].filter(Boolean).join(" | ");
+      doc.text(contactInfo, margin, startY);
+    }
 
     // Client info
     const client = mockClients.find((c) => c.id === invoice.clientId);
+    const clientStartY = startY - (setting?.companyAddress ? 12 : 6);
+    
     if (client) {
       doc.setFont("helvetica", "bold");
-      doc.text(`Customer: ${client.name}`, pageWidth - margin, startY - 12, {
+      doc.text(`Customer: ${client.name}`, pageWidth - margin, clientStartY, {
         align: "right",
       });
 
@@ -85,13 +125,13 @@ export default function ViewInvoice({ id }: ViewInvoiceProps) {
       doc.text(
         `Address: ${client.address || "N/A"}`,
         pageWidth - margin,
-        startY - 6,
+        clientStartY + 6,
         { align: "right" }
       );
       doc.text(
         `Phone: ${client.contact || "N/A"}`,
         pageWidth - margin,
-        startY,
+        clientStartY + 12,
         { align: "right" }
       );
     }
@@ -133,6 +173,7 @@ export default function ViewInvoice({ id }: ViewInvoiceProps) {
 
     // Totals
     doc.setFont("helvetica", "normal");
+    doc.setTextColor(...textColor);
     doc.text(
       `Subtotal: $${Number(invoice.subtotal ?? 0).toFixed(2)}`,
       pageWidth - margin,
@@ -158,6 +199,45 @@ export default function ViewInvoice({ id }: ViewInvoiceProps) {
       { align: "right" }
     );
 
+    startY += 15;
+
+    // Invoice Note
+    if (setting?.invoiceNote) {
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...textColor);
+      doc.text("Note:", margin, startY);
+      
+      doc.setFont("helvetica", "normal");
+      startY += 5;
+      const noteLines = doc.splitTextToSize(setting.invoiceNote, pageWidth - 2 * margin);
+      doc.text(noteLines, margin, startY);
+      startY += noteLines.length * 5 + 5;
+    }
+
+    // Signature
+    if (setting?.signatureUrl) {
+      try {
+        const signatureImg = new Image();
+        signatureImg.src = setting.signatureUrl;
+        await new Promise((resolve, reject) => {
+          signatureImg.onload = resolve;
+          signatureImg.onerror = reject;
+        });
+        
+        // Position signature on the left or right based on preference
+        const signatureX = pageWidth - margin - 50;
+        doc.addImage(signatureImg, 'PNG', signatureX, startY, 40, 20);
+        startY += 25;
+        
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "normal");
+        doc.text("Authorized Signature", signatureX + 20, startY, { align: "center" });
+      } catch (error) {
+        console.error("Failed to load signature:", error);
+      }
+    }
+
     // Footer
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
@@ -166,7 +246,11 @@ export default function ViewInvoice({ id }: ViewInvoiceProps) {
       doc.setTextColor(150, 150, 150);
       doc.setDrawColor(220, 220, 220);
       doc.line(margin, pageHeight - 20, pageWidth - margin, pageHeight - 20);
-      doc.text("Thank you for your business", margin, pageHeight - 14);
+      
+      // Invoice Footer from settings or default message
+      const footerText = setting?.invoiceFooter || "Thank you for your business";
+      doc.text(footerText, margin, pageHeight - 14);
+      
       doc.text(
         `Page ${i} of ${pageCount}`,
         pageWidth - margin,
@@ -179,7 +263,7 @@ export default function ViewInvoice({ id }: ViewInvoiceProps) {
   };
 
   // Loading state
-  if (isLoading) {
+  if (isLoading || loadingSetting) {
     return (
       <div className="flex h-64 items-center justify-center">
         <div className="text-center">
@@ -225,12 +309,12 @@ export default function ViewInvoice({ id }: ViewInvoiceProps) {
   const client = mockClients.find((c) => c.id === invoice.clientId);
 
   return (
-     <button
-          onClick={handleDownload}
-          type="button"
-          className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700"
-        >
-          ↓ Download Invoice (PDF)
-        </button>
+    <button
+      onClick={handleDownload}
+      type="button"
+      className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700"
+    >
+      ↓ Download Invoice (PDF)
+    </button>
   );
 }

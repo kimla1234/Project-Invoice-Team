@@ -13,6 +13,7 @@ import { ClientResponse } from "@/types/client";
 import { IoAddCircleOutline } from "react-icons/io5";
 import { IoMdAdd } from "react-icons/io";
 import DownloadPDFButton from "../create-invoice/DownloadPDFButton";
+import { useGetMySettingsQuery } from "@/redux/service/setting";
 
 type ExtendedItem = InvoiceItemRequest & {
   id: number;
@@ -31,6 +32,7 @@ export default function EditInvoiceForm({ invoiceId }: EditInvoiceFormProps) {
   const { data: invoice, isLoading: loadingInvoice } = useGetInvoiceByIdQuery(invoiceId);
   const { data: products = [], isLoading: loadingProducts } = useGetMyProductsQuery();
   const { data: clients = [], isLoading: loadingClients } = useGetMyClientsQuery();
+  const { data: setting, isLoading: loadingSetting } = useGetMySettingsQuery();
   const [updateInvoice, { isLoading: updating }] = useUpdateInvoiceMutation();
 
   const [selectedClient, setSelectedClient] = useState<ClientResponse | null>(null);
@@ -317,11 +319,10 @@ export default function EditInvoiceForm({ invoiceId }: EditInvoiceFormProps) {
         <div className="grid gap-6 border-b pb-6 text-sm text-gray-600 md:grid-cols-3">
           <div>
             <p className="text-lg font-semibold text-gray-800">
-              {user?.companyName || "Company Name"}
+              {setting?.companyName || "Company Name"}
             </p>
-            <p>{`${user?.houseNo || ""} ${user?.street || ""}, ${user?.commune || ""}`}</p>
-            <p>{`${user?.district || ""}, ${user?.province || ""}, ${user?.companyPhone || ""}`}</p>
-            <p className="text-gray-500">{user?.companyEmail || ""}</p>
+            <p>{`${setting?.companyAddress || ""}, ${setting?.companyPhoneNumber || ""}`}</p>
+            <p className="text-gray-500">{setting?.companyEmail}</p>
           </div>
           <div className="md:col-span-2">
             <div className="grid grid-cols-2 gap-4">

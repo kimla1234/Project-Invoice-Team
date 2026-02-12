@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FiSkipBack } from "react-icons/fi";
 import { useGetInvoiceByIdQuery } from "@/redux/service/invoices";
 import { useGetClientByIdQuery } from "@/redux/service/client";
+import { useGetMySettingsQuery } from "@/redux/service/setting";
 import DownloadPDFButton from "../create-invoice/DownloadPDFButton";
 
 interface ViewInvoiceProps {
@@ -23,6 +24,9 @@ export default function ViewInvoice({ id }: ViewInvoiceProps) {
   } = useGetInvoiceByIdQuery(id, {
     skip: !id,
   });
+
+  const { data: setting, isLoading: loadingSetting } = useGetMySettingsQuery();
+  
 
   const { data: client, isLoading: loadingClients } = useGetClientByIdQuery(
     invoice?.clientId ?? 0,
@@ -152,15 +156,13 @@ export default function ViewInvoice({ id }: ViewInvoiceProps) {
             <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-purple-600 dark:text-purple-400">
               From
             </h3>
-            <p className="font-semibold text-gray-900 dark:text-white">
-              Your Company Name
+             <div>
+            <p className="text-lg font-semibold text-gray-800">
+              {setting?.companyName || "Company Name"}
             </p>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-              Company Address
-            </p>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-              Email | Phone
-            </p>
+            <p>{`${setting?.companyAddress || ""}, ${setting?.companyPhoneNumber || ""}`}</p>
+            <p className="text-gray-500">{setting?.companyEmail}</p>
+          </div>
           </div>
           <div>
             <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-purple-600 dark:text-purple-400">
@@ -179,11 +181,7 @@ export default function ViewInvoice({ id }: ViewInvoiceProps) {
                 Phone: {client.phoneNumber}
               </p>
             )}
-            {client?.email && (
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                Email: {client.email}
-              </p>
-            )}
+            
           </div>
         </div>
 

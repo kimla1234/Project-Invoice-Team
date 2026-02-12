@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { ClientModal } from "@/components/Invoices/create-invoice/ClientModal";
 import { ProductModal } from "../create-invoice/ProductModal";
-
+import {useGetMySettingsQuery} from "@/redux/service/setting"
 //import { mockClients } from "@/components/Tables/clients";
 import { IoAddCircleOutline } from "react-icons/io5";
 import { IoMdAdd } from "react-icons/io";
@@ -26,6 +26,7 @@ export default function CreateInvoiceForm() {
   const { toast } = useToast();
   const { data: products = [], isLoading: loadingProducts } = useGetMyProductsQuery();
   const { data: clients = [], isLoading: loadingClients } = useGetMyClientsQuery();
+  const { data: setting, isLoading: loadingSetting } = useGetMySettingsQuery();
   const [createInvoice, { isLoading: creating }] = useCreateInvoiceMutation();
 
 //   const [clients, setClients] = useState<ClientResponse[]>([]);
@@ -362,11 +363,10 @@ export default function CreateInvoiceForm() {
         <div className="grid gap-6 border-b pb-6 text-sm text-gray-600 md:grid-cols-3">
           <div>
             <p className="text-lg font-semibold text-gray-800">
-              {user?.companyName || "Company Name"}
+              {setting?.companyName || "Company Name"}
             </p>
-            <p>{`${user?.houseNo || ""} ${user?.street || ""}, ${user?.commune || ""}`}</p>
-            <p>{`${user?.district || ""}, ${user?.province || ""}, ${user?.companyPhone || ""}`}</p>
-            <p className="text-gray-500">{user?.companyEmail}</p>
+            <p>{`${setting?.companyAddress || ""}, ${setting?.companyPhoneNumber || ""}`}</p>
+            <p className="text-gray-500">{setting?.companyEmail}</p>
           </div>
           <div className="md:col-span-2">
             <div className="grid grid-cols-2 gap-4">

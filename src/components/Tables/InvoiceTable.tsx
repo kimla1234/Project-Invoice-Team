@@ -26,9 +26,6 @@ import {
 import QuotationTableSkeleton from "../skeletons/QuotationTableSkeleton";
 import { useToast } from "@/hooks/use-toast";
 import { PaginationControls } from "../ui/pagination-controls";
-
-
-//import { ClientData } from "@/types/client";
 import { DeleteInvoices } from "../Invoices/delete-invoice/DeleteInvoices";
 import { 
   useGetMyInvoicesQuery, 
@@ -37,14 +34,18 @@ import {
 } from "@/redux/service/invoices";
 import { useGetMyClientsQuery } from "@/redux/service/client";
 import { ClientResponse } from "@/types/client";
-// import { getClientsTableData } from "./clients";
 
 interface InvoiceTableProps {
+  visibleColumns: Record<string, boolean>;
   searchTerm?: string;
   issueDate?: string;
 }
 
-export default function InvoiceTable({ searchTerm = "", issueDate }: InvoiceTableProps) {
+export default function InvoiceTable({ 
+  visibleColumns,
+  searchTerm = "", 
+  issueDate 
+}: InvoiceTableProps) {
   const { toast } = useToast();
 
   const { data: clients = [], isLoading: loadingClients } = useGetMyClientsQuery();
@@ -68,8 +69,6 @@ export default function InvoiceTable({ searchTerm = "", issueDate }: InvoiceTabl
   const totalItems = data?.totalElements ?? 0;
   const totalPages = data?.totalPages ?? 0;
 
- 
-
   /* ======================
      FILTER (Client-side for search/date)
   ====================== */
@@ -89,6 +88,13 @@ export default function InvoiceTable({ searchTerm = "", issueDate }: InvoiceTabl
   }, [invoices, clients, searchTerm, issueDate]);
 
   /* ======================
+     COUNT VISIBLE COLUMNS
+  ====================== */
+  const visibleColumnCount = useMemo(() => {
+    return Object.values(visibleColumns).filter(Boolean).length + 1; // +1 for Actions column (always visible)
+  }, [visibleColumns]);
+
+  /* ======================
      PAGINATION HANDLERS
   ====================== */
   const handleRowsPerPageChange = (value: number) => {
@@ -103,11 +109,21 @@ export default function InvoiceTable({ searchTerm = "", issueDate }: InvoiceTabl
   /* ======================
      STATUS UPDATE
   ====================== */
+  /* ======================
+   STATUS UPDATE
+  ====================== */
   const handleStatusChange = async (invoiceId: number, newStatus: string) => {
     const invoice = invoices.find(i => i.id === invoiceId);
     if (!invoice) return;
 
     try {
+      // Helper function to format date (same as in EditInvoiceForm)
+      const formatDateForBackend = (dateString: string): string => {
+        if (!dateString) return "";
+        // Extract just the date part (YYYY-MM-DD) from the datetime string
+        return dateString.split('T')[0];
+      };
+
       // Prepare the invoice data with updated status
       const updatedInvoiceData = {
         clientId: invoice.clientId,
@@ -115,8 +131,8 @@ export default function InvoiceTable({ searchTerm = "", issueDate }: InvoiceTabl
         tax: invoice.tax,
         grandTotal: invoice.grandTotal,
         status: newStatus,
-        issueDate: invoice.issueDate,
-        expireDate: invoice.expireDate,
+        issueDate: formatDateForBackend(invoice.issueDate),  // Format date
+        expireDate: formatDateForBackend(invoice.expireDate), // Format date
         items: invoice.items.map(item => ({
           productId: item.productId,
           unitPrice: item.unitPrice,
@@ -137,10 +153,11 @@ export default function InvoiceTable({ searchTerm = "", issueDate }: InvoiceTabl
         className: "bg-green-600 text-white",
         duration: 3000,
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Status update error:", error);
       toast({
         title: "Error",
-        description: "Failed to update invoice status.",
+        description: error?.data?.message || "Failed to update invoice status.",
         variant: "destructive",
         duration: 3000,
       });
@@ -211,12 +228,24 @@ export default function InvoiceTable({ searchTerm = "", issueDate }: InvoiceTabl
         <Table>
           <TableHeader>
             <TableRow className="bg-[#F7F9FC]">
-              <TableHead className="xl:pl-7.5">Invoice No.</TableHead>
-              <TableHead>Client</TableHead>
-              <TableHead>Subtotal</TableHead>
-              <TableHead>Total Amount</TableHead>
-              <TableHead>Issue Date</TableHead>
-              <TableHead>Status</TableHead>
+              {visibleColumns.invoiceNo && (
+                <TableHead className="xl:pl-7.5">Invoice No.</TableHead>
+              )}
+              {visibleColumns.client && (
+                <TableHead>Client</TableHead>
+              )}
+              {visibleColumns.subtotal && (
+                <TableHead>Subtotal</TableHead>
+              )}
+              {visibleColumns.totalAmount && (
+                <TableHead>Total Amount</TableHead>
+              )}
+              {visibleColumns.issueDate && (
+                <TableHead>Issue Date</TableHead>
+              )}
+              {visibleColumns.status && (
+                <TableHead>Status</TableHead>
+              )}
               <TableHead className="text-right xl:pr-7.5">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -225,71 +254,85 @@ export default function InvoiceTable({ searchTerm = "", issueDate }: InvoiceTabl
             {filteredData.length > 0 ? (
               filteredData.map((i) => (
                 <TableRow key={i.id}>
-                  <TableCell className="xl:pl-7.5 font-medium">
-                    INV-{String(i.id).padStart(4, "0")}
-                  </TableCell>
+                  {visibleColumns.invoiceNo && (
+                    <TableCell className="xl:pl-7.5 font-medium">
+                      INV-{String(i.id).padStart(4, "0")}
+                    </TableCell>
+                  )}
 
-                  <TableCell>
-                    {clients.find((c) => c.id === i.clientId)?.name ?? "Unknown Client"}
-                  </TableCell>
+                  {visibleColumns.client && (
+                    <TableCell>
+                      {clients.find((c) => c.id === i.clientId)?.name ?? "Unknown Client"}
+                    </TableCell>
+                  )}
 
-                  <TableCell>${Number(i.subtotal ?? 0).toFixed(2)}</TableCell>
-                  <TableCell>${Number(i.grandTotal ?? 0).toFixed(2)}</TableCell>
-                  <TableCell>
-                    {new Date(i.issueDate).toLocaleDateString("en-GB")}
-                  </TableCell>
+                  {visibleColumns.subtotal && (
+                    <TableCell>${Number(i.subtotal ?? 0).toFixed(2)}</TableCell>
+                  )}
+
+                  {visibleColumns.totalAmount && (
+                    <TableCell>${Number(i.grandTotal ?? 0).toFixed(2)}</TableCell>
+                  )}
+
+                  {visibleColumns.issueDate && (
+                    <TableCell>
+                      {new Date(i.issueDate).toLocaleDateString("en-GB")}
+                    </TableCell>
+                  )}
                   
                   {/* STATUS DROPDOWN */}
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button 
-                          className={`px-2 py-1 rounded text-xs cursor-pointer transition-colors ${getStatusColor(i.status)}`}
-                          disabled={isUpdating}
-                        >
-                          {i.status ?? "Pending"}
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-32">
-                        <DropdownMenuItem 
-                          onClick={() => handleStatusChange(i.id, 'pending')}
-                          className="cursor-pointer"
-                        >
-                          <span className="flex items-center">
-                            <span className="mr-2 size-2 rounded-full bg-yellow-500"></span>
-                            Pending
-                          </span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleStatusChange(i.id, 'paid')}
-                          className="cursor-pointer"
-                        >
-                          <span className="flex items-center">
-                            <span className="mr-2 size-2 rounded-full bg-green-500"></span>
-                            Paid
-                          </span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleStatusChange(i.id, 'overdue')}
-                          className="cursor-pointer"
-                        >
-                          <span className="flex items-center">
-                            <span className="mr-2 size-2 rounded-full bg-red-500"></span>
-                            Overdue
-                          </span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleStatusChange(i.id, 'cancelled')}
-                          className="cursor-pointer"
-                        >
-                          <span className="flex items-center">
-                            <span className="mr-2 size-2 rounded-full bg-gray-500"></span>
-                            Cancelled
-                          </span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+                  {visibleColumns.status && (
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button 
+                            className={`px-2 py-1 rounded text-xs cursor-pointer transition-colors ${getStatusColor(i.status)}`}
+                            disabled={isUpdating}
+                          >
+                            {i.status ?? "Pending"}
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-32">
+                          <DropdownMenuItem 
+                            onClick={() => handleStatusChange(i.id, 'pending')}
+                            className="cursor-pointer"
+                          >
+                            <span className="flex items-center">
+                              <span className="mr-2 size-2 rounded-full bg-yellow-500"></span>
+                              Pending
+                            </span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleStatusChange(i.id, 'paid')}
+                            className="cursor-pointer"
+                          >
+                            <span className="flex items-center">
+                              <span className="mr-2 size-2 rounded-full bg-green-500"></span>
+                              Paid
+                            </span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleStatusChange(i.id, 'overdue')}
+                            className="cursor-pointer"
+                          >
+                            <span className="flex items-center">
+                              <span className="mr-2 size-2 rounded-full bg-red-500"></span>
+                              Overdue
+                            </span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleStatusChange(i.id, 'cancelled')}
+                            className="cursor-pointer"
+                          >
+                            <span className="flex items-center">
+                              <span className="mr-2 size-2 rounded-full bg-gray-500"></span>
+                              Cancelled
+                            </span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  )}
 
                   <TableCell className="text-right xl:pr-7.5">
                     <DropdownMenu>
@@ -325,7 +368,7 @@ export default function InvoiceTable({ searchTerm = "", issueDate }: InvoiceTabl
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="h-[300px] text-center">
+                <TableCell colSpan={visibleColumnCount} className="h-[300px] text-center">
                   <div className="flex flex-col items-center space-y-3">
                     <SearchX className="size-8 text-gray-400" />
                     <p className="font-semibold">No invoices found</p>
