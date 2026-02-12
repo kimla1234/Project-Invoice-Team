@@ -251,7 +251,7 @@ export function ProfileContent({}: ProfileContentProps) {
             <button
               onClick={handleSave}
               disabled={isUpdating}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-medium text-white shadow-sm hover:bg-primary/50 disabled:bg-blue-300"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-purple-600 py-3.5 font-medium text-white shadow-sm hover:bg-purple-600/50 disabled:bg-blue-300"
             >
               {isUpdating ? (
                 <Loader2 className="size-4 animate-spin" />

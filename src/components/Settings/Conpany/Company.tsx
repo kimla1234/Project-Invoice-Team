@@ -13,9 +13,10 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
   useGetMySettingsQuery,
-  useUpdateMySettingsMutation,useUploadCompanyLogoMutation,
+  useUpdateMySettingsMutation,
+  useUploadCompanyLogoMutation,
 } from "@/redux/service/setting";
-
+import { usePostImageMutation } from "@/redux/service/products";
 
 const COMPANY_TYPES = [
   { value: "products", label: "Products" },
@@ -27,12 +28,13 @@ const COMPANY_TYPES = [
 export default function Company() {
   const { toast } = useToast();
   const { data, isLoading, error, refetch } = useGetMySettingsQuery();
-  const [updateMySettings, { isLoading: isSaving }] = useUpdateMySettingsMutation();
+  const [updateMySettings, { isLoading: isSaving }] =
+    useUpdateMySettingsMutation();
 
   const [companyName, setCompanyName] = useState("");
   const [companyEmail, setCompanyEmail] = useState("");
   const [companyPhone, setCompanyPhone] = useState("");
-  const [uploadCompanyLogo] = useUploadCompanyLogoMutation();
+  const [postImage] = usePostImageMutation();
   const [companyType, setCompanyType] = useState<
     "products" | "service" | "recurring" | "education"
   >("products");
@@ -45,7 +47,6 @@ export default function Company() {
 
   // Removed expand/collapse for address; single input now
 
-
   useEffect(() => {
     if (data) {
       setCompanyName(data.companyName ?? "");
@@ -56,39 +57,32 @@ export default function Company() {
     }
   }, [data]);
 
+ const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    const selectedFile = e.target.files[0];
 
 
-
-  const handleLogoUpload = async (
-  e: React.ChangeEvent<HTMLInputElement>
-) => {
-  if (!e.target.files?.[0]) return;
-
-  const file = e.target.files[0];
-
-  try {
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", selectedFile);
 
-    const updated = await uploadCompanyLogo(formData).unwrap();
+    try {
+      const uploadRes = await postImage(formData).unwrap();
+    
+      const imagePath = uploadRes?.payload?.file_url || uploadRes?.uri;
 
-    setLogo(updated.companyLogoUrl);
+      if (imagePath) {
+        setLogo(imagePath);
+        await updateMySettings({
+          companyLogoUrl: imagePath, 
+        }).unwrap();
 
-    toast({
-      title: "Logo updated",
-      description: "Company logo uploaded successfully.",
-      className: "bg-green-600 text-white",
-    });
-  } catch {
-    toast({
-      title: "Upload failed",
-      description: "Could not upload company logo.",
-      variant: "destructive",
-    });
-  }
-};
-
-
+      }
+    } catch (err: any) {
+      console.error("Upload Error:", err);
+      
+    }
+  };
 
   const handleSave = async () => {
     try {
@@ -120,7 +114,7 @@ export default function Company() {
   };
 
   return (
-    <div className="mx-auto w-full rounded-md bg-white ">
+    <div className="mx-auto w-full rounded-md bg-white">
       <h2 className="mb-2 text-xl font-semibold">Company Information</h2>
       <p className="mb-6 text-gray-500">
         Update your company details and preferences
@@ -129,7 +123,14 @@ export default function Company() {
       {/* Logo Upload */}
       <div className="mb-6 flex items-center space-x-5">
         <div className="relative h-24 w-24 overflow-hidden rounded-full bg-gray-100">
-            <img src={`${process.env.NEXT_PUBLIC_NORMPLOV_API_URL}${logo}`} alt="Company Logo" className="object-cover" />
+          <Image
+            unoptimized
+            src={logo || "/logo.png"}
+            width={1000}
+            height={1000}
+            alt="Company Logo"
+            className="object-cover"
+          />
         </div>
         <div>
           <label className="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-gray-700 hover:bg-gray-300">
@@ -138,7 +139,7 @@ export default function Company() {
             <input
               type="file"
               accept="image/png, image/jpeg"
-              onChange={handleLogoUpload}
+              onChange={handleAvatarChange}
               className="hidden"
             />
           </label>
@@ -184,11 +185,18 @@ export default function Company() {
               <button
                 type="button"
                 className={cn(
-                  "flex w-full items-center justify-between rounded border-gray-300 bg-slate-100 px-3 py-2 text-left"
+                  "flex w-full items-center justify-between rounded border-gray-300 bg-slate-100 px-3 py-2 text-left",
                 )}
               >
-                <span className="capitalize">{companyType || "Select type"}</span>
-                <ChevronRightIcon className={cn("h-4 w-4 text-gray-500 transition-transform duration-200", typeOpen && "rotate-90")} />
+                <span className="capitalize">
+                  {companyType || "Select type"}
+                </span>
+                <ChevronRightIcon
+                  className={cn(
+                    "h-4 w-4 text-gray-500 transition-transform duration-200",
+                    typeOpen && "rotate-90",
+                  )}
+                />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="h-auto w-[600px] p-2">
