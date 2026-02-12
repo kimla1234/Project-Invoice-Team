@@ -1,0 +1,18 @@
+version: '3'
+services:
+  invoice-project-ui:
+    container_name: invoice-project-ui
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 9991:3000
+    environment:
+      - NODE_ENV=production
+      - GENERATE_SOURCEMAP=false
+    networks:
+      - invoice-project
+networks:
+  invoice-project:
+    external: true
