@@ -13,6 +13,9 @@ export async function POST() {
       return NextResponse.json({ message: "Token not found" }, { status: 401 });
     }
 
+
+    
+
     const refreshToken = credential.value;
 
     const response = await fetch(
@@ -29,6 +32,12 @@ export async function POST() {
     if (!response.ok) {
       const errorText = await response.text(); // ប្រើ .text() សិនដើម្បីការពារ JSON parse error
       console.error(`❌ Backend error (${response.status}):`, errorText);
+
+  // LOOK AT YOUR TERMINAL (where you ran npm run dev)
+  console.error("DEBUG: Backend Refresh Failed!");
+  console.error("Status:", response.status);
+  console.error("Response body from Spring Boot:", errorText);
+
 
       // បើ Backend បោះ 400, 401 ឬ 404 មានន័យថា Session នេះលែងប្រើបានហើយ
       if ([400, 401, 404].includes(response.status)) {
@@ -61,10 +70,11 @@ export async function POST() {
     // Save new refresh token in httpOnly cookie
     const serialized = serialize(cookieName, newRefreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      //secure: process.env.NODE_ENV === "development",
+      secure: false,
       path: "/",
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7, 
     });
 
     return NextResponse.json(

@@ -92,6 +92,11 @@ export function UserInfo({ user: propUser }: UserInfoProps) {
     return <div className="h-10 w-10 animate-pulse rounded-full bg-gray-100" />;
   }
 
+  // Inside UserInfo component
+const imageSource = (user?.image_profile && user.image_profile.trim().length > 0)
+  ? user.image_profile
+  : "/images/logo/logo-dark.svg";
+
   return (
     <Dropdown isOpen={isOpen} setIsOpen={setIsOpen}>
       <DropdownTrigger className="rounded align-middle outline-none ring-primary ring-offset-2 focus-visible:ring-1 dark:ring-offset-gray-dark">

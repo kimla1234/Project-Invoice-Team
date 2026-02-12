@@ -2,34 +2,32 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get('final-refresh-token')?.value;
   const { pathname } = request.nextUrl;
 
-  // Token (Public Routes)
-  const publicRoutes = [
-    '/login',
-    '/register',
-    '/_next',
-    '/auth/google/callback', 
-    '/oauth2/callback'        
-  ];
+  // 1. Define routes that NEVER need a redirect
+  const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/register');
+  const isApiRoute = pathname.startsWith('/api');
+  const isPublicAsset = pathname.startsWith('/_next') || pathname.includes('favicon.ico');
 
-
-  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
-
-  if (isPublicRoute) {
+  // 2. If it's an API route or a public asset, let it pass through immediately
+  if (isApiRoute || isAuthRoute || isPublicAsset) {
     return NextResponse.next();
   }
 
+  // 3. For protected PAGES (UI), check the token
+  const token = request.cookies.get('final-refresh-token')?.value;
 
   if (!token) {
+    // Only redirect to login if the user is trying to access a UI page
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
   return NextResponse.next();
 }
 
+// 4. Match EVERYTHING except static files
 export const config = {
-
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|public/).*)',
+  ],
 };

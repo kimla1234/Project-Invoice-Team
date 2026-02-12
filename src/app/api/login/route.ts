@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Email and password are required" }, { status: 400 });
     }
 
-    const response = await fetch("http://localhost:8081/api/v1/auth/user/login", {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_NORMPLOV_API_URL}/api/v1/auth/user/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ email, password }),
@@ -36,9 +36,10 @@ export async function POST(req: NextRequest) {
     const cookieName = process.env.COOKIE_REFRESH_TOKEN_NAME || "refresh";
 
     const serialized = serialize(cookieName, refreshToken, {
-      httpOnly: true, // ការពារ Hacker លួច Token តាមរយៈ JavaScript
-      secure: process.env.NODE_ENV === "production",
-      path: "/",      // ឱ្យគ្រប់ Route ក្នុង Next.js អាចមើលឃើញ Cookie នេះ
+      httpOnly: true, 
+      //secure: process.env.NODE_ENV === "development",
+      secure: false,
+      path: "/",    
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7, 
     });

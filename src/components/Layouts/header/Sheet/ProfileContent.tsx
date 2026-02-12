@@ -94,39 +94,44 @@ export function ProfileContent({}: ProfileContentProps) {
     setIsEditing(!isEditing);
   };
 
-  // 7️⃣ Handle avatar upload
+
+ // 7️⃣ Handle avatar upload
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
 
     const selectedFile = e.target.files[0];
-
-    // ១. បង្កើត FormData ឱ្យត្រូវតាមការចង់បានរបស់ Mutation ថ្មី
-    const formData = new FormData();
-    formData.append("file", selectedFile); // "file" ត្រូវតែដូចឈ្មោះក្នុង Java Controller (@RequestParam)
+    const uploadFormData = new FormData();
+    uploadFormData.append("file", selectedFile); 
 
     try {
-      const uploadRes = await postImage(formData).unwrap();
+      // 1. Upload the image to the storage server
+      const uploadRes = await postImage(uploadFormData).unwrap();
+      
+      console.log("Upload Success Data:", uploadRes);
 
-      console.log("Upload Success:", uploadRes);
-
-      const imageUri = uploadRes?.payload?.file_url || uploadRes?.uri;
+      // 2. Extract the URI from the response (based on your JSON: uploadRes.uri)
+      const imageUri = uploadRes?.uri || uploadRes?.payload?.file_url;
 
       if (imageUri) {
+        // 3. Update the user's profile in the database with the new URI
         await updateProfileUser({
           user: { image_profile: imageUri },
         }).unwrap();
 
+        // 4. (Optional) Update local form state so the UI reflects the change immediately
+        setFormData((prev) => ({ ...prev, image_profile: imageUri }));
+
         toast({
-          title: "Success!",
-          description: "Profile picture updated successfully.",
+          title: "ជោគជ័យ!",
+          description: "រូបភាពប្រវត្តិរូបត្រូវបានផ្លាស់ប្តូរ",
+          variant: "success"
         });
       }
     } catch (err: any) {
-      console.error("Upload Error Details:", err);
+      console.error("Upload Error:", err);
       toast({
-        title: "Upload Failed",
-        description:
-          err?.data?.message || "Something went wrong during upload.",
+        title: "បរាជ័យ!",
+        description: err?.data?.message || "មានបញ្ហាក្នុងការបង្ហោះរូបភាព",
         variant: "destructive",
       });
     }
@@ -139,6 +144,10 @@ export function ProfileContent({}: ProfileContentProps) {
       </div>
     );
 
+    const profileImage = (apiUser?.image_profile && apiUser.image_profile.startsWith('http'))
+  ? apiUser.image_profile
+  : "/images/logo/logo-dark.svg";
+
   return (
     <div className="mx-auto flex min-h-[calc(100vh-80px)] max-w-4xl flex-col py-6">
       {/* Photo Section */}
@@ -148,7 +157,7 @@ export function ProfileContent({}: ProfileContentProps) {
             <div className="size-28 overflow-hidden rounded-full border-[2px] border-purple-600 bg-gray-100 shadow-sm">
               <Image
                 unoptimized
-                src={apiUser?.image_profile || "/logo.png"}
+                src={profileImage}
                 alt="Profile"
                 width={1000}
                 height={1000}

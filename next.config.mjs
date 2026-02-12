@@ -1,8 +1,17 @@
 /** @type {import("next").NextConfig} */
 const nextConfig = {
   devIndicators: false,
+  // --- ADD THIS SECTION ---
+  async rewrites() {
+    return [
+      {
+        source: '/api/v1/:path*',
+        destination: 'http://34.158.60.52:16800/api/v1/:path*',
+      },
+    ];
+  },
   images: {
-    domains: ["encrypted-tbn0.gstatic.com"],
+    domains: ["encrypted-tbn0.gstatic.com" , "34.158.60.52:16800"],
     remotePatterns: [
        { protocol: "https", hostname: "ozmobiles.com.au", pathname: "/**" },
       { protocol: "https", hostname: "macfinder.co.uk", pathname: "/**" },
@@ -22,6 +31,12 @@ const nextConfig = {
         protocol: "https",
         hostname: "encrypted-tbn0.gstatic.com",
         pathname: "/**",
+      },
+      {
+        protocol: 'http',
+        hostname: '34.158.60.52',
+        port: '16800',
+        pathname: '/media/**',
       },
     ],
   }
