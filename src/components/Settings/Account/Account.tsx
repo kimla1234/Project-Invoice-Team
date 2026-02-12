@@ -177,14 +177,10 @@ export default function Account() {
 
       {/* Avatar */}
       <div className="mb-6 flex items-center space-x-5">
-        <Image
-          src={user?.image_profile || "/images/logo/logo-dark.svg"}
-          alt="Profile"
-          width={96}
-          height={96}
-          className="h-24 w-24 rounded-full object-cover"
-          unoptimized
-        />
+        <img
+  src={user?.image_profile || "/images/logo/logo-dark.svg"}
+  className="h-24 w-24 rounded-full object-cover"
+/>
 
         <div>
           <label className="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-gray-700 hover:bg-gray-200">

@@ -96,14 +96,11 @@ export function UserInfo({ user: propUser }: UserInfoProps) {
     <Dropdown isOpen={isOpen} setIsOpen={setIsOpen}>
       <DropdownTrigger className="rounded align-middle outline-none ring-primary ring-offset-2 focus-visible:ring-1 dark:ring-offset-gray-dark">
         <figure className="flex hover:bg-purple-50 px-1 py-0.5  rounded-sm cursor-pointer items-center gap-3">
-          <Image
-            unoptimized
-            src={user?.image_profile || "/images/logo/logo-dark.svg"}
-            width={1000}
-            height={1000}
-            className="h-11 w-11 rounded-full border-2 border-purple-600 object-cover"
-            alt={user?.name || "Avatar"}
-          />
+          <img
+  src={user?.image_profile || "/images/logo/logo-dark.svg"}
+  className="h-11 w-11 rounded-full border-2 border-purple-600 object-cover"
+  alt={user?.name || "Avatar"}
+/>
 
           <figcaption className="flex items-center gap-1 font-medium max-[1024px]:sr-only">
             <span className="px-2 text-gray-700">{user.name}</span>
