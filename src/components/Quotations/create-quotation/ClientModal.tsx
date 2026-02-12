@@ -1,125 +1,79 @@
-import { ClientData } from "@/types/client";
-import { useState } from "react";
-import { Search, X, Plus, Check, UserCircle2 } from "lucide-react";
+"use client";
 
-type ClientModalProps = {
+import React, { useState } from "react";
+import { useGetMyClientsQuery } from "@/redux/service/client";
+import { ClientResponse } from "@/types/client";
+
+interface ClientModalProps {
   isOpen: boolean;
   onClose: () => void;
-  clients: ClientData[];
-  onSelectClient: (client: ClientData) => void;
-  onCreateNew?: () => void;
-};
+  onSelectClient: (client: ClientResponse) => void;
+}
 
-export const ClientModal = ({ isOpen, onClose, clients, onSelectClient, onCreateNew }: ClientModalProps) => {
-  const [searchTerm, setSearchTerm] = useState("");
-  // Track which client is currently being viewed/highlighted
-  const [activeClient, setActiveClient] = useState<ClientData | null>(null);
+export const ClientModal: React.FC<ClientModalProps> = ({
+  isOpen,
+  onClose,
+  onSelectClient,
+}) => {
+  const { data: clients = [], isLoading } = useGetMyClientsQuery();
+  const [search, setSearch] = useState("");
 
   if (!isOpen) return null;
 
   const filteredClients = clients.filter((c) =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase())
+    c.name.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-
-      {/* Modal Container */}
-      <div className="relative z-50 flex h-[550px] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
-        
-        {/* Search Header */}
-        <div className="flex items-center border-b px-4 py-4">
-          <Search className="mr-3 h-5 w-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Client's business, name, email, phone..."
-            className="flex-1 bg-transparent text-lg outline-none placeholder:text-gray-400"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <button onClick={onClose} className="ml-2 rounded-full p-1 hover:bg-gray-100">
-            <X className="h-5 w-5 text-gray-500" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
+      <div className="relative z-50 w-[500px] rounded-lg border bg-white p-4">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Select Client</h2>
+          <button
+            onClick={onClose}
+            className="font-bold text-red-500"
+          >
+            X
           </button>
         </div>
 
-        {/* Main Content Area */}
-        <div className="flex flex-1 overflow-hidden">
-          
-          {/* Left Sidebar */}
-          <div className="w-1/3 border-r bg-white p-4">
-            <p className="mb-4 text-sm font-medium text-gray-500">Select a client</p>
-            
-            <button 
-              onClick={onCreateNew}
-              className="mb-4 flex w-full items-center gap-3 rounded-lg bg-gray-50 px-4 py-3 text-gray-700 transition-colors hover:bg-gray-100"
-            >
-              <Plus className="h-5 w-5" />
-              <span className="font-medium">Create a new client</span>
-            </button>
+        <input
+          type="text"
+          placeholder="Search client..."
+          className="mb-3 w-full rounded border p-2"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
 
-            <div className="space-y-1 overflow-y-auto">
-              {filteredClients.map((client) => (
-                <button
-                  key={client.id}
-                  onClick={() => setActiveClient(client)}
-                  className={`flex w-full items-center justify-between rounded-lg px-4 py-3 text-left transition-all ${
-                    activeClient?.id === client.id 
-                      ? "bg-blue-50 text-blue-600 shadow-sm" 
-                      : "text-gray-700 hover:bg-gray-50"
-                  }`}
-                >
-                  <span className="font-medium">{client.name}</span>
-                  {activeClient?.id === client.id && <Check className="h-4 w-4" />}
-                </button>
-              ))}
-            </div>
-          </div>
+        <div className="max-h-[300px] overflow-y-auto space-y-2">
+          {isLoading && (
+            <p className="text-center text-gray-500">Loading...</p>
+          )}
 
-          {/* Right Info Area */}
-          <div className="flex-1 overflow-y-auto bg-white p-8">
-            {activeClient ? (
-              <div className="flex flex-col items-center">
-                {/* Profile Header */}
-                <div className="mb-6 flex flex-col items-center text-center">
-                  <div className="mb-3 flex h-20 w-20 items-center justify-center rounded-full bg-gray-100">
-                    <UserCircle2 className="h-12 w-12 text-gray-400" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900">{activeClient.name}</h3>
-                </div>
-
-                <div className="w-full border-t pt-8">
-                  <dl className="grid grid-cols-[120px_1fr] gap-y-6 text-base">
-                    <dt className="font-semibold text-gray-900">Rep</dt>
-                    <dd className="text-gray-700">{activeClient.name}</dd>
-
-                    <dt className="font-semibold text-gray-900">Email</dt>
-                    <dd className="text-gray-700">{activeClient.contact || 'N/A'}</dd>
-
-                    <dt className="font-semibold text-gray-900">Phone</dt>
-                    <dd className="text-gray-700">{activeClient.contact || 'N/A'}</dd>
-
-                    <dt className="font-semibold text-gray-900">Address</dt>
-                    <dd className="text-gray-700">{activeClient.address || 'N/A'}</dd>
-                  </dl>
-                </div>
-
-                {/* Optional: Add a "Confirm" button at the bottom */}
-                <button 
-                  onClick={() => { onSelectClient(activeClient); onClose(); }}
-                  className="mt-10 w-full rounded-lg bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700"
-                >
-                  Select this client
-                </button>
+          {!isLoading && filteredClients.length > 0 ? (
+            filteredClients.map((client) => (
+              <div
+                key={client.id}
+                onClick={() => {
+                  onSelectClient(client);
+                  onClose();
+                }}
+                className="cursor-pointer rounded p-2 hover:bg-gray-100"
+              >
+                <p className="font-semibold">{client.name}</p>
+                <p className="text-sm text-gray-500">
+                  {client.address}
+                </p>
               </div>
-            ) : (
-              <div className="flex h-full flex-col items-center justify-center text-gray-400">
-                <UserCircle2 className="mb-2 h-16 w-16 opacity-20" />
-                <p>Select a client to view details</p>
-              </div>
-            )}
-          </div>
+            ))
+          ) : (
+            !isLoading && (
+              <p className="text-center text-gray-500">
+                No clients found
+              </p>
+            )
+          )}
         </div>
       </div>
     </div>

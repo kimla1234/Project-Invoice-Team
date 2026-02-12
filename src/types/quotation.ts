@@ -1,51 +1,57 @@
+// src/types/quotation.ts
 
-// ITEM TYPES
-export interface QuotationItemRequest {
-  productId: number;
-  quantity: number;
-  unitPrice: number;
-}
+import { BaseMessage } from "./product";
 
-export interface QuotationItemResponse {
+/*QUOTATION ITEM */
+
+export interface QuotationItem {
   id: number;
-  quotationId: number;
-  productId: number;
+  productUuid: string;
+  productName: string;
   quantity: number;
   unitPrice: number;
-  lineTotal: number;
+  total: number;
 }
 
-// REQUEST (POST / PUT)
+/*CREATE REQUEST */
+
+export interface QuotationItemRequest {
+  productUuid: string;
+  quantity: number;
+}
+
 export interface QuotationCreateRequest {
   userId: number;
   clientId: number;
   invoiceId?: number;
-
-  quotationDate: string;      // ISO date string
-  quotationExpire?: string;   // ISO date string
-
-  items: QuotationItemRequest[];
+  quotationDate: string;
+  quotationExpire: string;
+  issueDate: string;      // frontend date
+  expiryDate: string;     // frontend date
+  items: {
+    productId: number;
+    quantity: number;
+    unitPrice: number;
+  }[];
 }
 
-// RESPONSE (GET)
+/* QUOTATION RESPONSE */
+
 export interface Quotation {
   id: number;
-  userId: number;
+  quotationNo: string;
   clientId: number;
-  invoiceId?: number;
-
-  quotationDate: string;
-  quotationExpire?: string;
-
-  totalAmount: number;
-
-  items: QuotationItemResponse[];
-
+  issueDate: string;
+  expiryDate: string;
+  amount: number;
+  notes?: string;
+  terms?: string;
+  items: QuotationItem[];
   createdAt: string;
-  updatedAt?: string;
 }
 
-// PAGINATION (OPTIONAL)
+/* PAGINATION STRUCTURE */
+
 export interface PaginatedQuotationResponse {
   content: Quotation[];
   totalElements: number;
@@ -53,3 +59,8 @@ export interface PaginatedQuotationResponse {
   size: number;
   number: number;
 }
+
+/* WRAPPED RESPONSE (LIKE PRODUCT) */
+
+export type QuotationResponse = BaseMessage<Quotation>;
+export type PaginatedQuotationWrapped = BaseMessage<PaginatedQuotationResponse>;
