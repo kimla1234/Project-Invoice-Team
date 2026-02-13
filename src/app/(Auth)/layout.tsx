@@ -7,7 +7,7 @@ import { Header } from "@/components/Layouts/header";
 import { Toaster } from "@/components/ui/toaster";
 import { Providers } from "../providers";
 import StoreProvider from "../StoreProvider";
-
+<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"></meta>
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],

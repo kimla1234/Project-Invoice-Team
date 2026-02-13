@@ -259,54 +259,60 @@ export default function InvoiceTable({
   }
 
   const handleShareLink = (invoiceId: number) => {
-  const shareUrl = `${window.location.origin}/invoice-view/${invoiceId}`;
+    const shareUrl = `${window.location.origin}/invoice-view/${invoiceId}`;
 
-  // បង្កើត Function សម្រាប់ Copy ដែលដើរគ្រប់កាលៈទេសៈ
-  const copyToClipboard = (text: string) => {
-    // វិធីទី១: ប្រើ Clipboard API (សម្រាប់ HTTPS)
-    if (navigator.clipboard && window.isSecureContext) {
-      return navigator.clipboard.writeText(text);
-    } else {
-      // វិធីទី២: ប្រើ TextArea (សម្រាប់ HTTP / ករណី IP address)
-      const textArea = document.createElement("textarea");
-      textArea.value = text;
-      
-      // ដាក់វាឱ្យនៅក្រៅអេក្រង់ដើម្បីកុំឱ្យអ្នកប្រើឃើញ
-      textArea.style.position = "fixed";
-      textArea.style.left = "-9999px";
-      textArea.style.top = "0";
-      document.body.appendChild(textArea);
-      
-      textArea.focus();
-      textArea.select();
-      
-      return new Promise<void>((resolve, reject) => {
-        const successful = document.execCommand('copy');
-        document.body.removeChild(textArea);
-        successful ? resolve() : reject();
+    const copyToClipboard = (text: string) => {
+      if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+
+        // កំណត់ Style មិនឱ្យវារំខានដល់ UI
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "0";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+
+        textArea.focus();
+        textArea.select();
+
+        // បន្ថែមសម្រាប់ iOS
+        textArea.setSelectionRange(0, 99999);
+
+        return new Promise<void>((resolve, reject) => {
+          try {
+            const successful = document.execCommand("copy");
+            document.body.removeChild(textArea);
+            successful ? resolve() : reject(new Error("ExecCommand failed"));
+          } catch (err) {
+            document.body.removeChild(textArea);
+            reject(err);
+          }
+        });
+      }
+    };
+
+    // ហៅការប្រើប្រាស់
+    copyToClipboard(shareUrl)
+      .then(() => {
+        toast({
+          title: "Link Copied!",
+          description: "Invoice link has been copied to clipboard.",
+          className: "bg-purple-600 text-white",
+          duration: 2000,
+        });
+      })
+      .catch((err) => {
+        console.error("Copy failed: ", err);
+        toast({
+          title: "Copy Failed",
+          description: "Please copy the URL manually from the browser bar.",
+          variant: "destructive",
+        });
       });
-    }
   };
-
-  // ហៅការប្រើប្រាស់
-  copyToClipboard(shareUrl)
-    .then(() => {
-      toast({
-        title: "Link Copied!",
-        description: "Invoice link has been copied to clipboard.",
-        className: "bg-purple-600 text-white",
-        duration: 2000,
-      });
-    })
-    .catch((err) => {
-      console.error("Copy failed: ", err);
-      toast({
-        title: "Copy Failed",
-        description: "Please copy the URL manually from the browser bar.",
-        variant: "destructive",
-      });
-    });
-};
 
   return (
     <div className="space-y-4">
