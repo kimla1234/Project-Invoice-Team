@@ -24,13 +24,15 @@ import {
   SearchX,
   Repeat,
 } from "lucide-react";
-import { QuotationData } from "@/types/quotation";
-import { ClientData } from "../Quotations/create-quotation/DownloadPDFButton";
-import { InvoiceData } from "@/types/invoice";
+//import { QuotationData } from "@/types/quotation";
+////import { ClientData } from "../Quotations/create-quotation/DownloadPDFButton";
+//import { InvoiceData } from "@/types/invoice";
 import QuotationTableSkeleton from "../skeletons/QuotationTableSkeleton";
 import { useToast } from "@/hooks/use-toast";
 import { PaginationControls } from "../ui/pagination-controls";
 import { DeleteQuotations } from "../Quotations/delete-quotation/DeleteQuotations";
+import { ClientData } from "../Quotations/create-quotation/DownloadPDFButton";
+import { Invoice } from "@/types/invoice";
 
 interface QuotationTableProps {
   data: QuotationData[];
@@ -95,14 +97,14 @@ export default function QuotationTable({
 
     const subtotal = items.reduce((sum, i) => sum + i.total, 0);
 
-    const oldInvoices: InvoiceData[] = JSON.parse(localStorage.getItem("invoices") || "[]");
+    const oldInvoices: Invoice[] = JSON.parse(localStorage.getItem("invoices") || "[]");
 
-    const newInvoice: InvoiceData = {
+    const newInvoice: Invoice = {
       id: oldInvoices.length > 0 ? Math.max(...oldInvoices.map(i => i.id)) + 1 : 1,
       invoiceNo: `INV-${String(oldInvoices.length + 1).padStart(4, "0")}`,
       clientId: quotation.clientId,
       issueDate: new Date().toISOString().slice(0, 10),
-      dueDate: undefined,
+      //dueDate: undefined,
       items,
       subtotal,
       totalAmount: subtotal,

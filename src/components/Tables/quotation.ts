@@ -1,5 +1,5 @@
 // services/mockQuotations.ts
-import { QuotationData } from "@/types/quotation";
+//import { QuotationData } from "@/types/quotation";
 
 // Mock quotation data
 export const mockQuotations: QuotationData[] = [
