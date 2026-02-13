@@ -360,385 +360,305 @@ export default function CreateInvoiceForm() {
   }
 
   return (
-    <div className="flex justify-center space-x-6">
-      {/* Main Form - Left Column */}
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-4xl space-y-8 rounded-xl bg-white p-8"
-      >
-        <header className="flex items-center justify-between border-b pb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Invoice</h1>
-          <div className="text-sm">
-            <p className="text-gray-500">Invoice No.</p>
-            <p className="font-semibold text-gray-700">{invoiceNo}</p>
-          </div>
-        </header>
+    <div className="flex flex-col lg:flex-row justify-center lg:space-x-6 space-y-6 lg:space-y-0 px-4 sm:px-6">
+  {/* ------------------- Left Column: Main Form ------------------- */}
+  <form
+    onSubmit={handleSubmit}
+    className="w-full lg:w-3/4 max-w-4xl space-y-8 rounded-xl bg-white p-6 sm:p-8"
+  >
+    {/* Header */}
+    <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b pb-6 gap-4 sm:gap-0">
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Invoice</h1>
+      <div className="text-sm">
+        <p className="text-gray-500">Invoice No.</p>
+        <p className="font-semibold text-gray-700">{invoiceNo}</p>
+      </div>
+    </header>
 
-        {/* Address and Date Details Section */}
-        <div className="grid gap-6 border-b pb-6 text-sm text-gray-600 md:grid-cols-3">
-          <div>
-            <p className="text-lg font-semibold text-gray-800">
-              {setting?.companyName || "Company Name"}
-            </p>
-            <p>{`${setting?.companyAddress || ""}, ${setting?.companyPhoneNumber || ""}`}</p>
-            <p className="text-gray-500">{setting?.companyEmail}</p>
-          </div>
-          <div className="md:col-span-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="mb-1 block font-semibold text-gray-800">
-                  Issue Date
-                </label>
-                <input
-                  type="date"
-                  value={issueDate}
-                  onChange={(e) => setIssueDate(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 p-2 focus:border-purple-500 focus:ring-purple-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="mb-1 block font-semibold text-gray-800">
-                  Due Date
-                </label>
-                <input
-                  type="date"
-                  value={expireDate}
-                  onChange={(e) => setExpireDate(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 p-2 focus:border-purple-500 focus:ring-purple-500"
-                  required
-                />
-              </div>
-            </div>
-          </div>
+    {/* Address and Date Details */}
+    <div className="grid gap-6 text-sm text-gray-600 md:grid-cols-3 border-b pb-6">
+      <div>
+        <p className="text-lg font-semibold text-gray-800">
+          {setting?.companyName || "Company Name"}
+        </p>
+        <p>{`${setting?.companyAddress || ""}, ${setting?.companyPhoneNumber || ""}`}</p>
+        <p className="text-gray-500">{setting?.companyEmail}</p>
+      </div>
+      <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="mb-1 block font-semibold text-gray-800">Issue Date</label>
+          <input
+            type="date"
+            value={issueDate}
+            onChange={(e) => setIssueDate(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 p-2 focus:border-purple-500 focus:ring-purple-500"
+            required
+          />
         </div>
-
-        {/* Client Selection Section */}
-        <div className="border-b pb-6">
-          {selectedClient ? (
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-400">
-                  Customer:
-                </span>
-                <span className="font-bold text-gray-900">
-                  {selectedClient.name}
-                </span>
-              </div>
-              <div className="hidden h-4 w-px bg-gray-300 md:block" />
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-400">
-                  Address:
-                </span>
-                <span className="font-semibold text-gray-700">
-                  {selectedClient.address || "N/A"}
-                </span>
-              </div>
-              <div className="hidden h-4 w-px bg-gray-300 md:block" />
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-400">
-                  Phone:
-                </span>
-                <span className="font-semibold text-gray-700">
-                  {selectedClient.phoneNumber || "N/A"}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsClientModalOpen(true)}
-                className="ml-auto flex items-center gap-2 text-sm font-medium text-purple-600 hover:text-purple-700"
-              >
-                <span className="rounded border bg-gray-50 px-1.5 py-0.5 text-[10px] text-gray-500">
-                  ⌘ K
-                </span>
-                Edit
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setIsClientModalOpen(true)}
-              className="flex items-center gap-2 text-lg font-medium text-purple-600 hover:text-purple-700"
-            >
-              <IoAddCircleOutline className="h-6 w-6" />
-              Select Client
-              <span className="ml-2 rounded border bg-gray-50 px-2 py-0.5 text-sm text-gray-400">
-                ⌘ K
-              </span>
-            </button>
-          )}
+        <div>
+          <label className="mb-1 block font-semibold text-gray-800">Due Date</label>
+          <input
+            type="date"
+            value={expireDate}
+            onChange={(e) => setExpireDate(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 p-2 focus:border-purple-500 focus:ring-purple-500"
+            required
+          />
         </div>
+      </div>
+    </div>
 
-        <ClientModal
-          isOpen={isClientModalOpen}
-          onClose={() => setIsClientModalOpen(false)}
-          clients={clients}
-          onSelectClient={setSelectedClient}
-        />
-
-        {/* Items Table Section */}
-        <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    No
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Product Name
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Qty
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Unit Price ($)
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Total ($)
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {items.map((item, index) => (
-                  <tr
-                    key={index}
-                    className="transition duration-150 ease-in-out hover:bg-gray-50"
-                  >
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
-                      {index + 1}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
-                      <input
-                        className="w-full rounded border-gray-200 bg-slate-100 p-2 focus:border-purple-500 focus:ring-purple-500"
-                        value={item.name}
-                        onChange={(e) =>
-                          handleUpdateName(index, e.target.value)
-                        }
-                      />
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
-                      <input
-                        type="number"
-                        min="1"
-                        className="w-full rounded border-gray-200 bg-slate-100 p-2 focus:border-purple-500 focus:ring-purple-500"
-                        value={item.quantity}
-                        onChange={(e) =>
-                          handleUpdateQuantity(index, Number(e.target.value))
-                        }
-                      />
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        className="w-full rounded border-gray-200 bg-slate-100 p-2 focus:border-purple-500 focus:ring-purple-500"
-                        value={item.unitPrice}
-                        onChange={(e) =>
-                          handleUpdateUnitPrice(index, Number(e.target.value))
-                        }
-                      />
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
-                      ${item.subtotal.toFixed(2)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
-                      <button
-                        type="button"
-                        className="rounded-md bg-red-100 px-2 py-1 text-red-600 hover:text-red-900"
-                        onClick={() => handleRemoveItem(index)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="flex items-center justify-end border-b bg-gray-50 p-4">
-              <button
-                type="button"
-                onClick={() => setIsProductModalOpen(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-slate-400 bg-slate-200 px-4 py-2 text-sm transition duration-150 ease-in-out hover:bg-slate-100"
-              >
-                <IoMdAdd className="h-5 w-5" />
-                <div className="text-md">Add Item</div>
-              </button>
-            </div>
+    {/* Client Selection */}
+    <div className="border-b pb-6">
+      {selectedClient ? (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-400">Customer:</span>
+            <span className="font-bold text-gray-900">{selectedClient.name}</span>
           </div>
-          <div className="flex justify-end bg-gray-50 p-4">
-            <div className="w-1/2 space-y-2">
-              <div className="flex justify-between font-medium text-gray-700">
-                <span>Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between font-medium text-gray-700">
-                <span>Tax ({taxPercentage}%)</span>
-                <span>${taxAmount.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-lg font-bold text-gray-600">
-                <span>Grand Total</span>
-                <span>${grandTotal.toFixed(2)}</span>
-              </div>
-            </div>
+          <div className="hidden h-4 w-px bg-gray-300 md:block" />
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-400">Address:</span>
+            <span className="font-semibold text-gray-700">{selectedClient.address || "N/A"}</span>
           </div>
+          <div className="hidden h-4 w-px bg-gray-300 md:block" />
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-400">Phone:</span>
+            <span className="font-semibold text-gray-700">{selectedClient.phoneNumber || "N/A"}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsClientModalOpen(true)}
+            className="ml-auto flex items-center gap-2 text-sm font-medium text-purple-600 hover:text-purple-700"
+          >
+            <span className="rounded border bg-gray-50 px-1.5 py-0.5 text-[10px] text-gray-500">⌘ K</span>
+            Edit
+          </button>
         </div>
-
-        {/* Form Submission Button */}
+      ) : (
         <button
-          type="submit"
-          disabled={
-            creating ||
-            items.length === 0 ||
-            !selectedClient ||
-            !issueDate ||
-            !expireDate
-          }
-          className="w-full rounded-lg bg-purple-600 py-3 text-lg font-semibold text-white transition duration-150 ease-in-out hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-400"
+          type="button"
+          onClick={() => setIsClientModalOpen(true)}
+          className="flex items-center gap-2 text-lg font-medium text-purple-600 hover:text-purple-700"
         >
-          {creating ? "Creating Invoice..." : "Create Invoice"}
+          <IoAddCircleOutline className="h-6 w-6" />
+          Select Client
+          <span className="ml-2 rounded border bg-gray-50 px-2 py-0.5 text-sm text-gray-400">⌘ K</span>
         </button>
-      </form>
+      )}
+    </div>
 
-      {/* Invoice Settings Sidebar (Right Column) */}
-      <div className="sticky top-6 space-y-6">
-        {/* Top action buttons section */}
-        <div className="space-y-3 rounded-lg bg-white p-4">
+    <ClientModal
+      isOpen={isClientModalOpen}
+      onClose={() => setIsClientModalOpen(false)}
+      clients={clients}
+      onSelectClient={setSelectedClient}
+    />
+
+    {/* Items Table */}
+    <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-100">
+            <tr>
+              {["No", "Product Name", "Qty", "Unit Price ($)", "Total ($)", "Actions"].map((col, i) => (
+                <th
+                  key={i}
+                  className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                >
+                  {col}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200 bg-white">
+            {items.map((item, index) => (
+              <tr key={index} className="transition duration-150 ease-in-out hover:bg-gray-50">
+                <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">{index + 1}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
+                  <input
+                    className="w-full rounded border-gray-200 bg-slate-100 p-2 focus:border-purple-500 focus:ring-purple-500"
+                    value={item.name}
+                    onChange={(e) => handleUpdateName(index, e.target.value)}
+                  />
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
+                  <input
+                    type="number"
+                    min="1"
+                    className="w-full rounded border-gray-200 bg-slate-100 p-2 focus:border-purple-500 focus:ring-purple-500"
+                    value={item.quantity}
+                    onChange={(e) => handleUpdateQuantity(index, Number(e.target.value))}
+                  />
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="w-full rounded border-gray-200 bg-slate-100 p-2 focus:border-purple-500 focus:ring-purple-500"
+                    value={item.unitPrice}
+                    onChange={(e) => handleUpdateUnitPrice(index, Number(e.target.value))}
+                  />
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
+                  ${item.subtotal.toFixed(2)}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
+                  <button
+                    type="button"
+                    className="rounded-md bg-red-100 px-2 py-1 text-red-600 hover:text-red-900"
+                    onClick={() => handleRemoveItem(index)}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div className="flex items-center justify-end border-b bg-gray-50 p-4">
           <button
             type="button"
-            onClick={handlePreviewAndSend}
-            disabled={
-              creating ||
-              items.length === 0 ||
-              !selectedClient ||
-              !issueDate ||
-              !expireDate
-            }
-            className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+            onClick={() => setIsProductModalOpen(true)}
+            className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-md border border-dashed border-slate-400 bg-slate-200 px-4 py-2 text-sm transition duration-150 ease-in-out hover:bg-slate-100"
           >
-            <span className="mr-2">+</span> Preview and send
-          </button>
-          <button
-            type="button"
-            onClick={handleSendToClient}
-            disabled={creating || items.length === 0 || !selectedClient}
-            className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-gray-400"
-          >
-            <span className="mr-2">+</span> Send to client
+            <IoMdAdd className="h-5 w-5" />
+            <div className="text-md">Add Item</div>
           </button>
         </div>
 
-        {/* Settings Sections */}
-        <div className="space-y-4 rounded-lg bg-white p-4">
-          {/* Tax Settings */}
-          <div>
-            <h2 className="mb-2 font-semibold text-gray-800">Tax Settings</h2>
-            <div className="flex items-center justify-between py-1 text-sm">
-              <span>Tax Percentage</span>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  value={taxPercentage}
-                  onChange={(e) => setTaxPercentage(Number(e.target.value))}
-                  className="w-20 rounded border p-1 text-right"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                />
-                <span>%</span>
-              </div>
+        <div className="flex justify-end bg-gray-50 p-4">
+          <div className="w-full sm:w-1/2 space-y-2">
+            <div className="flex justify-between font-medium text-gray-700">
+              <span>Subtotal</span>
+              <span>${subtotal.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between font-medium text-gray-700">
+              <span>Tax ({taxPercentage}%)</span>
+              <span>${taxAmount.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-lg font-bold text-gray-600">
+              <span>Grand Total</span>
+              <span>${grandTotal.toFixed(2)}</span>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
 
-          {/* Accepted Payments */}
-          <div className="border-t pt-4">
-            <h2 className="mb-2 font-semibold text-gray-800">
-              Accepted payments
-            </h2>
-            <div className="flex items-center justify-between py-1 text-sm">
-              <span>Stripe</span>
-              <button type="button" className="text-purple-600">
-                Connect
-              </button>
-            </div>
-            <div className="flex items-center justify-between py-1 text-sm">
-              <span>Paypal</span>
-              <button type="button" className="text-purple-600">
-                Setup
-              </button>
-            </div>
-          </div>
+    {/* Submit Button */}
+    <button
+      type="submit"
+      disabled={
+        creating ||
+        items.length === 0 ||
+        !selectedClient ||
+        !issueDate ||
+        !expireDate
+      }
+      className="w-full rounded-lg bg-purple-600 py-3 text-lg font-semibold text-white transition duration-150 ease-in-out hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-400"
+    >
+      {creating ? "Creating Invoice..." : "Create Invoice"}
+    </button>
+  </form>
 
-          {/* Late Fees */}
-          <div className="border-t pt-4">
-            <h2 className="mb-2 font-semibold text-gray-800">Late fees</h2>
-            <label className="mb-2 flex items-center space-x-2">
-              <input
-                type="checkbox"
-                className="form-checkbox rounded text-purple-600"
-                checked
-                readOnly
-              />
-              <span className="text-sm">
-                Charge late fees if this invoice becomes past due.
-              </span>
-            </label>
-            <select className="w-full rounded border bg-gray-50 p-2 text-sm">
-              <option>Select late fees</option>
-            </select>
-          </div>
+  {/* ------------------- Right Column: Sidebar ------------------- */}
+  <div className="w-full lg:w-1/4 sticky top-6 space-y-6">
+    {/* Top Buttons */}
+    <div className="space-y-3 rounded-lg bg-white p-4">
+      <button
+        type="button"
+        onClick={handlePreviewAndSend}
+        disabled={
+          creating ||
+          items.length === 0 ||
+          !selectedClient ||
+          !issueDate ||
+          !expireDate
+        }
+        className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+      >
+        <span className="mr-2">+</span> Preview and send
+      </button>
+      <button
+        type="button"
+        onClick={handleSendToClient}
+        disabled={creating || items.length === 0 || !selectedClient}
+        className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+      >
+        <span className="mr-2">+</span> Send to client
+      </button>
+    </div>
 
-          {/* Reminders */}
-          <div className="border-t pt-4">
-            <h2 className="mb-2 font-semibold text-gray-800">Reminders</h2>
-            <div className="space-y-2 text-sm">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  className="form-checkbox rounded text-purple-600"
-                  checked
-                  readOnly
-                />
-                <span>Reminder 1: 7 days before due date</span>
-              </label>
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  className="form-checkbox rounded text-purple-600"
-                  checked
-                  readOnly
-                />
-                <span>Reminder 2: 14 days before due date</span>
-              </label>
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  className="form-checkbox rounded text-purple-600"
-                  checked
-                  readOnly
-                />
-                <span>Reminder 3: 30 days before due date</span>
-              </label>
-            </div>
-            <button
-              type="button"
-              className="mt-3 text-sm text-purple-600 hover:underline"
-            >
-              Add reminder option
-            </button>
+    {/* Settings Sections */}
+    <div className="space-y-4 rounded-lg bg-white p-4">
+      {/* Tax */}
+      <div>
+        <h2 className="mb-2 font-semibold text-gray-800">Tax Settings</h2>
+        <div className="flex items-center justify-between py-1 text-sm">
+          <span>Tax Percentage</span>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              value={taxPercentage}
+              onChange={(e) => setTaxPercentage(Number(e.target.value))}
+              className="w-20 rounded border p-1 text-right"
+              min="0"
+              max="100"
+              step="0.01"
+            />
+            <span>%</span>
           </div>
         </div>
       </div>
 
-      <ProductModal
-        isOpen={isProductModalOpen}
-        onClose={() => setIsProductModalOpen(false)}
-        onSelectProducts={handleAddProducts}
-      />
+      {/* Payments */}
+      <div className="border-t pt-4">
+        <h2 className="mb-2 font-semibold text-gray-800">Accepted payments</h2>
+        {["Stripe", "Paypal"].map((method) => (
+          <div key={method} className="flex items-center justify-between py-1 text-sm">
+            <span>{method}</span>
+            <button type="button" className="text-purple-600">{method === "Stripe" ? "Connect" : "Setup"}</button>
+          </div>
+        ))}
+      </div>
+
+      {/* Late Fees */}
+      <div className="border-t pt-4">
+        <h2 className="mb-2 font-semibold text-gray-800">Late fees</h2>
+        <label className="mb-2 flex items-center space-x-2">
+          <input type="checkbox" className="form-checkbox rounded text-purple-600" checked readOnly />
+          <span className="text-sm">Charge late fees if this invoice becomes past due.</span>
+        </label>
+        <select className="w-full rounded border bg-gray-50 p-2 text-sm">
+          <option>Select late fees</option>
+        </select>
+      </div>
+
+      {/* Reminders */}
+      <div className="border-t pt-4">
+        <h2 className="mb-2 font-semibold text-gray-800">Reminders</h2>
+        <div className="space-y-2 text-sm">
+          {["Reminder 1: 7 days before due date", "Reminder 2: 14 days before due date", "Reminder 3: 30 days before due date"].map((rem, i) => (
+            <label key={i} className="flex items-center space-x-2">
+              <input type="checkbox" className="form-checkbox rounded text-purple-600" checked readOnly />
+              <span>{rem}</span>
+            </label>
+          ))}
+        </div>
+        <button type="button" className="mt-3 text-sm text-purple-600 hover:underline">Add reminder option</button>
+      </div>
     </div>
+  </div>
+
+  <ProductModal
+    isOpen={isProductModalOpen}
+    onClose={() => setIsProductModalOpen(false)}
+    onSelectProducts={handleAddProducts}
+  />
+</div>
+
   );
 }

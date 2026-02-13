@@ -60,7 +60,7 @@ export const ProductModal = ({ isOpen, onClose, onSelectProducts }: ProductModal
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
+      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm p-2" />
       <div className="relative z-50 max-h-[80vh] w-[600px] overflow-y-auto rounded-lg border bg-white p-4 shadow-lg">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Select Products</h2>

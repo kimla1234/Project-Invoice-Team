@@ -78,92 +78,95 @@ export default function Clients() {
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex justify-between">
-        <div className="inline-flex w-[210px] justify-center rounded-lg border border-gray-200 bg-white px-2 py-1 text-xl text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-white">
-          Clients Information
-        </div>
-        <div className="flex items-center space-x-4">
-          {/* Left: Button Group (Export/Import) */}
-          <div
-            className="inline-flex rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
-            role="group"
-          >
-            {/* Button 1: Export Excel (with icon) */}
-            <button
-              type="button"
-              onClick={handleExportExcel} // ✅ USE HANDLER
-              className="flex items-center space-x-2 rounded-l-lg px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50 dark:text-white dark:hover:bg-gray-700"
-            >
-              <div>
-                <Image
-                  src={logo}
-                  className="size-5"
-                  alt="icon excel"
-                  role="presentation"
-                  width={200}
-                  height={200}
-                />
-              </div>
-              <div>Export Excel</div>
-            </button>
-          </div>
+   <div className="space-y-4 md:space-y-6">
+  {/* HEADER SECTION */}
+  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    {/* Title Badge - Removed fixed width for better mobile scaling */}
+    <div className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-6 py-2 text-xl font-semibold text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-white sm:w-auto">
+      Clients Information
+    </div>
 
-          {/* Right: Primary Action Button */}
-          <Link
-            href="/clients/create"
-            className="flex items-center space-x-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-          >
-            <div>Create Client</div>
-            <VscAdd className="text-xl" />
-          </Link>
+    {/* Action Buttons Group */}
+    <div className="flex flex-row items-center gap-3">
+      {/* Export Button */}
+      <div className="flex-1 sm:flex-none">
+        <button
+          type="button"
+          onClick={handleExportExcel}
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700"
+        >
+          <Image
+            src={logo}
+            className="size-5"
+            alt="icon excel"
+            width={20}
+            height={20}
+          />
+          <span className="hidden xs:inline">Export Excel</span>
+          <span className="xs:hidden">Export</span>
+        </button>
+      </div>
+
+      {/* Create Client Button */}
+      <Link
+        href="/clients/create"
+        className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-purple-700 active:scale-95 sm:flex-none"
+      >
+        <span className="whitespace-nowrap">Create Client</span>
+        <VscAdd className="text-xl" />
+      </Link>
+    </div>
+  </div>
+
+  {/* MAIN CONTENT CARD */}
+  <div className="h-auto w-full space-y-8 rounded-xl bg-white p-4 shadow-sm border border-gray-100 dark:border-gray-700 dark:bg-gray-900 md:p-8">
+    {/* Summary Header Cards */}
+    <div className="overflow-x-auto">
+      <HeaderClients refreshKey={summaryRefreshKey} />
+    </div>
+
+    {/* Controls Bar: Search, Filter, Toggle */}
+    <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+      
+      {/* Left side: Search & Filters */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center w-full xl:max-w-3xl">
+        <div className="w-full sm:flex-1">
+          <SearchInput
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+          />
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <FilterDropdown
+            title="Gender"
+            options={genderOptions}
+            selectedValues={selectedGenders}
+            onChange={setSelectedGenders}
+          />
+          {/* Status Filter or other dropdowns would go here */}
         </div>
       </div>
 
-      <div className="h-auto w-full space-y-10 rounded-md bg-white p-8 text-slate-600">
-        <div>
-          <HeaderClients refreshKey={summaryRefreshKey} />
-        </div>
-        <div className="space-y-4">
-          <div className="flex w-full justify-between space-x-4">
-            <div className="flex w-full gap-4">
-              <SearchInput
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-              />
-              <div className="flex gap-4">
-                {/* Currency Filter */}
-
-                <FilterDropdown
-                  title="Gender"
-                  options={genderOptions}
-                  selectedValues={selectedGenders}
-                  onChange={setSelectedGenders}
-                />
-
-                {/* Status Filter */}
-        
-              </div>
-            </div>
-            {/* Add the new Column Toggle Dropdown component here */}
-            <ColumnToggleDropdown
-              columns={columnOptions}
-              onToggle={toggleColumnVisibility}
-            />
-          </div>
-          <div>
-            {/* The table where your data is displayed */}
-            <ClientTable  
-              visibleColumns={columnVisibility}
-              searchTerm={searchTerm} // Pass the search term
-              selectedGenders={selectedGenders}
-              //onExportDataChange={setExportData}
-              onDataChanged={() => setSummaryRefreshKey((k) => k + 1)}
-            />
-            
-          </div>
-        </div>
+      {/* Right side: Column Customization */}
+      <div className="flex justify-end">
+        <ColumnToggleDropdown
+          columns={columnOptions}
+          onToggle={toggleColumnVisibility}
+        />
       </div>
     </div>
+
+    {/* Table Section */}
+    <div className="w-full overflow-hidden">
+      <ClientTable  
+        visibleColumns={columnVisibility}
+        searchTerm={searchTerm}
+        selectedGenders={selectedGenders}
+        onDataChanged={() => setSummaryRefreshKey((k) => k + 1)}
+      />
+    </div>
+  </div>
+</div>
   );
 }

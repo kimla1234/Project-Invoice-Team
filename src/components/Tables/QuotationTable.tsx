@@ -69,6 +69,10 @@ export default function QuotationTable({
   const [deleteQuotation] = useDeleteQuotationMutation();
   const [updateQuotation] = useUpdateQuotationMutation();
 
+  const updateBody = {
+  status: "APPROVED" 
+};
+
   const handleConfirmDelete = async () => {
     if (deleteId === null) return;
 
@@ -96,29 +100,25 @@ export default function QuotationTable({
   const handleConvertQuotation = async (quotation: QuotationData) => {
     if (!quotation) return;
 
-    try {
-      // 1. Create Invoice Payload
-      // Ensure dates are YYYY-MM-DD
-      const formatDate = (dateStr?: string) => {
-        if (!dateStr) return new Date().toISOString().slice(0, 19); // YYYY-MM-DDTHH:mm:ss
-        try {
-            // Ensure we have a valid date part
-            let dateObj = new Date(dateStr);
-            if (isNaN(dateObj.getTime())) {
-                dateObj = new Date();
-            }
-            return dateObj.toISOString().slice(0, 19);
-        } catch (e) {
-            return new Date().toISOString().slice(0, 19);
-        }
-      };
+    const formatDate = (dateStr?: string) => {
+      if (!dateStr) return new Date().toISOString().slice(0, 19);
+      try {
+        let dateObj = new Date(dateStr);
+        if (isNaN(dateObj.getTime())) dateObj = new Date();
+        return dateObj.toISOString().slice(0, 19);
+      } catch (e) {
+        return new Date().toISOString().slice(0, 19);
+      }
+    };
 
+    try {
+      // STEP 1: Create Invoice
       const invoiceData = {
         issueDate: formatDate(quotation.issueDate),
-        expireDate: formatDate(quotation.expiryDate), // Use expiryDate from quotation
+        expireDate: formatDate(quotation.expiryDate),
         clientId: quotation.clientId,
         subtotal: Number(quotation.totalAmount || quotation.amount) || 0,
-        tax: 0, 
+        tax: 0,
         grandTotal: Number(quotation.totalAmount || quotation.amount) || 0,
         status: "PENDING",
         items: (quotation.items ?? []).map((item) => ({
@@ -129,88 +129,53 @@ export default function QuotationTable({
           name: item.productName || item.name || "Unknown Product",
         })),
       };
-      
-      console.log("Converting Quotation to Invoice Payload:", invoiceData);
 
-      // 2. Call Create Invoice API
-      const newInvoice = await createInvoice(invoiceData as any).unwrap();
+      await createInvoice(invoiceData as any).unwrap();
 
-      if (newInvoice) {
+      // STEP 2: Update Quotation Status
+      // We send a minimal body to avoid 400 Bad Request validation errors
+      const updateBody = {
+        ...quotation, // Keep existing data
+        status: "APPROVED",
+        quotationStatus: "APPROVED",
+      };
+
+      try {
+        await updateQuotation({
+          id: quotation.id,
+          body: updateBody as any,
+        }).unwrap();
+
         toast({
-            // ... existing success logic
           title: "Success",
-          description: `Invoice created from Quotation #${quotation.quotationNo || quotation.id}`,
+          description: "Quotation converted and approved successfully!",
           className: "bg-green-600 text-white",
         });
 
-        // 3. Update Quotation Status to APPROVED
-        // 3. Update Quotation Status to APPROVED
-        const cleanQuotationNo = (val: string | number | undefined) => {
-            if (typeof val === 'number') return val;
-            if (!val) return undefined;
-            const match = String(val).match(/(\d+)$/);
-            return match ? Number(match[1]) : undefined;
-        };
-
-        const updateBody = {
-          userId: 1, // Fallback as we don't have it in response, but PUT usually needs it
-          clientId: quotation.clientId,
-          quotationNo: cleanQuotationNo(quotation.quotationNo), 
-          quotationDate: formatDate(quotation.quotationDate || quotation.issueDate),
-          quotationExpire: formatDate(quotation.quotationExpire || quotation.expiryDate),
-          issueDate: formatDate(quotation.issueDate),
-          expiryDate: formatDate(quotation.expiryDate),
-          status: "APPROVED",
-          quotationStatus: "APPROVED", // Try alternate field name for backend persistence
-          items: (quotation.items || []).map(item => ({
-             productId: item.productId || item.id, // Best effort fallback
-             quantity: item.quantity,
-             unitPrice: item.unitPrice,
-             subtotal: item.total || (item.quantity * item.unitPrice)
-          }))
-        };
-
-        const updateResult = await updateQuotation({
-          id: quotation.id,
-          body: updateBody as any 
-        }).unwrap();
-        
-        console.log("Update Quotation Payload:", updateBody);
-        console.log("Update Quotation Result (from Backend):", updateResult);
-
-        if (onRefresh) {
-            console.log("Triggering onRefresh()...");
-            onRefresh();
-        }
-
+        if (onRefresh) onRefresh();
+      } catch (updateError: any) {
+        console.error("Status update failed:", updateError);
+        toast({
+          title: "Partial Success",
+          description: "Invoice created, but failed to update Quotation status.",
+          variant: "destructive",
+        });
       }
     } catch (error: any) {
-      console.error("Failed to convert quotation (Full Error):", JSON.stringify(error, null, 2));
-      console.error("Failed to convert quotation (Original):", error);
-      
-      let title = "Error";
-      let description = "Failed to convert quotation to invoice";
+      let title = "Conversion Failed";
+      let description = "An unexpected error occurred.";
 
       if (error?.data?.message) {
-        let msg = error.data.message;
-
-        // Check for specific "Insufficient stock" error
-        if (msg.includes("Insufficient stock")) {
+        const msg = error.data.message;
+        if (msg.toLowerCase().includes("stock")) {
           title = "Insufficient Stock";
-          // Clean up the message if it contains "400 BAD_REQUEST" or quotes
           description = msg.replace(/400 BAD_REQUEST|"/g, "").trim();
         } else {
           description = msg;
         }
-      } else if (error?.status) {
-        description += `: Status ${error.status}`;
       }
 
-      toast({
-        title,
-        description,
-        variant: "destructive",
-      });
+      toast({ title, description, variant: "destructive" });
     }
   };
 
@@ -277,7 +242,7 @@ export default function QuotationTable({
                   {columnVisibility.Status && (
                     <TableCell>
                       <span
-                        className={`rounded-md px-2 py-1 text-xs font-bold text-white ${
+                        className={`rounded-md font-normal px-2 py-1 text-xs${
                           (q.status || "PENDING") === "APPROVED"
                             ? "bg-green-200 text-green-700"
                             : "bg-yellow-200 text-yellow-600"

@@ -336,7 +336,7 @@ export default function EditQuotation() {
   }
 
   return (
-    <div className="flex justify-center space-x-6">
+    <div className="flex flex-col lg:flex-row justify-center lg:space-x-6 space-y-6 lg:space-y-0 ">
       <form
         onSubmit={handleUpdate}
         className="w-full max-w-4xl space-y-8 rounded-xl bg-white p-8"

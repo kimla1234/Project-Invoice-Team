@@ -50,7 +50,7 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  Filler
+  Filler,
 );
 
 interface MonthlyData {
@@ -67,16 +67,20 @@ interface TopProduct {
 
 export default function Dashboard() {
   // Fetch data
-  const { data: invoicesData, isLoading: loadingInvoices } = useGetMyInvoicesQuery({
-    page: 0,
-    size: 100,
-  });
-  const { data: quotationsData, isLoading: loadingQuotations } = useGetQuotationsQuery({
-    page: 0,
-    size: 100,
-  });
-  const { data: clients = [], isLoading: loadingClients } = useGetMyClientsQuery();
-  const { data: products = [], isLoading: loadingProducts } = useGetMyProductsQuery();
+  const { data: invoicesData, isLoading: loadingInvoices } =
+    useGetMyInvoicesQuery({
+      page: 0,
+      size: 100,
+    });
+  const { data: quotationsData, isLoading: loadingQuotations } =
+    useGetQuotationsQuery({
+      page: 0,
+      size: 100,
+    });
+  const { data: clients = [], isLoading: loadingClients } =
+    useGetMyClientsQuery();
+  const { data: products = [], isLoading: loadingProducts } =
+    useGetMyProductsQuery();
 
   const invoices = invoicesData?.content || [];
   const quotations = quotationsData?.content || [];
@@ -84,7 +88,9 @@ export default function Dashboard() {
   // Calculate statistics using useMemo
   const stats = useMemo(() => {
     const totalRevenue = invoices.reduce((sum, inv) => sum + inv.grandTotal, 0);
-    const pendingInvoices = invoices.filter((inv) => inv.status === "pending").length;
+    const pendingInvoices = invoices.filter(
+      (inv) => inv.status === "pending",
+    ).length;
     const paidInvoices = invoices.filter((inv) => inv.status === "paid").length;
     const overdueInvoices = invoices.filter((inv) => {
       const expireDate = new Date(inv.expireDate);
@@ -106,14 +112,20 @@ export default function Dashboard() {
   // Recent invoices
   const recentInvoices = useMemo(() => {
     return [...invoices]
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
       .slice(0, 5);
   }, [invoices]);
 
   // Recent quotations
   const recentQuotations = useMemo(() => {
     return [...quotations]
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
       .slice(0, 5);
   }, [quotations]);
 
@@ -143,7 +155,10 @@ export default function Dashboard() {
         return invMonth === monthIndex;
       });
 
-      const revenue = monthInvoices.reduce((sum, inv) => sum + inv.grandTotal, 0);
+      const revenue = monthInvoices.reduce(
+        (sum, inv) => sum + inv.grandTotal,
+        0,
+      );
       const count = monthInvoices.length;
 
       last6Months.push({
@@ -183,11 +198,16 @@ export default function Dashboard() {
   }, [invoices]);
 
   // Loading state
-  if (loadingInvoices || loadingQuotations || loadingClients || loadingProducts) {
+  if (
+    loadingInvoices ||
+    loadingQuotations ||
+    loadingClients ||
+    loadingProducts
+  ) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-purple-200 border-t-purple-600 mx-auto"></div>
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-purple-200 border-t-purple-600"></div>
           <div className="text-lg text-gray-500">Loading dashboard...</div>
         </div>
       </div>
@@ -197,30 +217,39 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-7xl space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          {/* Title Section */}
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-            {/* <p className="text-gray-500">Welcome back! Here's what's happening today.</p> */}
+            <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">
+              Dashboard
+            </h1>
+            {/* Hidden on mobile to save space, visible on tablet+ */}
+            <p className="mt-1 hidden text-sm text-gray-500 md:block">
+              Welcome back! Here's what's happening today.
+            </p>
           </div>
-          <div className="flex gap-3">
+
+          {/* Action Buttons */}
+          <div className="xs:flex-row flex flex-col gap-2 sm:gap-3">
             <Link
               href="/invoices/create"
-              className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-purple-700 transition-colors"
+              className="flex items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-purple-700 active:scale-95"
             >
               New Invoice
             </Link>
             <Link
               href="/quotation/create"
-              className="rounded-lg border border-purple-600 px-4 py-2 text-purple-600 hover:bg-purple-50 transition-colors"
+              className="flex items-center justify-center rounded-lg border border-purple-600 px-4 py-2.5 text-sm font-semibold text-purple-600 transition-all hover:bg-purple-50 active:scale-95"
             >
               New Quotation
             </Link>
           </div>
         </div>
-   {/* Quick Actions */}
-        <div className="rounded-lg bg-white p-6 shadow-sm border border-gray-100">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Quick Actions</h2>
+        {/* Quick Actions */}
+        <div className="rounded-lg border border-gray-100 bg-white p-6 shadow-sm">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900">
+            Quick Actions
+          </h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <QuickActionButton
               href="/invoices/create"
@@ -233,14 +262,12 @@ export default function Dashboard() {
               icon={<TrendingUp className="h-5 w-5" />}
               label="Create Quotation"
               color="bg-green-50 text-green-600 hover:bg-green-100"
-
             />
             <QuickActionButton
               href="/clients/create"
               icon={<Users className="h-5 w-5" />}
               label="Add Client"
               color="bg-purple-50 text-purple-600 hover:bg-purple-100"
-
             />
             <QuickActionButton
               href="/products/create"
@@ -318,7 +345,7 @@ export default function Dashboard() {
         {/* Charts Section */}
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Monthly Revenue Chart */}
-          <div className="rounded-lg bg-white p-6 shadow-sm border border-gray-100">
+          <div className="rounded-lg border border-gray-100 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-lg font-semibold text-gray-900">
               Monthly Revenue (Last 6 Months)
             </h2>
@@ -328,7 +355,7 @@ export default function Dashboard() {
           </div>
 
           {/* Top Products Chart */}
-          <div className="rounded-lg bg-white p-6 shadow-sm border border-gray-100">
+          <div className="rounded-lg border border-gray-100 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-lg font-semibold text-gray-900">
               Top Products by Revenue
             </h2>
@@ -343,8 +370,6 @@ export default function Dashboard() {
           <RecentInvoices invoices={recentInvoices} />
           <RecentQuotations quotations={recentQuotations} />
         </div>
-
-     
       </div>
     </div>
   );

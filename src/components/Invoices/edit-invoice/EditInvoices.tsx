@@ -302,7 +302,7 @@ export default function EditInvoiceForm({ invoiceId }: EditInvoiceFormProps) {
   }
 
   return (
-    <div className="flex justify-center space-x-6">
+    <div className="flex flex-col lg:flex-row justify-center lg:space-x-6 space-y-6 lg:space-y-0 ">
       {/* Main Form - Left Column */}
       <form
         onSubmit={handleSubmit}

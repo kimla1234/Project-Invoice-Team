@@ -2,11 +2,15 @@
 
 import { useEffect, useState, useRef, useMemo } from "react";
 import Link from "next/link";
-import { FiSkipBack, FiMail, FiEdit, FiShare2 } from "react-icons/fi";
-import { useGetQuotationByIdQuery } from "@/redux/service/quotation";
+import { FiSkipBack, FiMail, FiEdit, FiCheckCircle } from "react-icons/fi";
+import {
+  useGetQuotationByIdQuery,
+  useUpdateQuotationMutation,
+} from "@/redux/service/quotation";
 import { useGetClientByIdQuery } from "@/redux/service/client";
 import { useGetMyProductsQuery } from "@/redux/service/products";
 import { DownloadPDFButton } from "../create-quotation/DownloadPDFButton";
+import { useCreateInvoiceMutation } from "@/redux/service/invoices";
 import { useToast } from "@/hooks/use-toast";
 import { ProductNameByUuid } from "./ProductNameByUuid";
 
@@ -14,42 +18,35 @@ interface ViewQuotationProps {
   id: number;
 }
 
-const parseNoteOrTerms = (htmlString: string) => {
-  if (!htmlString) return [];
-  const temp = document.createElement("div");
-  temp.innerHTML = htmlString;
-  return Array.from(temp.querySelectorAll("p")).map(
-    (p) => p.textContent?.replace(/^•\s*/, "") || "",
-  );
-};
-
-export default function ViewQuotation({ id }: ViewQuotationProps) {
+export default function ViewQuotationShare({ id }: ViewQuotationProps) {
   const quotationRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // --- ១. ហៅ Hooks ទាំងអស់នៅផ្នែកខាងលើបង្អស់ ---
   const {
     data: quotation,
     isLoading,
     isError,
     error,
   } = useGetQuotationByIdQuery(id);
-  const [user, setUser] = useState<any>(null);
-  const [invoiceNote, setInvoiceNote] = useState("");
-  const [invoiceTerms, setInvoiceTerms] = useState("");
-  const [sending, setSending] = useState(false);
 
   const { data: client, isLoading: loadingClient } = useGetClientByIdQuery(
     quotation?.clientId ?? 0,
     { skip: !quotation?.clientId },
   );
 
-  useEffect(() => {
-    if (isError) {
-      console.error("Invoice Fetch Error:", error);
-    }
-  }, [isError, error]);
+  const [updateQuotation, { isLoading: isUpdating }] =
+    useUpdateQuotationMutation();
+  const [createInvoice, { isLoading: isCreatingInvoice }] =
+    useCreateInvoiceMutation();
+  const {
+    data: products = [],
+    isLoading: loadingProducts,
+    isError: isProductsError,
+  } = useGetMyProductsQuery();
 
-  const { data: products = [], isLoading: loadingProducts } =
-    useGetMyProductsQuery();
+  const [user, setUser] = useState<any>(null);
+
   useEffect(() => {
     if (quotation?.items && products.length > 0) {
       console.log("Item UUID from API:", quotation.items[0]?.productUuid);
@@ -64,18 +61,33 @@ export default function ViewQuotation({ id }: ViewQuotationProps) {
     return new Map(products.map((p) => [p.id, p]));
   }, [products]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const stored = localStorage.getItem("invoice_footer_settings");
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      setInvoiceNote(quotation?.notes || parsed.defaultNote || "");
-      setInvoiceTerms(quotation?.terms || parsed.defaultTerms || "");
-    }
-    const storedUser = localStorage.getItem("registered_user");
-    if (storedUser) setUser(JSON.parse(storedUser));
-  }, [quotation]);
+  // --- ២. បន្ទាប់មកទើប Check Loading ឬ Error (Hooks មិនត្រូវនៅក្រោមនេះទេ) ---
+  if (isLoading || loadingClient) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-purple-600 border-t-transparent"></div>
+      </div>
+    );
+  }
 
+  if (isError || !quotation) {
+    const errorMsg = (error as any)?.data?.message || error?.toString();
+    return (
+      <div className="flex flex-col items-center justify-center space-y-4 p-6 text-center">
+        <p className="font-semibold text-red-500">
+          Error loading quotation: {errorMsg}
+        </p>
+        <Link
+          href="/quotation"
+          className="flex items-center text-purple-600 hover:underline"
+        >
+          <FiSkipBack className="mr-2" /> Back to List
+        </Link>
+      </div>
+    );
+  }
+
+  // --- ៣. បន្ទាប់មកទើបដាក់ Helper functions និង Logic ធម្មតា ---
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString("en-GB");
@@ -86,23 +98,58 @@ export default function ViewQuotation({ id }: ViewQuotationProps) {
     0,
   );
 
-  const handleSend = async () => {
-    if (!quotation) return;
-    setSending(true);
+  const handleApproveAndConvert = async () => {
+    const formatDateForInvoice = (dateStr?: string) => {
+      const dateObj = dateStr ? new Date(dateStr) : new Date();
+      return isNaN(dateObj.getTime())
+        ? new Date().toISOString().slice(0, 19)
+        : dateObj.toISOString().slice(0, 19);
+    };
+
     try {
-      const previewLink = `${window.location.origin}/quotation/${quotation.id}`;
-      await fetch("/api/send-telegram", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: `📄 Quotation Preview: ${previewLink}`,
-        }),
+      // Step 1: បង្កើត Invoice
+      await createInvoice({
+        issueDate: formatDateForInvoice(
+          quotation.issueDate || quotation.quotationDate,
+        ),
+        expireDate: formatDateForInvoice(
+          quotation.expiryDate || quotation.quotationExpire,
+        ),
+        clientId: quotation.clientId,
+        subtotal: calculatedTotal,
+        tax: 0,
+        grandTotal: calculatedTotal,
+        status: "PENDING",
+        items: (quotation.items ?? []).map((item) => ({
+          productId: item.productId || item.id,
+          unitPrice: Number(item.unitPrice) || 0,
+          quantity: Number(item.quantity) || 0,
+          subtotal: Number(item.unitPrice) * Number(item.quantity) || 0,
+          name: item.productName || item.name || "Unknown Product",
+        })),
+      } as any).unwrap();
+
+      // Step 2: Approve Quotation
+      await updateQuotation({
+        id: quotation.id,
+        body: {
+          ...quotation,
+          status: "APPROVED",
+          quotationStatus: "APPROVED",
+        } as any,
+      }).unwrap();
+
+      toast({
+        title: "Success!",
+        description: "Quotation approved and converted to invoice.",
+        className: "bg-green-600 text-white",
       });
-      alert("Sent successfully!");
-    } catch (err) {
-      alert("Failed to send.");
-    } finally {
-      setSending(false);
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err?.data?.message || "Something went wrong.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -114,84 +161,12 @@ export default function ViewQuotation({ id }: ViewQuotationProps) {
     );
   }
 
-  const handleShareLink = () => {
-    if (!quotation) return;
-    const shareUrl = `${window.location.origin}/quotation-view/${quotation.id}`;
-
-    const copyToClipboard = (text: string) => {
-      if (navigator.clipboard && window.isSecureContext) {
-        return navigator.clipboard.writeText(text);
-      } else {
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        textArea.style.position = "fixed";
-        textArea.style.left = "-9999px";
-        textArea.style.top = "0";
-        textArea.style.opacity = "0";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        textArea.setSelectionRange(0, 99999);
-        return new Promise<void>((resolve, reject) => {
-          try {
-            const successful = document.execCommand("copy");
-            document.body.removeChild(textArea);
-            successful ? resolve() : reject(new Error("ExecCommand failed"));
-          } catch (err) {
-            document.body.removeChild(textArea);
-            reject(err);
-          }
-        });
-      }
-    };
-
-    copyToClipboard(shareUrl)
-      .then(() => {
-        toast({
-          title: "Link Copied!",
-          description: "Quotation link has been copied to clipboard.",
-          className: "bg-purple-600 text-white",
-          duration: 2000,
-        });
-      })
-      .catch((err) => {
-        console.error("Copy failed: ", err);
-        toast({
-          title: "Copy Failed",
-          description: "Please copy the URL manually from the browser bar.",
-          variant: "destructive",
-        });
-      });
-  };
-
-  if (isError || !quotation) {
-    return (
-      <div className="flex flex-col items-center justify-center space-y-4 p-6">
-        <p className="text-red-500">Error loading quotation</p>
-        <Link href="/quotation" className="flex items-center text-purple-600">
-          <FiSkipBack className="mr-2" /> Back
-        </Link>
-      </div>
-    );
-  }
-
   return (
     <div className="mx-auto max-w-4xl">
-      {/* Back Button */}
-      <div className="mb-6">
-        <Link
-          href="/quotation"
-          className="flex w-fit items-center rounded-lg border border-gray-200 bg-white px-4 py-2 font-medium text-purple-600 transition hover:border-purple-400 hover:text-purple-700 dark:border-dark-3 dark:bg-gray-800"
-        >
-          <FiSkipBack className="mr-2 h-5 w-5" />
-          Back to Quotations
-        </Link>
-      </div>
-
-      {/* Main Quotation Card - Style ដូច ViewInvoice */}
+      {/* Main Quotation Card - ដូច ViewInvoiceShare បេះបិទ */}
       <div
         ref={quotationRef}
-        className="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
+        className="h-[87vh] overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
       >
         {/* Header Section */}
         <div className="border-b border-gray-200 p-8 dark:border-gray-700">
@@ -241,12 +216,14 @@ export default function ViewQuotation({ id }: ViewQuotationProps) {
             <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-purple-600 dark:text-purple-400">
               From
             </h3>
-            <p className="text-lg font-semibold text-gray-800 dark:text-white">
-              {user?.companyName || "Company Name"}
-            </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">{`${user?.houseNo || ""} ${user?.street || ""}`}</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">{`${user?.province || ""}, ${user?.companyPhone || ""}`}</p>
-            <p className="text-sm text-gray-500">{user?.companyEmail}</p>
+            <div>
+              <p className="text-lg font-semibold text-gray-800 dark:text-white">
+                {user?.companyName || "Company Name"}
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{`${user?.houseNo || ""} ${user?.street || ""}`}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{`${user?.province || ""}, ${user?.companyPhone || ""}`}</p>
+              <p className="text-sm text-gray-500">{user?.companyEmail}</p>
+            </div>
           </div>
           <div>
             <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-purple-600 dark:text-purple-400">
@@ -255,12 +232,16 @@ export default function ViewQuotation({ id }: ViewQuotationProps) {
             <p className="font-semibold text-gray-900 dark:text-white">
               {client?.name || "Unknown Client"}
             </p>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-              Address: {client?.address || "N/A"}
-            </p>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-              Phone: {client?.phoneNumber || "N/A"}
-            </p>
+            {client?.address && (
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                Address: {client.address}
+              </p>
+            )}
+            {client?.phoneNumber && (
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                Phone: {client.phoneNumber}
+              </p>
+            )}
           </div>
         </div>
 
@@ -299,7 +280,6 @@ export default function ViewQuotation({ id }: ViewQuotationProps) {
                     <td className="p-3 text-sm text-gray-600 dark:text-gray-400">
                       {index + 1}
                     </td>
-
                     <td className="p-3 text-sm text-gray-900 dark:text-white">
                       {(() => {
                         const productFromMap = productIdMap.get(item.productId);
@@ -321,7 +301,7 @@ export default function ViewQuotation({ id }: ViewQuotationProps) {
                       {item.quantity}
                     </td>
                     <td className="p-3 text-right text-sm text-gray-600 dark:text-gray-400">
-                      ${item.unitPrice.toFixed(2)}
+                      ${Number(item.unitPrice).toFixed(2)}
                     </td>
                     <td className="p-3 text-right text-sm font-semibold text-gray-900 dark:text-white">
                       ${(item.quantity * item.unitPrice).toFixed(2)}
@@ -332,7 +312,7 @@ export default function ViewQuotation({ id }: ViewQuotationProps) {
             </table>
           </div>
 
-          {/* Totals */}
+          {/* Totals Section */}
           <div className="mt-8 flex justify-end">
             <div className="w-64 space-y-2">
               <div className="flex justify-between text-sm">
@@ -353,81 +333,60 @@ export default function ViewQuotation({ id }: ViewQuotationProps) {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Notes and Terms */}
-        <div className="border-t border-gray-200 bg-gray-50 p-8 dark:border-gray-700 dark:bg-gray-900">
-          <div className="grid gap-8 md:grid-cols-2">
-            <div>
-              <h3 className="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                Notes
-              </h3>
-              <ul className="list-inside list-disc space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                {parseNoteOrTerms(invoiceNote).map((line, i) => (
-                  <li key={i}>{line}</li>
-                ))}
-              </ul>
+          {/* Note Section ដូច ViewInvoiceShare */}
+          <div className="mt-6">
+            <div className="font-semibold text-gray-700 dark:text-gray-300">
+              Note *
             </div>
-            <div>
-              <h3 className="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                Terms & Conditions
-              </h3>
-              <ul className="list-inside list-disc space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                {parseNoteOrTerms(invoiceTerms).map((line, i) => (
-                  <li key={i}>{line}</li>
-                ))}
-              </ul>
-            </div>
+            <div
+              className="text-sm text-gray-600 dark:text-gray-400"
+              dangerouslySetInnerHTML={{ __html: quotation?.notes || "" }}
+            />
           </div>
         </div>
       </div>
 
-      {/* Action Buttons - ដូច ViewInvoice បេះបិទ */}
-      <div className="mt-6 flex w-full gap-3">
-        <div className="w-[70%]">
-          <DownloadPDFButton
-            quotation={{
-              quotationNo: quotation.quotationNo,
-              issueDate: quotation.quotationDate ?? quotation.issueDate ?? "",
-              expiryDate: quotation.expiryDate,
-              items: quotation.items.map((item) => ({
-                id: item.id,
-                uuid: item.productUuid || "",
-                name: item.productName || item.name || "",
-                price: item.unitPrice,
-                image_url: "",
-                status: "IN_STOCK",
-                productTypeId: 0,
-                productTypeName: "",
-                stockQuantity: item.quantity,
-                low_stock: 0,
-                userId: 0,
-                currency_type: "USD",
-              })),
-              amount: calculatedTotal,
-              notes: invoiceNote,
-              terms: invoiceTerms,
-            }}
-            client={client || null}
-            taxRate={0}
-          />
-        </div>
-        <div className="">
+      {/* Action Buttons - ដូច ViewInvoiceShare */}
+      <div className="mt-6 flex gap-4">
+        <DownloadPDFButton
+          quotation={{
+            quotationNo: quotation.quotationNo || "",
+            issueDate: (quotation.quotationDate ?? quotation.issueDate) || "",
+            expiryDate:
+              (quotation.expiryDate ?? quotation.quotationExpire) || "",
+
+            items: quotation.items.map((item) => ({
+              id: item.id,
+              uuid: item.productUuid || "",
+              name: item.productName || item.name || "",
+              price: item.unitPrice,
+              image_url: "",
+              status: "IN_STOCK",
+              productTypeId: 0,
+              productTypeName: "",
+              stockQuantity: item.quantity,
+              low_stock: 0,
+              userId: 0,
+              currency_type: "USD",
+            })),
+            amount: calculatedTotal,
+            notes: quotation.notes || "",
+            terms: quotation.terms || "",
+          }}
+          client={client || null}
+          taxRate={0}
+        />
+        {quotation?.status !== "APPROVED" && (
           <button
-            onClick={handleShareLink}
-            className="flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition hover:bg-blue-700"
+            onClick={handleApproveAndConvert}
+            disabled={isUpdating || isCreatingInvoice}
+            className="flex items-center justify-center rounded-lg bg-green-600 px-6 py-2 font-medium text-white transition hover:bg-green-700 disabled:opacity-50"
           >
-            <FiShare2 className="mr-2" /> Share
+            <FiCheckCircle className="mr-2" />
+            {isUpdating || isCreatingInvoice ? "Processing..." : "Approve"}
           </button>
-        </div>
-        <div className="w-[15%]">
-          <Link
-            href={`/quotation/${quotation.id}/edit`}
-            className="flex items-center justify-center rounded-lg bg-purple-600 px-4 py-3 text-white transition hover:bg-purple-700"
-          >
-            <FiEdit className="mr-2" /> Edit
-          </Link>
-        </div>
+        )}
       </div>
     </div>
   );

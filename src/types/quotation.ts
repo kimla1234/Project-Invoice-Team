@@ -13,7 +13,7 @@ export interface QuotationItem {
   total: number;
   itemTotal?: number; // Added for flexibility
   name?: string;
-  productId?: number;
+  productId: number;
 }
 
 /*CREATE REQUEST */

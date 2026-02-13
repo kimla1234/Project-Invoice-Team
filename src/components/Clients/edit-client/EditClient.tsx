@@ -86,8 +86,8 @@ export default function EditClient() {
   }
 
   return (
-    <div className="p-6">
-      <div className="mx-auto w-full max-w-xl rounded-lg border bg-white p-6 shadow-md dark:border-dark-3 dark:bg-dark-2">
+    <div className="">
+      <div className="mx-auto w-full max-w-xl rounded-lg border bg-white p-6  dark:border-dark-3 dark:bg-dark-2">
         <div className="mb-4 text-xl font-semibold text-slate-700">Edit Client #{client.id}</div>
         <form onSubmit={handleSubmit} className="grid gap-4">
         <label className="grid gap-1">

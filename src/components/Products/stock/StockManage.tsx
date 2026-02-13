@@ -11,6 +11,7 @@ import {
   FiEdit,
   FiArrowDownLeft,
   FiTrash2,
+  FiArrowUpRight,
 } from "react-icons/fi";
 import { useToast } from "@/hooks/use-toast";
 
@@ -189,18 +190,18 @@ export default function StockManage({ productId }: StockManageProps) {
   if (!product) return <p>Product not found</p>;
 
   return (
-    <div className="flex w-full justify-center p-10 dark:bg-gray-900">
-      <div className="mx-auto max-w-3xl space-y-6">
+    <div className="flex w-full justify-center p-4 md:p-10 dark:bg-gray-900">
+      <div className="w-full max-w-3xl space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="rounded-lg border bg-white p-2 dark:bg-gray-800">
+        <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+          <div className="rounded-lg border bg-white p-2 dark:bg-gray-800 self-start">
             <h3 className="font-bold text-gray-900 dark:text-gray-300">
               Manage Stock
             </h3>
           </div>
           <Link
             href="/products"
-            className="flex items-center rounded-lg border bg-white p-2 font-medium text-purple-600 hover:text-red-400"
+            className="flex items-center justify-center rounded-lg border bg-white p-2 font-medium text-purple-600 hover:text-red-400 transition-all active:scale-95"
           >
             <FiSkipBack className="mr-2 h-5 w-5" />
             Back to Products
@@ -208,25 +209,25 @@ export default function StockManage({ productId }: StockManageProps) {
         </div>
 
         {/* Product Info */}
-        <div className="rounded-xl border bg-white p-6 shadow-sm dark:bg-gray-800">
-          <div className="flex items-start justify-between">
-            <div className="flex space-x-6 items-start">
-              <div className="w-[80px] h-[80px] ">
+        <div className="rounded-xl  border bg-white p-4 md:p-6 shadow-sm dark:bg-gray-800">
+          <div className="flex flex-col space-y-4 sm:flex-row sm:items-start sm:justify-between sm:space-y-0">
+            <div className="flex flex-col space-y-4 sm:flex-row sm:space-x-6 sm:space-y-0 sm:items-start">
+              <div className="w-20 h-20 mx-auto sm:mx-0 shrink-0">
                 <Image
                   unoptimized
                   src={product.image_url || "/image.png"}
                   alt="image"
                   width={1000}
                   height={1000}
-                  className=" object-cover w-full h-full rounded-md "
+                  className="object-cover w-full h-full rounded-md"
                 />
               </div>
-              <div>
+              <div className="text-center sm:text-left">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                   {product.name}
                 </h3>
                 <div
-                  className="text-sm text-gray-500"
+                  className="text-sm text-gray-500 line-clamp-2"
                   dangerouslySetInnerHTML={{
                     __html: product.description || "-",
                   }}
@@ -236,20 +237,20 @@ export default function StockManage({ productId }: StockManageProps) {
                 </p>
               </div>
             </div>
-            <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700">
+            <span className="self-center sm:self-start rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700">
               {product.productTypeName}
             </span>
           </div>
         </div>
 
         {/* Action Form */}
-        <div className="space-y-6 rounded-xl border bg-white p-6 shadow-sm dark:bg-gray-800">
+        <div className="space-y-6 rounded-xl border bg-white p-4 md:p-6 shadow-sm dark:bg-gray-800">
           {/* Type Selection */}
           <div className="space-y-3">
             <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
               Type
             </label>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-4">
               <TypeButton
                 active={type === "IN"}
                 onClick={() => setType("IN")}
@@ -266,13 +267,13 @@ export default function StockManage({ productId }: StockManageProps) {
                 active={type === "ADJUST"}
                 onClick={() => setType("ADJUST")}
                 icon={<FiEdit />}
-                label="Stock Adjustment"
+                label="Adjustment"
               />
             </div>
           </div>
 
           {/* Inputs */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-semibold">
                 {type === "IN"
@@ -280,28 +281,22 @@ export default function StockManage({ productId }: StockManageProps) {
                   : type === "OUT"
                     ? "Remove Stock"
                     : "Adjust Stock"}{" "}
-                (Current: {currentStock})
+                <span className="text-purple-600">(Current: {currentStock})</span>
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                   {type === "OUT" ? "-" : "+"}
                 </span>
                 <input
-                  value={adjustmentValue || ""} // ✅ fallback to empty string
+                  type="number"
+                  value={adjustmentValue || ""} 
                   onChange={(e) => {
                     let value = Number(e.target.value);
-
-                    // Prevent NaN
                     if (isNaN(value)) value = 0;
-
-                    // Prevent negative
                     if (value < 0) value = 0;
-
-                    // Prevent OUT stock exceeding currentStock
                     if (type === "OUT" && value > currentStock) {
                       value = currentStock;
                     }
-
                     setAdjustmentValue(value);
                   }}
                   className="w-full rounded-lg border border-gray-200 p-2.5 pl-8 outline-none focus:ring-2 focus:ring-purple-500 dark:border-gray-600 dark:bg-gray-700"
@@ -334,87 +329,68 @@ export default function StockManage({ productId }: StockManageProps) {
           <button
             onClick={handleCreateMovement}
             disabled={adjustmentValue === 0}
-            className="w-full rounded-lg bg-purple-600 py-3 font-semibold text-white transition hover:bg-purple-700 disabled:opacity-50"
+            className="w-full rounded-lg bg-purple-600 py-3.5 font-bold text-white transition hover:bg-purple-700 disabled:opacity-50 active:scale-[0.98]"
           >
-            Create
+            Create Movement
           </button>
         </div>
 
         {/* Movement History */}
-        <div className="rounded-xl border bg-white p-6 shadow-sm dark:bg-gray-800">
+        <div className="rounded-xl border bg-white p-4 md:p-6 shadow-sm dark:bg-gray-800">
           <h3 className="text-lg font-bold">Stock Movements</h3>
           <p className="mb-4 text-sm text-gray-500">
             History of inventory changes.
           </p>
 
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
             {currentMovements.length === 0 ? (
-              <p className="text-sm text-gray-400">No stock movements yet.</p>
+              <p className="text-sm text-gray-400 text-center py-6">No stock movements yet.</p>
             ) : (
               currentMovements.map((m, index) => (
                 <div
-                  key={`${m.productUuid}-${m.type}-${m.quantity}-${index}`}
-                  className="flex items-center justify-between border-b pb-4 last:border-0"
+                  key={`${m.productUuid}-${index}`}
+                  className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-4 last:border-0"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="rounded-full bg-green-100 p-2 text-green-600">
-                      <FiArrowDownLeft size={20} />
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div className={`rounded-full p-2 ${m.type === "OUT" ? "bg-red-50 text-red-500" : "bg-green-50 text-green-600"}`}>
+                      {m.type === "OUT" ? <FiArrowUpRight size={18} /> : <FiArrowDownLeft size={18} />}
                     </div>
                     <div>
-                      <p className="font-semibold">{`STOCK ${m.type}`}</p>
-                      <p className="text-xs text-gray-400">
-                        {new Date(m.created_at)
-                          .toLocaleDateString("en-GB")
-                          .replace(/\//g, "-")}{" "}
-                        {new Date(m.created_at).toLocaleTimeString("en-US", {
-                          hour: "numeric",
-                          minute: "2-digit",
-                          hour12: true,
-                        })}
+                      <p className="text-sm font-semibold uppercase tracking-tight">{`STOCK ${m.type}`}</p>
+                      <p className="text-[10px] sm:text-xs text-gray-400">
+                        {new Date(m.created_at).toLocaleDateString("en-GB").replace(/\//g, "-")} 
+                        {" "}{new Date(m.created_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}
                       </p>
-
-                      {m.note && (
-                        <p className="text-xs text-gray-400">{m.note}</p>
-                      )}
+                      {m.note && <p className="text-xs text-gray-400 italic mt-0.5">{m.note}</p>}
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span
-                      className={`text-lg font-bold ${
-                        m.type === "OUT" ? "text-red-600" : "text-green-600"
-                      }`}
-                    >
+                    <span className={`text-base sm:text-lg font-bold ${m.type === "OUT" ? "text-red-600" : "text-green-600"}`}>
                       {m.type === "OUT" ? `-${m.quantity}` : `+${m.quantity}`}
                     </span>
-                    {/* 
-                    <button
-                      onClick={() => handleRequestDelete(m.productUuid)}
-                      className="rounded-full bg-red-100 p-2 text-red-400 hover:text-red-600"
-                    >
-                      <FiTrash2 className="h-5 w-5" />
-                    </button>
-                    */}
                   </div>
                 </div>
               ))
             )}
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <PaginationControls
-              currentPage={currentPage}
-              totalPages={totalPages}
-              rowsPerPage={rowsPerPage}
-              totalItems={movements.length}
-              availableRowsPerPage={[5, 10, 20]}
-              onPageChange={setCurrentPage}
-              onRowsPerPageChange={(rows) => {
-                setRowsPerPage(rows);
-                setCurrentPage(1);
-              }}
-            />
-          )}
+          {/* Pagination Container */}
+          <div className="mt-6 pt-4 border-t dark:border-gray-700 overflow-x-auto">
+            {totalPages > 1 && (
+              <PaginationControls
+                currentPage={currentPage}
+                totalPages={totalPages}
+                rowsPerPage={rowsPerPage}
+                totalItems={movements.length}
+                availableRowsPerPage={[5, 10, 20]}
+                onPageChange={setCurrentPage}
+                onRowsPerPageChange={(rows) => {
+                  setRowsPerPage(rows);
+                  setCurrentPage(1);
+                }}
+              />
+            )}
+          </div>
         </div>
       </div>
       <ConfirmDeleteModal

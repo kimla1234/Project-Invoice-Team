@@ -13,7 +13,8 @@ export function middleware(request: NextRequest) {
     '/_next',
     '/auth/google/callback', 
     '/oauth2/callback' ,       
-    '/invoice-view'
+    '/invoice-view',
+    '/quotation-view'
   ];
 
 

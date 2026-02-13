@@ -103,56 +103,73 @@ export default function Quotation() {
   }));
 
   return (
-    <div className="space-y-3">
-      {/* HEADER */}
-      <div className="flex items-center justify-between">
-        <div className="inline-flex w-[210px] justify-center rounded-lg border border-gray-200 bg-white px-2 py-1 text-xl text-slate-600">
-          Quotation
+    <div className="space-y-4 md:space-y-6">
+  {/* HEADER SECTION */}
+  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    {/* Title Badge - Removed fixed width for fluid growth on mobile */}
+    <div className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-6 py-2 text-xl font-semibold text-slate-600 shadow-sm sm:w-auto">
+      Quotation
+    </div>
+
+    {/* Action Buttons Group */}
+    <div className="flex items-center gap-3 sm:gap-4">
+      <div className="flex-1 sm:flex-none">
+        <button
+          type="button"
+          onClick={handleExportExcel}
+          className="flex w-full items-center justify-center space-x-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-50 active:bg-gray-100"
+        >
+          <Image src={logo} alt="Excel icon" width={20} height={20} />
+          <span className="hidden xs:inline">Export Excel</span>
+          <span className="xs:hidden">Export</span>
+        </button>
+      </div>
+
+      <Link
+        href="/quotation/create"
+        className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 active:scale-95 sm:flex-none"
+      >
+        <span className="whitespace-nowrap">Create Quotation</span>
+        <VscAdd className="text-xl" />
+      </Link>
+    </div>
+  </div>
+
+  {/* BODY / CONTENT CARD */}
+  <div className="w-full space-y-6 rounded-xl bg-white p-4 shadow-sm border border-gray-100 md:p-8 text-slate-600">
+    
+    {/* Statistics / Summary Component */}
+    <HeaderQuotations totalQuotations={quotationData?.totalElements || quotations.length} />
+
+    {/* Search and Filters Bar */}
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      {/* Search & Date Inputs */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="w-full sm:w-72">
+          <SearchInput searchTerm={searchTerm} onSearchChange={setSearchTerm} />
         </div>
-
-        <div className="flex items-center space-x-4">
-          <div className="inline-flex rounded-lg border border-gray-200 bg-white">
-            <button
-              type="button"
-              onClick={handleExportExcel}
-              className="flex items-center space-x-2 rounded-l-lg px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50"
-            >
-              <Image src={logo} alt="Excel icon" width={20} height={20} />
-              <div>Export Excel</div>
-            </button>
-          </div>
-
-          <Link
-            href="/quotation/create"
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            <span>Create Quotation</span>
-            <VscAdd className="text-xl" />
-          </Link>
+        <div className="w-full sm:w-auto">
+          <FilterDate date={issueDate} onChange={setIssueDate} />
         </div>
       </div>
 
-      {/* BODY */}
-      <div className="w-full space-y-6 rounded-md bg-white p-8 text-slate-600">
-        <HeaderQuotations totalQuotations={quotationData?.totalElements || quotations.length} />
-
-        <div className="flex w-full justify-between gap-4">
-          <div className="flex gap-4">
-            <SearchInput searchTerm={searchTerm} onSearchChange={setSearchTerm} />
-            <FilterDate date={issueDate} onChange={setIssueDate} />
-          </div>
-
-          <ColumnToggleDropdown columns={columnOptions} onToggle={toggleColumnVisibility} />
-        </div>
-
-        <QuotationTable
-          data={filteredData}
-          clients={clients}
-          loading={loadingQuotations || loadingClients}
-          onRefresh={() => {}}
-          columnVisibility={columnVisibility}
-        />
+      {/* Column Customization */}
+      <div className="flex justify-end">
+        <ColumnToggleDropdown columns={columnOptions} onToggle={toggleColumnVisibility} />
       </div>
     </div>
+
+    {/* Table Container - Handle overflow internally */}
+    <div className="relative overflow-hidden">
+      <QuotationTable
+        data={filteredData}
+        clients={clients}
+        loading={loadingQuotations || loadingClients}
+        onRefresh={() => {}}
+        columnVisibility={columnVisibility}
+      />
+    </div>
+  </div>
+</div>
   );
 }

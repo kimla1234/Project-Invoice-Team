@@ -50,12 +50,6 @@ export function Settings() {
           <TabsTrigger value="company" className="w-full">
             Company
           </TabsTrigger>
-          <TabsTrigger value="invoice" className="w-full">
-            Business
-          </TabsTrigger>
-          <TabsTrigger value="security" className="w-full">
-            Security
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent

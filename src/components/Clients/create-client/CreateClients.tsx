@@ -103,157 +103,163 @@ export default function CreateClients() {
   };
 
   return (
-    <div className="flex h-auto w-full justify-center p-10">
-      <div className="w-[70%] space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="rounded-lg border bg-white p-2 dark:bg-gray-800">
-            <h3 className="text-md font-bold text-gray-900 dark:text-gray-300">
-              Create New Client
-            </h3>
+    <div className="flex min-h-screen w-full justify-center  lg:p-10 bg-gray-50/30 dark:bg-transparent">
+  {/* Container: Fluid on mobile, max-width on desktop */}
+  <div className="w-full max-w-4xl space-y-6">
+    
+    {/* Header: Stacks on very small screens, row on larger ones */}
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="inline-block rounded-lg border border-gray-100 bg-white p-2 px-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+          Create New Client
+        </h3>
+      </div>
+
+      <Link
+        href="/clients"
+        className="inline-flex items-center justify-center rounded-lg border bg-white px-4 py-2 text-sm font-medium text-purple-600 transition-colors hover:bg-gray-50 hover:text-red-500 dark:border-gray-700 dark:bg-gray-800 dark:text-purple-400"
+      >
+        <FiSkipBack className="mr-2 h-4 w-4" />
+        Back to Clients
+      </Link>
+    </div>
+
+    {/* Form Card */}
+    <div className="w-full rounded-xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800 md:p-10">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        
+        {/* Input Grid */}
+        <div className="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
+          
+          {/* Client Name */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Client Name
+            </label>
+            <input
+              type="text"
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+              placeholder="Full name"
+              className={cn(
+                "w-full rounded-lg border border-gray-200 bg-gray-50/50 p-2.5 transition-all focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 dark:border-gray-600 dark:bg-gray-700",
+                errors.clientName && "border-red-500 ring-red-500/10"
+              )}
+            />
+            {errors.clientName && (
+              <p className="text-xs font-medium text-red-500">{errors.clientName}</p>
+            )}
           </div>
 
-          <Link
-            href="/clients"
-            className="text-md flex items-center rounded-lg border bg-white p-2 font-medium text-purple-600 hover:text-red-400 dark:hover:text-purple-400"
-          >
-            <FiSkipBack className="mr-2 h-5 w-5" />
-            Back to Clients
-          </Link>
-        </div>
+          {/* Gender */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Client Gender
+            </label>
+            <div className="relative">
+              <Dropdown isOpen={isOpen} setIsOpen={setIsOpen}>
+                <DropdownTrigger className="w-full">
+                  <button
+                    type="button" // Important to prevent form submission
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setIsOpen(!isOpen);
+                    }}
+                    className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-gray-50/50 p-2.5 text-left transition-all hover:bg-white dark:border-gray-600 dark:bg-gray-700"
+                  >
+                    <span className={!clientGender ? "text-gray-400" : ""}>
+                      {clientGender || "Select gender"}
+                    </span>
+                    <ChevronUpIcon
+                      className={cn(
+                        "h-5 w-5 text-gray-400 transition-transform",
+                        isOpen && "rotate-180"
+                      )}
+                    />
+                  </button>
+                </DropdownTrigger>
 
-        {/* Form */}
-        <div className="w-full rounded-md border bg-white p-7 text-slate-600 dark:bg-gray-800 dark:text-gray-300">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Row 1 */}
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div>
-                <label className="mb-1.5 block font-medium">Client Name</label>
-                <input
-                  type="text"
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                  placeholder="Input name"
-                  className={cn(
-                    "w-full rounded-lg border p-2",
-                    errors.clientName && "border-red-500",
-                  )}
-                />
-                {errors.clientName && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.clientName}
-                  </p>
-                )}
-              </div>
-
-              {/* Gender */}
-              <div>
-                <label className="mb-1.5 block font-medium">Client Gender</label>
-                <Dropdown isOpen={isOpen} setIsOpen={setIsOpen}>
-                  <DropdownTrigger className="w-full">
+                <DropdownContent className="z-50 mt-2 w-full overflow-hidden rounded-lg border bg-white shadow-xl dark:border-gray-600 dark:bg-gray-800">
+                  {options.map((opt) => (
                     <div
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setIsOpen(!isOpen);
+                      key={opt}
+                      onClick={() => {
+                        setClientGender(opt);
+                        setIsOpen(false);
                       }}
-                      className="flex w-full items-center justify-between rounded-lg border p-2"
+                      className={cn(
+                        "cursor-pointer px-4 py-3 text-sm transition-colors hover:bg-purple-50 dark:hover:bg-purple-900/20",
+                        clientGender === opt && "bg-purple-50 font-bold text-purple-600 dark:bg-purple-900/30"
+                      )}
                     >
-                      {clientGender}
-                      <ChevronUpIcon
-                        className={cn(
-                          "h-[18px] w-[18px] rotate-180 transition-transform",
-                          isOpen && "rotate-0",
-                        )}
-                        strokeWidth={1.5}
-                      />
+                      {opt}
                     </div>
-                  </DropdownTrigger>
-
-                  <DropdownContent className="z-50 mt-1 w-full space-y-2 border bg-white p-3 shadow-sm">
-                    {options.map((opt) => (
-                      <div
-                        key={opt}
-                        onClick={() => {
-                          setClientGender(opt);
-                          setIsOpen(false);
-                        }}
-                        className={cn(
-                          "cursor-pointer rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-50",
-                          clientGender === opt &&
-                            "bg-gray-100 text-primary"
-                        )}
-                      >
-                        {opt}
-                      </div>
-                    ))}
-                  </DropdownContent>
-                </Dropdown>
-                {errors.clientGender && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.clientGender}
-                  </p>
-                )}
-              </div>
-
-              {/* Contact */}
-              <div>
-                <label className="mb-1.5 block font-medium">Contact</label>
-                <input
-                  type="text"
-                  value={contact}
-                  onChange={(e) => setContact(e.target.value)}
-                  placeholder="Input contact number"
-                  className={cn(
-                    "w-full rounded-lg border p-2",
-                    errors.contact && "border-red-500"
-                  )}
-                />
-                {errors.contact && (
-                  <p className="mt-1 text-sm text-red-500">{errors.contact}</p>
-                )}
-              </div>
+                  ))}
+                </DropdownContent>
+              </Dropdown>
             </div>
+            {errors.clientGender && (
+              <p className="text-xs font-medium text-red-500">{errors.clientGender}</p>
+            )}
+          </div>
 
-            {/* Row 2 */}
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              {/* Address */}
-              <div>
-                <label className="mb-1.5 block font-medium">Address</label>
-                <input
-                  type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Input address"
-                  className={cn(
-                    "w-full rounded-lg border p-2",
-                    errors.address && "border-red-500"
-                  )}
-                />
-                {errors.address && (
-                  <p className="mt-1 text-sm text-red-500">{errors.address}</p>
-                )}
-              </div>
+          {/* Contact */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Contact Number
+            </label>
+            <input
+              type="text"
+              value={contact}
+              onChange={(e) => setContact(e.target.value)}
+              placeholder="+855..."
+              className={cn(
+                "w-full rounded-lg border border-gray-200 bg-gray-50/50 p-2.5 transition-all dark:border-gray-600 dark:bg-gray-700",
+                errors.contact && "border-red-500"
+              )}
+            />
+            {errors.contact && (
+              <p className="text-xs font-medium text-red-500">{errors.contact}</p>
+            )}
+          </div>
 
-              {/* Spacer */}
-              <div className="hidden md:block" />
-            </div>
-
-            {/* Actions */}
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={isLoading}
-                className={cn(
-                  "rounded-lg bg-purple-600 px-5 py-2 text-white",
-                  isLoading && "opacity-70"
-                )}
-              >
-                {isLoading ? "Saving..." : "Create Client"}
-              </button>
-            </div>
-          </form>
+          {/* Address */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Address
+            </label>
+            <input
+              type="text"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Street, City, Country"
+              className={cn(
+                "w-full rounded-lg border border-gray-200 bg-gray-50/50 p-2.5 transition-all dark:border-gray-600 dark:bg-gray-700",
+                errors.address && "border-red-500"
+              )}
+            />
+            {errors.address && (
+              <p className="text-xs font-medium text-red-500">{errors.address}</p>
+            )}
+          </div>
         </div>
-      </div>
+
+        {/* Footer Actions */}
+        <div className="flex flex-col-reverse gap-3 pt-4 border-t border-gray-50 dark:border-gray-700 sm:flex-row sm:justify-end">
+          <button
+            type="submit"
+            disabled={isLoading}
+            className={cn(
+              "w-full sm:w-auto flex items-center justify-center rounded-lg bg-purple-600 px-8 py-3 font-bold text-white transition-all hover:bg-purple-700 active:scale-95 shadow-md shadow-purple-200 dark:shadow-none",
+              isLoading && "opacity-70 cursor-not-allowed"
+            )}
+          >
+            {isLoading ? "Saving..." : "Create Client"}
+          </button>
+        </div>
+      </form>
     </div>
+  </div>
+</div>
   );
 }

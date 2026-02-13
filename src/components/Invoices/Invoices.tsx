@@ -42,20 +42,24 @@ export default function Invoices() {
   return (
     <div className="space-y-3">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div className="inline-flex w-[210px] justify-center rounded-lg border border-gray-200 bg-white px-2 py-1 text-xl text-slate-600">
-          Invoice
-        </div>
-        <div className="flex gap-2">
-          <Link
-            href="/invoices/create"
-            className="flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
-          >
-            <span>Create Invoice</span>
-            <VscAdd className="text-xl" />
-          </Link>
-        </div>
-      </div>
+<div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
+  {/* Title */}
+  <div className="w-full sm:w-[210px] text-center sm:text-center rounded-lg border border-gray-200 bg-white px-4 py-2 text-lg sm:text-xl text-slate-600">
+    Invoice
+  </div>
+
+  {/* Action Button */}
+  <div className="w-full sm:w-[210px] flex justify-center sm:justify-start gap-2">
+    <Link
+      href="/invoices/create"
+      className="flex items-center w-full justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm sm:text-base font-medium text-white hover:bg-purple-700"
+    >
+      <span>Create Invoice</span>
+      <VscAdd className="text-lg sm:text-xl" />
+    </Link>
+  </div>
+</div>
+
 
       {/* Content */}
       <div className="w-full space-y-6 rounded-md bg-white p-8 text-slate-600">

@@ -59,12 +59,11 @@ export const quotationsApi = normPlovApi.injectEndpoints({
     >({
       query: ({ id, body }) => ({
         url: `api/v1/quotations/${id}`,
-        method: "PUT",
+        method: "PATCH",
         body,
       }),
 
-      invalidatesTags: (result, error, { id }) => [
-        { type: "Quotations", id },
+      invalidatesTags:  [
         "Quotations",
       ],
       

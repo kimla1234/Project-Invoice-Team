@@ -41,6 +41,14 @@ export const productsApi = normPlovApi.injectEndpoints({
       providesTags: (result, error, uuid) => [{ type: "Products", id: uuid }],
     }),
 
+    getProductsById: builder.query<MyEventResponse, number>({
+      query: (id) => ({
+        url: `api/v1/products/by/${id}`,
+        method: "GET",
+      }),
+      providesTags: (result, error, uuid) => [{ type: "Products", id: uuid }],
+    }),
+
     // ✅ UPDATE
     updateProduct: builder.mutation<
       MyEventResponse,
@@ -124,6 +132,7 @@ export const productsApi = normPlovApi.injectEndpoints({
 export const {
   useGetMyProductsQuery,
   useGetProductsByUuidQuery,
+  useGetProductsByIdQuery,
   useDeleteProductMutation, 
   useCreateProductMutation,
   useUpdateProductMutation,

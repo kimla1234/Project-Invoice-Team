@@ -178,303 +178,192 @@ export default function CreateProducts() {
   };
 
   return (
-    <div className="flex h-auto w-full justify-center p-10">
-      <div className="w-[70%] space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="rounded-lg border bg-white p-2 dark:bg-gray-800">
-            <h3 className="text-md font-bold text-gray-900 dark:text-gray-300">
-              Create New Product or Service
-            </h3>
-          </div>
-          <Link
-            href="/products"
-            className="text-md flex items-center rounded-lg border bg-white p-2 font-medium text-purple-600 hover:text-red-400 dark:hover:text-blue-400"
-          >
-            <FiSkipBack className="mr-2 h-5 w-5" />
-            Back to Products
-          </Link>
-        </div>
 
-        {/* Form */}
-        <div className="w-full rounded-md border bg-white p-7 text-slate-600 dark:bg-gray-800 dark:text-gray-300">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Row 1: Name & Type */}
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div>
-                <label className="mb-1.5 block font-medium">Product Name</label>
-                <input
-                  type="text"
-                  value={productName}
-                  onChange={(e) => setProductName(e.target.value)}
-                  placeholder="Input name"
-                  className={cn(
-                    "w-full rounded-lg border p-2",
-                    errors.productName && "border-red-500",
-                  )}
-                />
-                {errors.productName && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.productName}
-                  </p>
-                )}
-              </div>
-
-              {/* Price */}
-
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                {/* Unit Price */}
-                <div>
-                  <label className="mb-1.5 block font-medium">Unit Price</label>
-                  <input
-                    type="number"
-                    min="0" 
-                    value={unitPrice === 0 ? "" : unitPrice}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === "") {
-                        setUnitPrice(0);
-                      } else {
-                        const parsedVal = parseFloat(val);
-                        if (parsedVal >= 0) {
-                          setUnitPrice(parsedVal);
-                        }
-                      }
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "-" || e.key === "e" || e.key === "E") {
-                        e.preventDefault();
-                      }
-                    }}
-                    placeholder="0.00"
-                    className="w-full rounded-lg border p-2"
-                  />
-                </div>
-
-                {/* Currency */}
-                <div>
-                  <label className="mb-1.5 block font-medium">Currency</label>
-                  <Dropdown isOpen={isOpen} setIsOpen={setIsOpen}>
-                    <DropdownTrigger className="w-full">
-                      <div
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setIsOpen(!isOpen);
-                        }}
-                        className="flex w-full cursor-pointer items-center justify-between rounded-lg border p-2"
-                      >
-                        {currency}
-                        <ChevronUpIcon
-                          className={cn(
-                            "h-[18px] w-[18px] rotate-180 transition-transform",
-                            isOpen && "rotate-0",
-                          )}
-                        />
-                      </div>
-                    </DropdownTrigger>
-
-                    <DropdownContent
-                      align="start"
-                      className="z-50 mt-1 w-full space-y-2 border bg-white p-2"
-                    >
-                      {currencyOptions.map((cur) => (
-                        <div
-                          key={cur}
-                          onClick={() => {
-                            setCurrency(cur);
-                            setIsOpen(false);
-                          }}
-                          className={cn(
-                            "cursor-pointer rounded-md px-3 py-2 text-sm hover:bg-gray-100",
-                            currency === cur && "bg-gray-100 font-medium",
-                          )}
-                        >
-                          {cur}
-                        </div>
-                      ))}
-                    </DropdownContent>
-                  </Dropdown>
-                </div>
-              </div>
-            </div>
-
-            {/* Row 3: Stock & Low Stock Threshold */}
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div>
-                <label className="mb-1.5 block font-medium">Stock</label>
-                <input
-                  type="number"
-                  min="0" 
-                  value={stock === 0 ? "" : stock}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    const numericValue = val === "" ? 0 : parseInt(val);
-                    setStock(Math.max(0, numericValue));
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "-" || e.key === "." || e.key === "e") {
-                      e.preventDefault();
-                    }
-                  }}
-                  placeholder="0"
-                  className={cn(
-                    "w-full rounded-lg border p-2",
-                    errors.stock && "border-red-500",
-                  )}
-                />
-                {errors.stock && (
-                  <p className="mt-1 text-sm text-red-500">{errors.stock}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="mb-1.5 block font-medium">
-                  Low Stock Threshold
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={lowStockThreshold === 0 ? "" : lowStockThreshold}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    // Use parseInt to ensure it's a number, not a string
-                    setLowStockThreshold(val === "" ? 0 : parseInt(val, 10));
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "-" || e.key === "." || e.key === "e") {
-                      e.preventDefault();
-                    }
-                  }}
-                  placeholder="0"
-                  className={cn(
-                    "w-full rounded-lg border p-2",
-                    errors.lowStockThreshold && "border-red-500",
-                  )}
-                />
-                {errors.lowStockThreshold && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.lowStockThreshold}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <div className="mb-2 flex items-center justify-between">
-                <label className="font-medium text-slate-700 dark:text-gray-300">
-                  Product Type
-                </label>
-
-                {/* Use the controlled state here */}
-                <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-                  <SheetTrigger asChild>
-                    <button
-                      type="button"
-                      className="flex items-center border border-dashed gap-1 rounded-md bg-red-50 px-2 py-2 text-sm transition-transform duration-150 active:scale-95  text-red-500 "
-                    >
-                      <BiAddToQueue className="h-5 w-5" />
-                      Add New Type
-                    </button>
-                  </SheetTrigger>
-                  <SheetContent side="right" className="w-[400px] bg-white">
-                    <SheetHeader>
-                      <SheetTitle>Create Product Type</SheetTitle>
-                      <SheetDescription>
-                        Add a new category for your products. e.g., ELECTRONICS,
-                        FOOD.
-                      </SheetDescription>
-                    </SheetHeader>
-
-                    <CreateProductTypeForm
-                      onSuccess={() => {
-                        setIsSheetOpen(false); // ✅ This will now close the sheet
-                      }}
-                    />
-                  </SheetContent>
-                </Sheet>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {productTypes.map((type) => (
-                  <button
-                    key={type.id}
-                    type="button"
-                    onClick={() => setSelectedTypeId(type.id)}
-                    className={cn(
-                      "rounded-sm border border-dashed px-2 py-1 text-sm font-medium transition-all",
-                      selectedTypeId === type.id
-                        ? "border-primary bg-primary text-white"
-                        : "border-gray-400 bg-white text-slate-600 hover:border-primary hover:text-primary",
-                    )}
-                  >
-                    {type.name}
-                  </button>
-                ))}
-              </div>
-
-              {!selectedTypeId && (
-                <p className="mt-1 text-xs text-red-500">
-                  Please select a product type
-                </p>
-              )}
-            </div>
-
-            {/* Row 4: Description */}
-            <div>
-              <label className="mb-1.5 block font-medium">Description</label>
-              <RichTextEditor value={description} onChange={setDescription} />
-            </div>
-
-            {/* Product Image */}
-            <div>
-              <label className="mb-2 block font-medium">Product Image</label>
-
-              <div className="relative flex h-[180px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100">
-                {imagePreview ? (
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="h-full w-full rounded-lg object-cover"
-                  />
-                ) : (
-                  <div className="text-center text-sm text-gray-500">
-                    <div className="mb-2 text-lg">⬆️</div>
-                    <p className="font-medium">Upload product images</p>
-                    <p className="text-xs">
-                      Drag & drop or click to browse <br />
-                      JPG, PNG, GIF up to 10MB
-                    </p>
-                  </div>
-                )}
-
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="absolute inset-0 cursor-pointer opacity-0"
-                />
-              </div>
-
-              {/* Guidelines */}
-              <div className="mt-3 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
-                <ul className="list-disc space-y-1 pl-4">
-                  <li>Use high-quality images (min 800×800px)</li>
-                  <li>First image will be primary product image</li>
-                  <li>Use clean background & good lighting</li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Submit */}
-            <button
-              type="submit"
-              className="w-full rounded-lg bg-purple-600 py-3 font-medium text-white transition hover:bg-opacity-90"
-            >
-              Save Product
-            </button>
-          </form>
-        </div>
+<div className="flex h-auto w-full justify-center  md:p-10">
+  {/* Changed w-[70%] to w-full with a max-width for desktop readability */}
+  <div className="w-full max-w-4xl space-y-4">
+    
+    {/* Header: Stack on mobile, row on tablet+ */}
+    <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+      <div className="rounded-lg border bg-white p-2 dark:bg-gray-800">
+        <h3 className="text-sm md:text-md font-bold text-gray-900 dark:text-gray-300">
+          Create New Product or Service
+        </h3>
       </div>
+      <Link
+        href="/products"
+        className="text-sm flex items-center justify-center rounded-lg border bg-white p-2 font-medium text-purple-600 hover:text-red-400 dark:hover:text-blue-400 sm:w-auto"
+      >
+        <FiSkipBack className="mr-2 h-5 w-5" />
+        Back to Products
+      </Link>
     </div>
+
+    {/* Form Card: Reduced padding on mobile */}
+    <div className="w-full rounded-md border bg-white p-4 md:p-7 text-slate-600 dark:bg-gray-800 dark:text-gray-300">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        
+        {/* Row 1: Product Name & Type/Price Container */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* Name */}
+          <div className="w-full">
+            <label className="mb-1.5 block font-medium">Product Name</label>
+            <input
+              type="text"
+              value={productName}
+              onChange={(e) => setProductName(e.target.value)}
+              placeholder="Input name"
+              className={cn(
+                "w-full rounded-lg border p-2",
+                errors.productName && "border-red-500",
+              )}
+            />
+            {errors.productName && (
+              <p className="mt-1 text-sm text-red-500">{errors.productName}</p>
+            )}
+          </div>
+
+          {/* Unit Price & Currency Group */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1.5 block font-medium">Unit Price</label>
+              <input
+                type="number"
+                min="0"
+                value={unitPrice === 0 ? "" : unitPrice}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setUnitPrice(val === "" ? 0 : parseFloat(val));
+                }}
+                placeholder="0.00"
+                className="w-full rounded-lg border p-2"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block font-medium">Currency</label>
+              <Dropdown isOpen={isOpen} setIsOpen={setIsOpen}>
+                <DropdownTrigger className="w-full">
+                  <div
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setIsOpen(!isOpen);
+                    }}
+                    className="flex w-full cursor-pointer items-center justify-between rounded-lg border p-2 text-sm"
+                  >
+                    {currency}
+                    <ChevronUpIcon className={cn("h-4 w-4 rotate-180 transition-transform", isOpen && "rotate-0")} />
+                  </div>
+                </DropdownTrigger>
+                <DropdownContent align="start" className="z-50 mt-1 w-full border bg-white p-1">
+                  {currencyOptions.map((cur) => (
+                    <div key={cur} onClick={() => { setCurrency(cur); setIsOpen(false); }} className="cursor-pointer rounded px-3 py-2 text-sm hover:bg-gray-100">
+                      {cur}
+                    </div>
+                  ))}
+                </DropdownContent>
+              </Dropdown>
+            </div>
+          </div>
+        </div>
+
+        {/* Row 2: Stock & Low Stock Threshold */}
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block font-medium">Stock</label>
+            <input
+              type="number"
+              value={stock === 0 ? "" : stock}
+              onChange={(e) => setStock(e.target.value === "" ? 0 : parseInt(e.target.value))}
+              placeholder="0"
+              className={cn("w-full rounded-lg border p-2", errors.stock && "border-red-500")}
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block font-medium">Low Stock Threshold</label>
+            <input
+              type="number"
+              value={lowStockThreshold === 0 ? "" : lowStockThreshold}
+              onChange={(e) => setLowStockThreshold(e.target.value === "" ? 0 : parseInt(e.target.value))}
+              placeholder="0"
+              className={cn("w-full rounded-lg border p-2", errors.lowStockThreshold && "border-red-500")}
+            />
+          </div>
+        </div>
+
+        {/* Product Type Section */}
+        <div>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <label className="font-medium text-slate-700 dark:text-gray-300">Product Type</label>
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+              <SheetTrigger asChild>
+                <button type="button" className="flex items-center border border-dashed gap-1 rounded-md bg-red-50 px-2 py-1.5 text-xs font-semibold text-red-500 transition-all active:scale-95">
+                  <BiAddToQueue className="h-4 w-4" />
+                  Add New Type
+                </button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-full sm:w-[400px] bg-white">
+                <SheetHeader>
+                  <SheetTitle>Create Product Type</SheetTitle>
+                </SheetHeader>
+                <CreateProductTypeForm onSuccess={() => setIsSheetOpen(false)} />
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {productTypes.map((type) => (
+              <button
+                key={type.id}
+                type="button"
+                onClick={() => setSelectedTypeId(type.id)}
+                className={cn(
+                  "rounded-md border border-dashed px-3 py-1.5 text-xs md:text-sm font-medium transition-all",
+                  selectedTypeId === type.id
+                    ? "border-purple-600 bg-purple-600 text-white"
+                    : "border-gray-300 bg-white text-slate-600 hover:border-purple-400",
+                )}
+              >
+                {type.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Description & Rich Text (Ensure editor is responsive) */}
+        <div className="w-full overflow-hidden">
+          <label className="mb-1.5 block font-medium">Description</label>
+          <RichTextEditor value={description} onChange={setDescription} />
+        </div>
+
+        {/* Image Upload Area */}
+        <div className="w-full">
+          <label className="mb-2 block font-medium">Product Image</label>
+          <div className="relative flex min-h-[150px] md:h-[180px] w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-4 hover:bg-gray-100">
+            {imagePreview ? (
+              <img src={imagePreview} alt="Preview" className="h-full max-h-[200px] w-auto rounded-lg object-contain" />
+            ) : (
+              <div className="text-center text-sm text-gray-500">
+                <div className="mb-2 text-xl">⬆️</div>
+                <p className="font-bold">Upload product images</p>
+                <p className="text-xs hidden sm:block">JPG, PNG, GIF up to 10MB</p>
+              </div>
+            )}
+            <input type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 cursor-pointer opacity-0" />
+          </div>
+        </div>
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          className="w-full rounded-lg bg-purple-600 py-3.5 font-bold text-white shadow-lg transition active:scale-[0.98] hover:bg-purple-700"
+        >
+          Save Product
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
   );
 }

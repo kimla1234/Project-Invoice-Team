@@ -320,14 +320,16 @@ export default function ViewInvoice({ id }: ViewInvoiceProps) {
       </div>
 
       {/* Action Buttons */}
-      <div className="mt-6 flex gap-4">
-        <DownloadPDFButton id={invoice.id} />
-        <Link
+      <div className="mt-6 w-full flex gap-2">
+        <div className="w-[80%]"><DownloadPDFButton id={invoice.id} /></div>
+        <div className="w-[30%]">
+          <Link
           href={`/invoices/${invoice.id}/edit`}
-          className="flex items-center justify-center rounded-lg bg-purple-600 px-6 py-3 text-white transition hover:bg-purple-700"
+          className="flex items-center  justify-center rounded-lg bg-purple-600 px-4 py-3 text-white transition hover:bg-purple-700"
         >
           Edit Invoice
         </Link>
+        </div>
       </div>
     </div>
   );

@@ -105,17 +105,17 @@ export default function ViewInvoiceShare({ id }: ViewInvoiceProps) {
   }
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-4xl ">
       {/* Invoice Card */}
       <div
         ref={invoiceRef}
-        className="h-[87vh] rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
+        className="min-h-[87vh] rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
       >
         {/* Header Section */}
-        <div className="border-b border-gray-200 p-8 dark:border-gray-700">
-          <div className="flex items-start justify-between">
+        <div className="border-b border-gray-200 p-4 dark:border-gray-700 sm:p-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">
                 Invoice
               </h1>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
@@ -131,20 +131,20 @@ export default function ViewInvoiceShare({ id }: ViewInvoiceProps) {
                 </span>
               </div>
             </div>
-            <div className="text-right">
+            <div className="flex gap-8 sm:block sm:text-right">
               <div className="mb-4">
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   Issue Date
                 </p>
-                <p className="mt-1 font-semibold text-gray-900 dark:text-white">
+                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white sm:text-base">
                   {formatDate(invoice.issueDate)}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   Due Date
                 </p>
-                <p className="mt-1 font-semibold text-gray-900 dark:text-white">
+                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white sm:text-base">
                   {formatDate(invoice.expireDate)}
                 </p>
               </div>
@@ -153,20 +153,25 @@ export default function ViewInvoiceShare({ id }: ViewInvoiceProps) {
         </div>
 
         {/* Company & Client Info */}
-        <div className="grid gap-8 border-b border-gray-200 p-8 dark:border-gray-700 md:grid-cols-2">
-          <div>
+        <div className="grid gap-8 border-b border-gray-200 p-4 dark:border-gray-700 sm:p-8 md:grid-cols-2">
+          <div className="space-y-1">
             <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-purple-600 dark:text-purple-400">
               From
             </h3>
-            <div>
-              <p className="text-lg font-semibold text-gray-800">
-                {setting?.companyName || "Company Name"}
-              </p>
-              <p>{`${setting?.companyAddress || ""}, ${setting?.companyPhoneNumber || ""}`}</p>
-              <p className="text-gray-500">{setting?.companyEmail}</p>
-            </div>
+            <p className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+              {setting?.companyName || "Company Name"}
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {setting?.companyAddress}
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {setting?.companyPhoneNumber}
+            </p>
+            <p className="text-sm text-purple-600 dark:text-purple-400">
+              {setting?.companyEmail}
+            </p>
           </div>
-          <div>
+          <div className="space-y-1">
             <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-purple-600 dark:text-purple-400">
               Bill To
             </h3>
@@ -174,118 +179,115 @@ export default function ViewInvoiceShare({ id }: ViewInvoiceProps) {
               {client?.name || "Unknown Client"}
             </p>
             {client?.address && (
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                Address: {client.address}
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {client.address}
               </p>
             )}
             {client?.phoneNumber && (
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                Phone: {client.phoneNumber}
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Tel: {client.phoneNumber}
               </p>
             )}
           </div>
         </div>
 
-        {/* Items Table */}
-        <div className="p-8">
+        {/* Items Table Container */}
+        <div className="p-4 sm:p-8">
           <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
             Invoice Items
           </h3>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b-2 border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700">
-                  <th className="p-3 text-left text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">
-                    No
-                  </th>
-                  <th className="p-3 text-left text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">
-                    Product Name
-                  </th>
-                  <th className="p-3 text-right text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">
-                    Qty
-                  </th>
-                  <th className="p-3 text-right text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">
-                    Unit Price ($)
-                  </th>
-                  <th className="p-3 text-right text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">
-                    Total ($)
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoice.items && invoice.items.length > 0 ? (
-                  invoice.items.map((item, index) => (
-                    <tr
-                      key={item.id || index}
-                      className="border-b border-gray-200 dark:border-gray-700"
-                    >
-                      <td className="p-3 text-sm text-gray-600 dark:text-gray-400">
-                        {index + 1}
-                      </td>
-                      <td className="p-3 text-sm text-gray-900 dark:text-white">
-                        {item.name}
-                      </td>
-                      <td className="p-3 text-right text-sm text-gray-600 dark:text-gray-400">
-                        {item.quantity}
-                      </td>
-                      <td className="p-3 text-right text-sm text-gray-600 dark:text-gray-400">
-                        ${Number(item.unitPrice ?? 0).toFixed(2)}
-                      </td>
-                      <td className="p-3 text-right text-sm font-semibold text-gray-900 dark:text-white">
-                        ${Number(item.subtotal ?? 0).toFixed(2)}
-                      </td>
+          <div className="inline-block min-w-full align-middle">
+            <div className="overflow-hidden border-b border-gray-200 shadow dark:border-gray-700 sm:rounded-lg">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                      <th className="px-3 py-3 text-left text-xs font-bold uppercase text-gray-700 dark:text-gray-300">
+                        No
+                      </th>
+                      <th className="px-3 py-3 text-left text-xs font-bold uppercase text-gray-700 dark:text-gray-300">
+                        Product
+                      </th>
+                      <th className="px-3 py-3 text-right text-xs font-bold uppercase text-gray-700 dark:text-gray-300">
+                        Qty
+                      </th>
+                      <th className="px-3 py-3 text-right text-xs font-bold uppercase text-gray-700 dark:text-gray-300">
+                        Price
+                      </th>
+                      <th className="px-3 py-3 text-right text-xs font-bold uppercase text-gray-700 dark:text-gray-300">
+                        Total
+                      </th>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="p-8 text-center text-gray-500">
-                      No items found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
+                    {invoice.items?.map((item, index) => (
+                      <tr key={item.id || index}>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {index + 1}
+                        </td>
+                        <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
+                          {item.name}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-right text-sm text-gray-500">
+                          {item.quantity}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-right text-sm text-gray-500">
+                          ${Number(item.unitPrice).toFixed(2)}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-right text-sm font-semibold text-gray-900 dark:text-white">
+                          ${Number(item.subtotal).toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           {/* Totals */}
           <div className="mt-8 flex justify-end">
-            <div className="w-64 space-y-2">
+            <div className="w-full space-y-3 sm:w-64">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600 dark:text-gray-400">
                   Subtotal:
                 </span>
                 <span className="font-semibold text-gray-900 dark:text-white">
-                  ${Number(invoice.subtotal ?? 0).toFixed(2)}
+                  ${Number(invoice.subtotal).toFixed(2)}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600 dark:text-gray-400">Tax:</span>
                 <span className="font-semibold text-gray-900 dark:text-white">
-                  ${Number(invoice.tax ?? 0).toFixed(2)}
+                  ${Number(invoice.tax).toFixed(2)}
                 </span>
               </div>
-              <div className="flex justify-between border-t-2 border-gray-300 pt-2 dark:border-gray-600">
-                <span className="font-bold text-purple-600 dark:text-purple-400">
+              <div className="flex justify-between border-t-2 border-gray-200 pt-3 dark:border-gray-600">
+                <span className="text-base font-bold text-purple-600 dark:text-purple-400">
                   Grand Total:
                 </span>
-                <span className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                  ${Number(invoice.grandTotal ?? 0).toFixed(2)}
+                <span className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                  ${Number(invoice.grandTotal).toFixed(2)}
                 </span>
               </div>
             </div>
           </div>
-          <div>
-            <div className="text-gray-700 font-semibold">Note * </div>
+
+          <div className="mt-8 border-t border-gray-100 pt-6 dark:border-gray-700">
+            <div className="text-sm font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+              Note *
+            </div>
             <div
+              className="mt-2 text-sm text-gray-600 dark:text-gray-400"
               dangerouslySetInnerHTML={{ __html: setting?.invoiceNote || "" }}
             />
           </div>
-
         </div>
       </div>
+
       {/* Action Buttons */}
-      <div className="mt-6 flex gap-4">
-        <DownloadPDFButton id={invoice.id} />
+      <div className="mt-6 flex flex-col gap-4 sm:flex-row">
+        <DownloadPDFButton id={invoice.id}  />
       </div>
     </div>
   );

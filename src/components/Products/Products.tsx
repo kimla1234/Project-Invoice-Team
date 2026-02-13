@@ -104,104 +104,101 @@ export default function Products() {
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex justify-between">
-        <div className="inline-flex w-[210px] justify-center rounded-lg border border-gray-200 bg-white px-2 py-1 text-xl text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-white">
-          Products & Services
-        </div>
-        <div className="flex items-center space-x-4">
-          {/* Left: Button Group (Export/Import) */}
-          <div
-            className="inline-flex rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
-            role="group"
-          >
-            {/* Button 1: Export Excel (with icon) */}
-            <button
-              type="button"
-              onClick={handleExportExcel} // ✅ USE HANDLER
-              className="flex items-center space-x-2 rounded-l-lg px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50 dark:text-white dark:hover:bg-gray-700"
-            >
-              <div>
-                <Image
-                  src={logo}
-                  className="size-5"
-                  alt="icon excel"
-                  role="presentation"
-                  width={200}
-                  height={200}
-                />
-              </div>
-              <div>Export Excel</div>
-            </button>
+    <div className="space-y-4  md:p-0">
+  {/* TOP BAR: Title and Action Buttons */}
+  <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
+    <div className="inline-flex w-full justify-center rounded-lg border border-gray-200 bg-white px-2 py-2 text-lg font-semibold text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-white md:text-xl lg:w-auto lg:px-6">
+      Products & Services
+    </div>
+
+    <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-x-4 sm:space-y-0">
+      {/* Export Button - Full width on mobile */}
+      <div
+        className="inline-flex w-full rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 sm:w-auto"
+        role="group"
+      >
+        <button
+          type="button"
+          onClick={handleExportExcel}
+          className="flex w-full items-center justify-center space-x-2 rounded-lg px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50 dark:text-white dark:hover:bg-gray-700"
+        >
+          <Image src={logo} className="size-5" alt="icon excel" width={20} height={20} />
+          <span>Export Excel</span>
+        </button>
+      </div>
+
+      {/* Primary Action Button - Full width on mobile */}
+      <Link
+        href="/products/create"
+        className="flex w-full items-center justify-center space-x-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 focus:outline-none transition-all active:scale-95 sm:w-auto"
+      >
+        <span>Create Product or Service</span>
+        <VscAdd className="text-xl" />
+      </Link>
+    </div>
+  </div>
+
+  {/* MAIN CONTENT CARD */}
+  <div className="h-auto w-full space-y-6 rounded-md bg-white p-4 text-slate-600 shadow-sm md:p-8">
+    <div className="overflow-x-auto">
+      <HeaderProducts refreshKey={refreshKey} />
+    </div>
+
+    <div className="space-y-4">
+      {/* SEARCH AND FILTERS ROW */}
+      <div className="flex flex-col space-y-4 xl:flex-row xl:items-start xl:justify-between xl:space-y-0">
+        
+        <div className="flex flex-col space-y-4 lg:flex-row lg:space-x-4 lg:space-y-0 flex-1">
+          {/* Search Input - Expands to fill space */}
+          <div className="w-full lg:max-w-md">
+            <SearchInput searchTerm={searchTerm} onSearchChange={setSearchTerm} />
           </div>
 
-          {/* Right: Primary Action Button */}
-          <Link
-            href="/products/create"
-            className="flex items-center space-x-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-300 hover:text-purple-600 focus:outline-none transition-transform duration-150 active:scale-95"
-          >
-            <div>Create Product or Service</div>
-            <VscAdd className="text-xl" />
-          </Link>
+          {/* Filters Group - Horizontal scroll on very small screens */}
+          <div className="flex flex-wrap gap-2 sm:gap-4">
+            <FilterDropdown
+              title={isLoadingTypes ? "Loading..." : "ProductType"}
+              options={productTypeOptions}
+              selectedValues={selectedProductTypes}
+              onChange={setSelectedProductTypes}
+            />
+            <FilterDropdown
+              title="Currency"
+              options={currencyOptions}
+              selectedValues={selectedCurrencies}
+              onChange={setSelectedCurrencies}
+            />
+            <FilterDropdown
+              title="Stock"
+              options={statusOptions}
+              selectedValues={selectedStatuses}
+              onChange={setSelectedStatuses}
+            />
+          </div>
+        </div>
+
+        {/* Column Toggle - Aligned right on large screens */}
+        <div className="flex justify-end">
+          <ColumnToggleDropdown columns={columnOptions} onToggle={toggleColumnVisibility} />
         </div>
       </div>
 
-      <div className="h-auto w-full space-y-10 rounded-md bg-white p-8 text-slate-600">
-        <div>
-          <HeaderProducts refreshKey={refreshKey} />
-        </div>
-        <div className="space-y-4">
-          <div className="flex w-full justify-between space-x-4">
-            <div className="flex w-full gap-4">
-              <SearchInput
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-              />
-              <div className="flex gap-4">
-                <FilterDropdown
-                  title={isLoadingTypes ? "Loading..." : "ProductType"}
-                  options={productTypeOptions}
-                  selectedValues={selectedProductTypes}
-                  onChange={setSelectedProductTypes}
-                />
-
-                {/* Currency Filter */}
-                <FilterDropdown
-                  title="Currency"
-                  options={currencyOptions}
-                  selectedValues={selectedCurrencies}
-                  onChange={setSelectedCurrencies}
-                />
-
-                {/* Status Filter */}
-                <FilterDropdown
-                  title="Stock"
-                  options={statusOptions}
-                  selectedValues={selectedStatuses}
-                  onChange={setSelectedStatuses}
-                />
-              </div>
-            </div>
-            {/* Add the new Column Toggle Dropdown component here */}
-            <ColumnToggleDropdown
-              columns={columnOptions}
-              onToggle={toggleColumnVisibility}
-            />
-          </div>
-          <div>
-            {/* The table where your data is displayed */}
-            <ProductTable
-              visibleColumns={columnVisibility}
-              searchTerm={searchTerm} // Pass the search term
-              selectedCurrencies={selectedCurrencies}
-              selectedStatuses={selectedStatuses}
-              selectedProductTypes={selectedProductTypes}
-              onExportDataChange={setExportData}
-              onDeleted={triggerRefresh}
-            />
-          </div>
-        </div>
+      {/* TABLE CONTAINER: Crucial for responsiveness */}
+      <div className="relative overflow-x-auto rounded-lg border border-gray-100">
+        <ProductTable
+          visibleColumns={columnVisibility}
+          searchTerm={searchTerm}
+          selectedCurrencies={selectedCurrencies}
+          selectedStatuses={selectedStatuses}
+          selectedProductTypes={selectedProductTypes}
+          onExportDataChange={setExportData}
+          onDeleted={triggerRefresh}
+        />
       </div>
     </div>
+  </div>
+</div>
   );
 }
+ 
+
