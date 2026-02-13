@@ -28,9 +28,12 @@ import QuotationTableSkeleton from "../skeletons/QuotationTableSkeleton";
 import { useToast } from "@/hooks/use-toast";
 import { PaginationControls } from "../ui/pagination-controls";
 
-import { QuotationData } from "@/types/quotation";
+import { QuotationCreateRequest, QuotationData } from "@/types/quotation";
 import { ClientResponse } from "@/types/client";
-import { useDeleteQuotationMutation } from "@/redux/service/quotation";
+import {
+  useDeleteQuotationMutation,
+  useUpdateQuotationMutation,
+} from "@/redux/service/quotation";
 import { DeleteQuotations } from "../Quotations/delete-quotation/DeleteQuotations";
 import type { Invoice } from "@/types/invoice";
 
@@ -63,6 +66,7 @@ export default function QuotationTable({
   }, [data, currentPage, rowsPerPage]);
 
   const [deleteQuotation] = useDeleteQuotationMutation();
+  const [updateQuotation] = useUpdateQuotationMutation();
 
   const handleConfirmDelete = async () => {
     if (deleteId === null) return;
@@ -86,8 +90,17 @@ export default function QuotationTable({
     }
   };
 
-  const handleConvertQuotation = (quotation: QuotationData) => {
+  const handleConvertQuotation = async (quotation: QuotationData) => {
     if (!quotation) return;
+
+    // 1. Update the status in the Backend first
+    await updateQuotation({
+  id: quotation.id,
+  body: {
+    status: "APPROVED",
+    // Only add other fields if they are strictly required by your API
+  } as any 
+}).unwrap();
 
     const items = (quotation.items ?? []).map((item) => ({
       id: item.id,
@@ -97,24 +110,33 @@ export default function QuotationTable({
       unitPrice: item.unitPrice,
       subtotal: item.total,
       invoiceId: 0,
+      status: "PENDING",
     }));
 
     const subtotal = items.reduce((sum, i) => sum + i.subtotal, 0);
 
-    const oldInvoices: any[] = JSON.parse(localStorage.getItem("invoices") || "[]");
+    const oldInvoices: any[] = JSON.parse(
+      localStorage.getItem("invoices") || "[]",
+    );
 
     const newInvoice: any = {
-      id: oldInvoices.length > 0 ? Math.max(...oldInvoices.map((i: any) => i.id)) + 1 : 1,
+      id:
+        oldInvoices.length > 0
+          ? Math.max(...oldInvoices.map((i: any) => i.id)) + 1
+          : 1,
       invoiceNo: `INV-${String(oldInvoices.length + 1).padStart(4, "0")}`,
       clientId: quotation.clientId,
       issueDate: new Date().toISOString().slice(0, 10),
       items,
       subtotal,
       totalAmount: subtotal,
-      status: "Unpaid",
+      status: "PENDING",
     };
 
-    localStorage.setItem("invoices", JSON.stringify([...oldInvoices, newInvoice]));
+    localStorage.setItem(
+      "invoices",
+      JSON.stringify([...oldInvoices, newInvoice]),
+    );
 
     toast({
       title: "Converted",
@@ -131,11 +153,16 @@ export default function QuotationTable({
         <Table>
           <TableHeader>
             <TableRow className="border-none bg-[#F7F9FC] dark:bg-dark-2">
-              {columnVisibility.QuotationNo && <TableHead>Quotation No.</TableHead>}
+              {columnVisibility.QuotationNo && (
+                <TableHead>Quotation No.</TableHead>
+              )}
               {columnVisibility.Client && <TableHead>Client</TableHead>}
               {columnVisibility.Amount && <TableHead>Amount</TableHead>}
               {columnVisibility.IssueDate && <TableHead>Issue Date</TableHead>}
-              {columnVisibility.Actions && <TableHead className="text-right">Actions</TableHead>}
+              {columnVisibility.IssueDate && <TableHead>Status</TableHead>}
+              {columnVisibility.Actions && (
+                <TableHead className="text-right">Actions</TableHead>
+              )}
             </TableRow>
           </TableHeader>
 
@@ -145,13 +172,16 @@ export default function QuotationTable({
                 <TableRow key={q.id}>
                   {columnVisibility.QuotationNo && (
                     <TableCell>
-                      {q.quotationNo 
-                        ? `QUO-${String(q.quotationNo).padStart(4, "0")}` 
+                      {q.quotationNo
+                        ? `QUO-${String(q.quotationNo).padStart(4, "0")}`
                         : `QUO-${String(q.id).padStart(4, "0")}`}
                     </TableCell>
                   )}
                   {columnVisibility.Client && (
-                    <TableCell>{clients.find((c) => c.id === q.clientId)?.name ?? "Unknown Client"}</TableCell>
+                    <TableCell>
+                      {clients.find((c) => c.id === q.clientId)?.name ??
+                        "Unknown Client"}
+                    </TableCell>
                   )}
                   {columnVisibility.Amount && (
                     <TableCell>
@@ -160,12 +190,34 @@ export default function QuotationTable({
                         q.totalAmount ??
                         q.total_amount ??
                         q.amount ??
-                        q.items?.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0) ??
+                        q.items?.reduce(
+                          (sum, item) => sum + item.quantity * item.unitPrice,
+                          0,
+                        ) ??
                         0
                       ).toFixed(2)}
                     </TableCell>
                   )}
-                  {columnVisibility.IssueDate && <TableCell>{new Date(q.quotationDate ?? q.issueDate ?? "").toLocaleDateString()}</TableCell>}
+                  {columnVisibility.IssueDate && (
+                    <TableCell>
+                      {new Date(
+                        q.quotationDate ?? q.issueDate ?? "",
+                      ).toLocaleDateString()}
+                    </TableCell>
+                  )}
+                  {columnVisibility.IssueDate && (
+                    <TableCell>
+                      <span
+                        className={`rounded-md px-2 py-1 text-xs font-bold text-white ${
+                          q.status === "APPROVED"
+                            ? "bg-green-200 text-green-700"
+                            : "bg-yellow-200 text-yellow-600"
+                        }`}
+                      >
+                        {q.status}
+                      </span>
+                    </TableCell>
+                  )}
                   {columnVisibility.Actions && (
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -176,19 +228,31 @@ export default function QuotationTable({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
-                            <Link href={`/quotation/${q.id}`} className="flex items-center">
+                            <Link
+                              href={`/quotation/${q.id}`}
+                              className="flex items-center"
+                            >
                               <Eye className="mr-2" /> View
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
-                            <Link href={`/quotation/${q.id}/edit`} className="flex items-center">
+                            <Link
+                              href={`/quotation/${q.id}/edit`}
+                              className="flex items-center"
+                            >
                               <Edit2 className="mr-2" /> Edit
                             </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleConvertQuotation(q)} className="flex items-center text-green-600">
+                          <DropdownMenuItem
+                            onClick={() => handleConvertQuotation(q)}
+                            className="flex items-center text-green-600"
+                          >
                             <Repeat className="mr-2" /> Convert to Invoice
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setDeleteId(q.id)} className="flex items-center text-red-600">
+                          <DropdownMenuItem
+                            onClick={() => setDeleteId(q.id)}
+                            className="flex items-center text-red-600"
+                          >
                             <Trash2 className="mr-2" /> Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -199,13 +263,15 @@ export default function QuotationTable({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="text-center h-[300px]">
+                <TableCell colSpan={5} className="h-[300px] text-center">
                   <div className="flex flex-col items-center space-y-3">
                     <div className="rounded-full bg-gray-100 p-4">
                       <SearchX className="size-8 text-gray-400" />
                     </div>
                     <p className="text-lg font-semibold">No quotations found</p>
-                    <p className="text-sm text-gray-500">Try changing the search or date filter.</p>
+                    <p className="text-sm text-gray-500">
+                      Try changing the search or date filter.
+                    </p>
                   </div>
                 </TableCell>
               </TableRow>

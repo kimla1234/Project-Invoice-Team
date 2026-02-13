@@ -32,6 +32,7 @@ export interface QuotationCreateRequest {
   quotationExpire: string;
   issueDate: string;      // frontend date
   expiryDate: string;     // frontend date
+  status : string ; 
   items: {
     productId: number;
     quantity: number;
@@ -57,7 +58,7 @@ export interface Quotation {
   totalAmount?: number;
   
   quotationExpire?: string;
-  
+  status: string;
   notes?: string;
   terms?: string;
   items: QuotationItem[];

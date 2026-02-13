@@ -294,6 +294,7 @@ export default function CreateQuotation() {
           : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // default +7 days
         issueDate,
         expiryDate,
+        status:"PENDING",
         items: items.map((item) => ({
           productId: item.id,
           quantity: item.qty,

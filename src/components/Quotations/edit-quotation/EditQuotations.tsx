@@ -298,6 +298,7 @@ export default function EditQuotation() {
         : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       issueDate,
       expiryDate,
+      status,
       items: items.map((item) => ({
         productId: item.id,
         quantity: item.qty,
