@@ -48,12 +48,6 @@ export const NAV_DATA = [
         url: "/setting",
       },
       {
-        title: "Help Center",
-        icon: Icons.HelpCenter,
-        items: [],
-        url: "/help_center",
-      },
-      {
         title: "Sign out",
         icon: Icons.LogOutIcon,
         items: [],
