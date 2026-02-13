@@ -1,0 +1,656 @@
+// "use client";
+
+// import React, { useMemo } from "react";
+// import { useGetMyInvoicesQuery } from "@/redux/service/invoices";
+// import { useGetQuotationsQuery } from "@/redux/service/quotation";
+// import { useGetMyClientsQuery } from "@/redux/service/client";
+// import { useGetMyProductsQuery } from "@/redux/service/products";
+// import {
+//   FileText,
+//   Users,
+//   Package,
+//   DollarSign,
+//   TrendingUp,
+//   Clock,
+//   CheckCircle,
+//   AlertCircle,
+//   ArrowUpRight,
+//   ArrowDownRight,
+// } from "lucide-react";
+// import Link from "next/link";
+// import {
+//   Chart as ChartJS,
+//   CategoryScale,
+//   LinearScale,
+//   BarElement,
+//   LineElement,
+//   PointElement,
+//   ArcElement,
+//   Title,
+//   Tooltip,
+//   Legend,
+//   Filler,
+// } from "chart.js";
+// import { Bar } from "react-chartjs-2";
+
+// // Register Chart.js components
+// ChartJS.register(
+//   CategoryScale,
+//   LinearScale,
+//   BarElement,
+//   LineElement,
+//   PointElement,
+//   ArcElement,
+//   Title,
+//   Tooltip,
+//   Legend,
+//   Filler
+// );
+
+// interface MonthlyData {
+//   month: string;
+//   revenue: number;
+//   count: number;
+// }
+
+// interface TopProduct {
+//   name: string;
+//   revenue: number;
+//   quantity: number;
+// }
+
+// export default function Dashboard() {
+//   // Fetch data
+//   const { data: invoicesData, isLoading: loadingInvoices } = useGetMyInvoicesQuery({ page: 0, size: 100 });
+//   const { data: quotationsData, isLoading: loadingQuotations } = useGetQuotationsQuery({ page: 0, size: 100 });
+//   const { data: clients = [], isLoading: loadingClients } = useGetMyClientsQuery();
+//   const { data: products = [], isLoading: loadingProducts } = useGetMyProductsQuery();
+
+//   const invoices = invoicesData?.content || [];
+//   const quotations = quotationsData?.content || [];
+
+//   // Calculate statistics using useMemo for better performance
+//   const stats = useMemo(() => {
+//     const totalRevenue = invoices.reduce((sum, inv) => sum + inv.grandTotal, 0);
+//     const pendingInvoices = invoices.filter((inv) => inv.status === "pending").length;
+//     const paidInvoices = invoices.filter((inv) => inv.status === "paid").length;
+//     const overdueInvoices = invoices.filter((inv) => {
+//       const expireDate = new Date(inv.expireDate);
+//       return inv.status === "pending" && expireDate < new Date();
+//     }).length;
+
+//     return {
+//       totalRevenue,
+//       pendingInvoices,
+//       paidInvoices,
+//       overdueInvoices,
+//       totalQuotations: quotations.length,
+//       totalClients: clients.length,
+//       totalProducts: products.length,
+//       lowStockProducts: products.filter((p) => p.status === "LOW_STOCK").length,
+//     };
+//   }, [invoices, quotations, clients, products]);
+
+//   // Recent invoices using useMemo
+//   const recentInvoices = useMemo(() => {
+//     return [...invoices]
+//       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+//       .slice(0, 5);
+//   }, [invoices]);
+
+//   // Recent quotations using useMemo
+//   const recentQuotations = useMemo(() => {
+//     return [...quotations]
+//       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+//       .slice(0, 5);
+//   }, [quotations]);
+
+//   // Monthly revenue data using useMemo
+//   const monthlyData = useMemo(() => {
+//     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+//     const currentMonth = new Date().getMonth();
+//     const last6Months: MonthlyData[] = [];
+
+//     for (let i = 5; i >= 0; i--) {
+//       const monthIndex = (currentMonth - i + 12) % 12;
+//       const monthInvoices = invoices.filter((inv) => {
+//         const invMonth = new Date(inv.createdAt).getMonth();
+//         return invMonth === monthIndex;
+//       });
+
+//       const revenue = monthInvoices.reduce((sum, inv) => sum + inv.grandTotal, 0);
+//       const count = monthInvoices.length;
+
+//       last6Months.push({
+//         month: monthNames[monthIndex],
+//         revenue,
+//         count,
+//       });
+//     }
+
+//     return last6Months;
+//   }, [invoices]);
+
+//   // Top products using useMemo
+//   const topProducts = useMemo(() => {
+//     const productRevenue: { [key: string]: { name: string; revenue: number; quantity: number } } = {};
+
+//     invoices.forEach((invoice) => {
+//       invoice.items.forEach((item) => {
+//         const key = item.productId.toString();
+//         if (!productRevenue[key]) {
+//           productRevenue[key] = {
+//             name: item.name || `Product ${item.productId}`,
+//             revenue: 0,
+//             quantity: 0,
+//           };
+//         }
+//         productRevenue[key].revenue += item.subtotal;
+//         productRevenue[key].quantity += item.quantity;
+//       });
+//     });
+
+//     return Object.values(productRevenue)
+//       .sort((a, b) => b.revenue - a.revenue)
+//       .slice(0, 5);
+//   }, [invoices]);
+
+//   // Loading state
+//   if (loadingInvoices || loadingQuotations || loadingClients || loadingProducts) {
+//     return (
+//       <div className="flex min-h-screen items-center justify-center bg-gray-50">
+//         <div className="text-center">
+//           <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-purple-200 border-t-purple-600 mx-auto"></div>
+//           <div className="text-lg text-gray-500">Loading dashboard...</div>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <div className="min-h-screen bg-gray-50 p-6">
+//       <div className="mx-auto max-w-7xl space-y-6">
+//         {/* Header */}
+//         <div className="flex items-center justify-between">
+//           <div>
+//             <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+//             <p className="text-gray-500">Welcome back! Here's what's happening today.</p>
+//           </div>
+//           <div className="flex gap-3">
+//             <Link
+//               href="/invoices/create"
+//               className="rounded-lg bg-purple-600 px-4 py-2 text-white hover:bg-purple-700"
+//             >
+//               New Invoice
+//             </Link>
+//             <Link
+//               href="/quotation/create"
+//               className="rounded-lg border border-purple-600 px-4 py-2 text-purple-600 hover:bg-purple-50"
+//             >
+//               New Quotation
+//             </Link>
+//           </div>
+//         </div>
+
+//         {/* Stats Grid */}
+//         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+//           <StatCard
+//             title="Total Revenue"
+//             value={`$${stats.totalRevenue.toLocaleString()}`}
+//             icon={<DollarSign className="h-6 w-6" />}
+//             trend={{ value: "+12.5%", isPositive: true }}
+//             bgColor="bg-blue-50"
+//             iconColor="text-blue-600"
+//           />
+//           <StatCard
+//             title="Total Invoices"
+//             value={invoices.length.toString()}
+//             icon={<FileText className="h-6 w-6" />}
+//             subtitle={`${stats.paidInvoices} paid, ${stats.pendingInvoices} pending`}
+//             bgColor="bg-green-50"
+//             iconColor="text-green-600"
+//           />
+//           <StatCard
+//             title="Total Clients"
+//             value={stats.totalClients.toString()}
+//             icon={<Users className="h-6 w-6" />}
+//             trend={{ value: "+8.2%", isPositive: true }}
+//             bgColor="bg-purple-50"
+//             iconColor="text-purple-600"
+//           />
+//           <StatCard
+//             title="Products"
+//             value={stats.totalProducts.toString()}
+//             icon={<Package className="h-6 w-6" />}
+//             subtitle={stats.lowStockProducts > 0 ? `${stats.lowStockProducts} low stock` : "All in stock"}
+//             bgColor="bg-orange-50"
+//             iconColor="text-orange-600"
+//           />
+//         </div>
+
+//         {/* Invoice Status Overview */}
+//         <div className="grid gap-6 lg:grid-cols-3">
+//           <StatusCard
+//             title="Paid Invoices"
+//             count={stats.paidInvoices}
+//             icon={<CheckCircle className="h-5 w-5" />}
+//             color="text-green-600"
+//             bgColor="bg-green-50"
+//           />
+//           <StatusCard
+//             title="Pending Invoices"
+//             count={stats.pendingInvoices}
+//             icon={<Clock className="h-5 w-5" />}
+//             color="text-yellow-600"
+//             bgColor="bg-yellow-50"
+//           />
+//           <StatusCard
+//             title="Overdue Invoices"
+//             count={stats.overdueInvoices}
+//             icon={<AlertCircle className="h-5 w-5" />}
+//             color="text-red-600"
+//             bgColor="bg-red-50"
+//           />
+//         </div>
+
+//         {/* Charts Section */}
+//         <div className="grid gap-6 lg:grid-cols-2">
+//           {/* Monthly Revenue Chart */}
+//           <div className="rounded-lg bg-white p-6 shadow-sm">
+//             <h2 className="mb-4 text-lg font-semibold text-gray-900">Monthly Revenue (Last 6 Months)</h2>
+//             <div className="h-64">
+//               <MonthlyRevenueChart data={monthlyData} />
+//             </div>
+//           </div>
+
+//           {/* Top Products Chart */}
+//           <div className="rounded-lg bg-white p-6 shadow-sm">
+//             <h2 className="mb-4 text-lg font-semibold text-gray-900">Top Products by Revenue</h2>
+//             <div className="h-64">
+//               <TopProductsChart data={topProducts} />
+//             </div>
+//           </div>
+//         </div>
+
+//         {/* Recent Activity */}
+//         <div className="grid gap-6 lg:grid-cols-2">
+//           {/* Recent Invoices */}
+//           <div className="rounded-lg bg-white p-6 shadow-sm">
+//             <div className="mb-4 flex items-center justify-between">
+//               <h2 className="text-lg font-semibold text-gray-900">Recent Invoices</h2>
+//               <Link href="/invoices" className="text-sm text-purple-600 hover:underline">
+//                 View all
+//               </Link>
+//             </div>
+//             <div className="space-y-3">
+//               {recentInvoices.length > 0 ? (
+//                 recentInvoices.map((invoice) => (
+//                   <div
+//                     key={invoice.id}
+//                     className="flex items-center justify-between rounded-lg border p-3 hover:bg-gray-50"
+//                   >
+//                     <div className="flex-1">
+//                       <p className="font-medium text-gray-900">{invoice.invoiceNo}</p>
+//                       <p className="text-sm text-gray-500">
+//                         {new Date(invoice.issueDate).toLocaleDateString()}
+//                       </p>
+//                     </div>
+//                     <div className="text-right">
+//                       <p className="font-semibold text-gray-900">
+//                         ${invoice.grandTotal.toFixed(2)}
+//                       </p>
+//                       <span
+//                         className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${
+//                           invoice.status === "paid"
+//                             ? "bg-green-100 text-green-700"
+//                             : invoice.status === "pending"
+//                               ? "bg-yellow-100 text-yellow-700"
+//                               : "bg-red-100 text-red-700"
+//                         }`}
+//                       >
+//                         {invoice.status}
+//                       </span>
+//                     </div>
+//                   </div>
+//                 ))
+//               ) : (
+//                 <p className="py-8 text-center text-gray-500">No invoices yet</p>
+//               )}
+//             </div>
+//           </div>
+
+//           {/* Recent Quotations */}
+//           <div className="rounded-lg bg-white p-6 shadow-sm">
+//             <div className="mb-4 flex items-center justify-between">
+//               <h2 className="text-lg font-semibold text-gray-900">Recent Quotations</h2>
+//               <Link href="/quotation" className="text-sm text-purple-600 hover:underline">
+//                 View all
+//               </Link>
+//             </div>
+//             <div className="space-y-3">
+//               {recentQuotations.length > 0 ? (
+//                 recentQuotations.map((quotation) => (
+//                   <div
+//                     key={quotation.id}
+//                     className="flex items-center justify-between rounded-lg border p-3 hover:bg-gray-50"
+//                   >
+//                     <div className="flex-1">
+//                       <p className="font-medium text-gray-900">{quotation.quotationNo}</p>
+//                       <p className="text-sm text-gray-500">
+//                         {quotation.issueDate
+//                           ? new Date(quotation.issueDate).toLocaleDateString()
+//                           : "N/A"}
+//                       </p>
+//                     </div>
+//                     <div className="text-right">
+//                       <p className="font-semibold text-gray-900">
+//                         ${(quotation.amount || quotation.totalAmount || 0).toFixed(2)}
+//                       </p>
+//                       <p className="text-xs text-gray-500">
+//                         Expires:{" "}
+//                         {quotation.expiryDate
+//                           ? new Date(quotation.expiryDate).toLocaleDateString()
+//                           : "N/A"}
+//                       </p>
+//                     </div>
+//                   </div>
+//                 ))
+//               ) : (
+//                 <p className="py-8 text-center text-gray-500">No quotations yet</p>
+//               )}
+//             </div>
+//           </div>
+//         </div>
+
+//         {/* Quick Actions */}
+//         <div className="rounded-lg bg-white p-6 shadow-sm">
+//           <h2 className="mb-4 text-lg font-semibold text-gray-900">Quick Actions</h2>
+//           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+//             <QuickActionButton
+//               href="/invoices/create"
+//               icon={<FileText className="h-5 w-5" />}
+//               label="Create Invoice"
+//               color="bg-blue-50 text-blue-600 hover:bg-blue-100"
+//             />
+//             <QuickActionButton
+//               href="/quotation/create"
+//               icon={<TrendingUp className="h-5 w-5" />}
+//               label="Create Quotation"
+//               color="bg-purple-50 text-purple-600 hover:bg-purple-100"
+//             />
+//             <QuickActionButton
+//               href="/clients/create"
+//               icon={<Users className="h-5 w-5" />}
+//               label="Add Client"
+//               color="bg-green-50 text-green-600 hover:bg-green-100"
+//             />
+//             <QuickActionButton
+//               href="/products/create"
+//               icon={<Package className="h-5 w-5" />}
+//               label="Add Product"
+//               color="bg-orange-50 text-orange-600 hover:bg-orange-100"
+//             />
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+// // Stat Card Component
+// function StatCard({
+//   title,
+//   value,
+//   icon,
+//   trend,
+//   subtitle,
+//   bgColor,
+//   iconColor,
+// }: {
+//   title: string;
+//   value: string;
+//   icon: React.ReactNode;
+//   trend?: { value: string; isPositive: boolean };
+//   subtitle?: string;
+//   bgColor: string;
+//   iconColor: string;
+// }) {
+//   return (
+//     <div className="rounded-lg bg-white p-6 shadow-sm">
+//       <div className="mb-4 flex items-center justify-between">
+//         <div className={`rounded-lg ${bgColor} p-3`}>
+//           <div className={iconColor}>{icon}</div>
+//         </div>
+//         {trend && (
+//           <div
+//             className={`flex items-center gap-1 text-sm font-medium ${
+//               trend.isPositive ? "text-green-600" : "text-red-600"
+//             }`}
+//           >
+//             {trend.isPositive ? (
+//               <ArrowUpRight className="h-4 w-4" />
+//             ) : (
+//               <ArrowDownRight className="h-4 w-4" />
+//             )}
+//             {trend.value}
+//           </div>
+//         )}
+//       </div>
+//       <h3 className="text-sm font-medium text-gray-500">{title}</h3>
+//       <p className="mt-1 text-2xl font-bold text-gray-900">{value}</p>
+//       {subtitle && <p className="mt-1 text-sm text-gray-500">{subtitle}</p>}
+//     </div>
+//   );
+// }
+
+// // Status Card Component
+// function StatusCard({
+//   title,
+//   count,
+//   icon,
+//   color,
+//   bgColor,
+// }: {
+//   title: string;
+//   count: number;
+//   icon: React.ReactNode;
+//   color: string;
+//   bgColor: string;
+// }) {
+//   return (
+//     <div className="rounded-lg bg-white p-6 shadow-sm">
+//       <div className="flex items-center gap-3">
+//         <div className={`rounded-full ${bgColor} p-3 ${color}`}>{icon}</div>
+//         <div>
+//           <p className="text-sm font-medium text-gray-500">{title}</p>
+//           <p className="text-2xl font-bold text-gray-900">{count}</p>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+// // Quick Action Button Component
+// function QuickActionButton({
+//   href,
+//   icon,
+//   label,
+//   color,
+// }: {
+//   href: string;
+//   icon: React.ReactNode;
+//   label: string;
+//   color: string;
+// }) {
+//   return (
+//     <Link
+//       href={href}
+//       className={`flex items-center gap-3 rounded-lg p-4 transition-colors ${color}`}
+//     >
+//       {icon}
+//       <span className="font-medium">{label}</span>
+//     </Link>
+//   );
+// }
+
+// // Monthly Revenue Chart Component - Optimized with React.memo
+// const MonthlyRevenueChart = React.memo(({ data }: { data: MonthlyData[] }) => {
+//   if (data.length === 0) {
+//     return (
+//       <div className="flex h-full items-center justify-center text-gray-500">
+//         No data available
+//       </div>
+//     );
+//   }
+
+//   const chartData = {
+//     labels: data.map((d) => d.month),
+//     datasets: [
+//       {
+//         label: "Revenue",
+//         data: data.map((d) => d.revenue),
+//         backgroundColor: "rgba(147, 51, 234, 0.8)",
+//         borderColor: "rgba(147, 51, 234, 1)",
+//         borderWidth: 2,
+//         borderRadius: 8,
+//         hoverBackgroundColor: "rgba(147, 51, 234, 1)",
+//       },
+//     ],
+//   };
+
+//   const options: any = {
+//     responsive: true,
+//     maintainAspectRatio: false,
+//     animation: {
+//       duration: 500,
+//     },
+//     plugins: {
+//       legend: {
+//         display: false,
+//       },
+//       tooltip: {
+//         backgroundColor: "rgba(0, 0, 0, 0.8)",
+//         padding: 12,
+//         titleFont: {
+//           size: 14,
+//         },
+//         bodyFont: {
+//           size: 13,
+//         },
+//         callbacks: {
+//           label: function (context: any) {
+//             return `Revenue: $${context.parsed.y.toLocaleString()}`;
+//           },
+//         },
+//       },
+//     },
+//     scales: {
+//       y: {
+//         beginAtZero: true,
+//         ticks: {
+//           callback: function (value: any) {
+//             return "$" + (value / 1000).toFixed(0) + "k";
+//           },
+//         },
+//         grid: {
+//           color: "rgba(0, 0, 0, 0.05)",
+//         },
+//       },
+//       x: {
+//         grid: {
+//           display: false,
+//         },
+//       },
+//     },
+//   };
+
+//   return <Bar data={chartData} options={options} />;
+// });
+
+// MonthlyRevenueChart.displayName = "MonthlyRevenueChart";
+
+// // Top Products Chart Component - Optimized with React.memo
+// const TopProductsChart = React.memo(({ data }: { data: TopProduct[] }) => {
+//   if (data.length === 0) {
+//     return (
+//       <div className="flex h-full items-center justify-center text-gray-500">
+//         No product data available
+//       </div>
+//     );
+//   }
+
+//   const chartData = {
+//     labels: data.map((p) => p.name),
+//     datasets: [
+//       {
+//         label: "Revenue",
+//         data: data.map((p) => p.revenue),
+//         backgroundColor: [
+//           "rgba(59, 130, 246, 0.8)",
+//           "rgba(147, 51, 234, 0.8)",
+//           "rgba(236, 72, 153, 0.8)",
+//           "rgba(34, 197, 94, 0.8)",
+//           "rgba(251, 146, 60, 0.8)",
+//         ],
+//         borderColor: [
+//           "rgba(59, 130, 246, 1)",
+//           "rgba(147, 51, 234, 1)",
+//           "rgba(236, 72, 153, 1)",
+//           "rgba(34, 197, 94, 1)",
+//           "rgba(251, 146, 60, 1)",
+//         ],
+//         borderWidth: 2,
+//         borderRadius: 6,
+//       },
+//     ],
+//   };
+
+//   const options: any = {
+//     indexAxis: "y" as const,
+//     responsive: true,
+//     maintainAspectRatio: false,
+//     animation: {
+//       duration: 500,
+//     },
+//     plugins: {
+//       legend: {
+//         display: false,
+//       },
+//       tooltip: {
+//         backgroundColor: "rgba(0, 0, 0, 0.8)",
+//         padding: 12,
+//         callbacks: {
+//           label: function (context: any) {
+//             const product = data[context.dataIndex];
+//             return [
+//               `Revenue: $${context.parsed.x.toLocaleString()}`,
+//               `Quantity: ${product.quantity} sold`,
+//             ];
+//           },
+//         },
+//       },
+//     },
+//     scales: {
+//       x: {
+//         beginAtZero: true,
+//         ticks: {
+//           callback: function (value: any) {
+//             return "$" + (value / 1000).toFixed(0) + "k";
+//           },
+//         },
+//         grid: {
+//           color: "rgba(0, 0, 0, 0.05)",
+//         },
+//       },
+//       y: {
+//         grid: {
+//           display: false,
+//         },
+//       },
+//     },
+//   };
+
+//   return <Bar data={chartData} options={options} />;
+// });
+
+// TopProductsChart.displayName = "TopProductsChart";
