@@ -29,11 +29,12 @@ export default function Quotation() {
     Client: true,
     Amount: true,
     IssueDate: true,
+    Status: true,
     Actions: true,
   });
 
   // Fetch quotations and clients
-  const { data: quotationData, isLoading: loadingQuotations, error: quotationError } = useGetQuotationsQuery({ page: 0, size: 1000, sort: "id,asc" });
+  const { data: quotationData, isLoading: loadingQuotations, error: quotationError, refetch } = useGetQuotationsQuery({ page: 0, size: 1000, sort: "id,asc" });
   const { data: clients = [], isLoading: loadingClients } = useGetMyClientsQuery();
 
   console.log("Quotation Data:", quotationData);

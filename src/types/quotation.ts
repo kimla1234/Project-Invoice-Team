@@ -43,7 +43,8 @@ export interface QuotationCreateRequest {
 
 /* QUOTATION RESPONSE */
 
-export interface Quotation {
+
+export interface IQuotation {
   id: number;
   quotationNo: string;
   clientId: number;
@@ -68,7 +69,7 @@ export interface Quotation {
 /* PAGINATION STRUCTURE */
 
 export interface PaginatedQuotationResponse {
-  content: Quotation[];
+  content: IQuotation[];
   totalElements: number;
   totalPages: number;
   size: number;
@@ -80,6 +81,8 @@ export interface PaginatedQuotationResponse {
 
 /* WRAPPED RESPONSE (LIKE PRODUCT) */
 
-export type QuotationResponse = BaseMessage<Quotation>;
+export type QuotationResponse = BaseMessage<IQuotation>;
 export type PaginatedQuotationWrapped = BaseMessage<PaginatedQuotationResponse>;
-export type QuotationData = Quotation;
+export type QuotationData = IQuotation;
+export type Quotation = IQuotation; // Alias for backward compatibility but safer as a type
+
