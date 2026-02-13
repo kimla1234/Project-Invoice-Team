@@ -8,6 +8,8 @@ import { IoAddCircleOutline } from "react-icons/io5";
 
 import { ClientModal } from "../create-quotation/ClientModal";
 import { DownloadPDFButton } from "../create-quotation/DownloadPDFButton";
+import { FiSkipBack } from "react-icons/fi";
+import Link from "next/link";
 
 import { useGetMyProductsQuery } from "@/redux/service/products";
 import {
@@ -591,6 +593,12 @@ export default function EditQuotation() {
       <div className="sticky top-6 space-y-6 lg:col-span-1">
         {/* Top action buttons section */}
         <div className="space-y-3 rounded-lg bg-white p-4">
+          <Link
+                      href="/quotation"
+                      className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 p-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      <FiSkipBack /> Back to List
+                    </Link>
           <button className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700">
             <span className="mr-2">+</span> Preview and send
           </button>
