@@ -200,7 +200,7 @@ export default function StockManage({ productId }: StockManageProps) {
           </div>
           <Link
             href="/products"
-            className="flex items-center rounded-lg border bg-white p-2 font-medium text-primary hover:text-red-400"
+            className="flex items-center rounded-lg border bg-white p-2 font-medium text-purple-600 hover:text-red-400"
           >
             <FiSkipBack className="mr-2 h-5 w-5" />
             Back to Products
@@ -211,14 +211,14 @@ export default function StockManage({ productId }: StockManageProps) {
         <div className="rounded-xl border bg-white p-6 shadow-sm dark:bg-gray-800">
           <div className="flex items-start justify-between">
             <div className="flex space-x-6 items-start">
-              <div className="w-[50px] h-[50px] ">
+              <div className="w-[80px] h-[80px] ">
                 <Image
                   unoptimized
-                  src={product.image_url}
+                  src={product.image_url || "/image.png"}
                   alt="image"
                   width={1000}
                   height={1000}
-                  className=" object-cover "
+                  className=" object-cover w-full h-full rounded-md "
                 />
               </div>
               <div>
@@ -236,7 +236,7 @@ export default function StockManage({ productId }: StockManageProps) {
                 </p>
               </div>
             </div>
-            <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
+            <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700">
               {product.productTypeName}
             </span>
           </div>
@@ -304,7 +304,7 @@ export default function StockManage({ productId }: StockManageProps) {
 
                     setAdjustmentValue(value);
                   }}
-                  className="w-full rounded-lg border border-gray-200 p-2.5 pl-8 outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                  className="w-full rounded-lg border border-gray-200 p-2.5 pl-8 outline-none focus:ring-2 focus:ring-purple-500 dark:border-gray-600 dark:bg-gray-700"
                 />
               </div>
             </div>
@@ -327,14 +327,14 @@ export default function StockManage({ productId }: StockManageProps) {
               placeholder="Enter note or remark..."
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              className="h-24 w-full rounded-lg border border-gray-200 p-3 outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+              className="h-24 w-full rounded-lg border border-gray-200 p-3 outline-none focus:ring-2 focus:ring-purple-500 dark:border-gray-600 dark:bg-gray-700"
             />
           </div>
 
           <button
             onClick={handleCreateMovement}
             disabled={adjustmentValue === 0}
-            className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+            className="w-full rounded-lg bg-purple-600 py-3 font-semibold text-white transition hover:bg-purple-700 disabled:opacity-50"
           >
             Create
           </button>
@@ -443,7 +443,7 @@ function TypeButton({
       onClick={onClick}
       className={`flex flex-col items-center justify-center rounded-xl border p-4 transition-all ${
         active
-          ? "border-blue-600 bg-blue-50 text-blue-600 ring-2 ring-blue-100 dark:bg-blue-900/20"
+          ? "border-purple-600 bg-purple-50 text-purple-600 ring-2 ring-purple-100 dark:bg-purple-900/20"
           : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800"
       }`}
     >

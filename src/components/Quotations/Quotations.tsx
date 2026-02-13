@@ -9,7 +9,7 @@ import logo from "@/assets/ui/icon_excel.svg";
 import HeaderQuotations from "./header-quotation/HeaderQuotation";
 import SearchInput from "./search/Search";
 import FilterDate from "./FilterData";
-import QuotationTable from "../Tables/QuotationTable";
+//import QuotationTable from "../Tables/QuotationTable";
 import { ColumnToggleDropdown } from "../ui/ColumnToggleDropdown";
 import { useToast } from "@/hooks/use-toast";
 import { exportProductsToExcel } from "@/utils/exportToExcel";
@@ -184,12 +184,14 @@ export default function QuotationPage() {
           />
         </div>
 
+        {/*
         <QuotationTable
           data={filteredData}
           clients={clients}
           loading={loading}
           onRefresh={() => setRefreshKey((prev) => prev + 1)}
         />
+        */}
       </div>
     </div>
   );

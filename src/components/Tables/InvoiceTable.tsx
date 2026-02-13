@@ -14,26 +14,25 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuPortal,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  MoreHorizontal,
-  Eye,
-  Edit2,
-  Trash2,
-  SearchX,
-} from "lucide-react";
+import { MoreHorizontal, Eye, Edit2, Trash2, SearchX, Share2 } from "lucide-react";
 import QuotationTableSkeleton from "../skeletons/QuotationTableSkeleton";
 import { useToast } from "@/hooks/use-toast";
 import { PaginationControls } from "../ui/pagination-controls";
 import { DeleteInvoices } from "../Invoices/delete-invoice/DeleteInvoices";
-import { 
-  useGetMyInvoicesQuery, 
+import {
+  useGetMyInvoicesQuery,
   useDeleteInvoiceMutation,
-  useUpdateInvoiceMutation 
+  useUpdateInvoiceMutation,
 } from "@/redux/service/invoices";
 import { useGetMyClientsQuery } from "@/redux/service/client";
 import { ClientResponse } from "@/types/client";
+import { GrStatusCritical } from "react-icons/gr";
 
 interface InvoiceTableProps {
   visibleColumns: Record<string, boolean>;
@@ -41,14 +40,15 @@ interface InvoiceTableProps {
   issueDate?: string;
 }
 
-export default function InvoiceTable({ 
+export default function InvoiceTable({
   visibleColumns,
-  searchTerm = "", 
-  issueDate 
+  searchTerm = "",
+  issueDate,
 }: InvoiceTableProps) {
   const { toast } = useToast();
 
-  const { data: clients = [], isLoading: loadingClients } = useGetMyClientsQuery();
+  const { data: clients = [], isLoading: loadingClients } =
+    useGetMyClientsQuery();
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   // Pagination state (0-indexed for backend, 1-indexed for UI)
@@ -56,11 +56,11 @@ export default function InvoiceTable({
   const [rowsPerPage, setRowsPerPage] = useState(7);
 
   // RTK Query hooks - pass 0-indexed page to backend
-  const { data, isLoading, isError } = useGetMyInvoicesQuery({ 
-    page: currentPage - 1,  // Convert to 0-indexed
-    size: rowsPerPage 
+  const { data, isLoading, isError } = useGetMyInvoicesQuery({
+    page: currentPage - 1, // Convert to 0-indexed
+    size: rowsPerPage,
   });
-  
+
   const [deleteInvoice] = useDeleteInvoiceMutation();
   const [updateInvoice, { isLoading: isUpdating }] = useUpdateInvoiceMutation();
 
@@ -79,7 +79,8 @@ export default function InvoiceTable({
       const term = searchTerm.toLowerCase();
 
       const matchesSearch =
-        clientName.toLowerCase().includes(term) || invoiceNo.toLowerCase().includes(term);
+        clientName.toLowerCase().includes(term) ||
+        invoiceNo.toLowerCase().includes(term);
 
       const matchesDate = issueDate ? i.createdAt.startsWith(issueDate) : true;
 
@@ -113,7 +114,7 @@ export default function InvoiceTable({
    STATUS UPDATE
   ====================== */
   const handleStatusChange = async (invoiceId: number, newStatus: string) => {
-    const invoice = invoices.find(i => i.id === invoiceId);
+    const invoice = invoices.find((i) => i.id === invoiceId);
     if (!invoice) return;
 
     try {
@@ -121,7 +122,7 @@ export default function InvoiceTable({
       const formatDateForBackend = (dateString: string): string => {
         if (!dateString) return "";
         // Extract just the date part (YYYY-MM-DD) from the datetime string
-        return dateString.split('T')[0];
+        return dateString.split("T")[0];
       };
 
       // Prepare the invoice data with updated status
@@ -131,9 +132,9 @@ export default function InvoiceTable({
         tax: invoice.tax,
         grandTotal: invoice.grandTotal,
         status: newStatus,
-        issueDate: formatDateForBackend(invoice.issueDate),  // Format date
+        issueDate: formatDateForBackend(invoice.issueDate), // Format date
         expireDate: formatDateForBackend(invoice.expireDate), // Format date
-        items: invoice.items.map(item => ({
+        items: invoice.items.map((item) => ({
           productId: item.productId,
           unitPrice: item.unitPrice,
           quantity: item.quantity,
@@ -172,7 +173,7 @@ export default function InvoiceTable({
 
     try {
       await deleteInvoice(deleteId).unwrap();
-      
+
       toast({
         title: "Invoice deleted",
         description: "The invoice has been removed successfully.",
@@ -191,21 +192,47 @@ export default function InvoiceTable({
     }
   };
 
+  const STATUS_OPTIONS = [
+    {
+      label: "Pending",
+      value: "pending",
+      dotColor: "bg-yellow-500",
+      badgeClass: "bg-yellow-100 text-yellow-700 hover:bg-yellow-200",
+    },
+    {
+      label: "Paid",
+      value: "paid",
+      dotColor: "bg-green-500",
+      badgeClass: "bg-green-100 text-green-700 hover:bg-green-200",
+    },
+    {
+      label: "Overdue",
+      value: "overdue",
+      dotColor: "bg-red-500",
+      badgeClass: "bg-red-100 text-red-700 hover:bg-red-200",
+    },
+    {
+      label: "Cancelled",
+      value: "cancelled",
+      dotColor: "bg-gray-500",
+      badgeClass: "bg-gray-100 text-gray-700 hover:bg-gray-200",
+    },
+  ];
   /* ======================
      GET STATUS COLOR
   ====================== */
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
-      case 'paid':
-        return 'bg-green-100 text-green-700 hover:bg-green-200';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200';
-      case 'overdue':
-        return 'bg-red-100 text-red-700 hover:bg-red-200';
-      case 'cancelled':
-        return 'bg-gray-100 text-gray-700 hover:bg-gray-200';
+      case "paid":
+        return "bg-green-100 text-green-700 hover:bg-green-200";
+      case "pending":
+        return "bg-yellow-100 text-yellow-700 hover:bg-yellow-200";
+      case "overdue":
+        return "bg-red-100 text-red-700 hover:bg-red-200";
+      case "cancelled":
+        return "bg-gray-100 text-gray-700 hover:bg-gray-200";
       default:
-        return 'bg-gray-100 text-gray-700 hover:bg-gray-200';
+        return "bg-gray-100 text-gray-700 hover:bg-gray-200";
     }
   };
 
@@ -217,10 +244,24 @@ export default function InvoiceTable({
   if (isError) {
     return (
       <div className="rounded-[10px] border bg-white p-8 text-center">
-        <p className="text-red-600">Failed to load invoices. Please try again.</p>
+        <p className="text-red-600">
+          Failed to load invoices. Please try again.
+        </p>
       </div>
     );
   }
+
+  const handleShareLink = (invoiceId: number) => {
+    const shareUrl = `${window.location.origin}/invoice-view/${invoiceId}`;
+
+    navigator.clipboard.writeText(shareUrl);
+    toast({
+      title: "Link Copied!",
+      description: "Invoice link has been copied to clipboard.",
+      className: "bg-purple-600 text-white",
+      duration: 2000,
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -231,21 +272,13 @@ export default function InvoiceTable({
               {visibleColumns.invoiceNo && (
                 <TableHead className="xl:pl-7.5">Invoice No.</TableHead>
               )}
-              {visibleColumns.client && (
-                <TableHead>Client</TableHead>
-              )}
-              {visibleColumns.subtotal && (
-                <TableHead>Subtotal</TableHead>
-              )}
+              {visibleColumns.client && <TableHead>Client</TableHead>}
+              {visibleColumns.subtotal && <TableHead>Subtotal</TableHead>}
               {visibleColumns.totalAmount && (
                 <TableHead>Total Amount</TableHead>
               )}
-              {visibleColumns.issueDate && (
-                <TableHead>Issue Date</TableHead>
-              )}
-              {visibleColumns.status && (
-                <TableHead>Status</TableHead>
-              )}
+              {visibleColumns.issueDate && <TableHead>Issue Date</TableHead>}
+              {visibleColumns.status && <TableHead>Status</TableHead>}
               <TableHead className="text-right xl:pr-7.5">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -255,14 +288,15 @@ export default function InvoiceTable({
               filteredData.map((i) => (
                 <TableRow key={i.id}>
                   {visibleColumns.invoiceNo && (
-                    <TableCell className="xl:pl-7.5 font-medium">
+                    <TableCell className="font-medium xl:pl-7.5">
                       INV-{String(i.id).padStart(4, "0")}
                     </TableCell>
                   )}
 
                   {visibleColumns.client && (
                     <TableCell>
-                      {clients.find((c) => c.id === i.clientId)?.name ?? "Unknown Client"}
+                      {clients.find((c) => c.id === i.clientId)?.name ??
+                        "Unknown Client"}
                     </TableCell>
                   )}
 
@@ -271,7 +305,9 @@ export default function InvoiceTable({
                   )}
 
                   {visibleColumns.totalAmount && (
-                    <TableCell>${Number(i.grandTotal ?? 0).toFixed(2)}</TableCell>
+                    <TableCell>
+                      ${Number(i.grandTotal ?? 0).toFixed(2)}
+                    </TableCell>
                   )}
 
                   {visibleColumns.issueDate && (
@@ -279,22 +315,22 @@ export default function InvoiceTable({
                       {new Date(i.issueDate).toLocaleDateString("en-GB")}
                     </TableCell>
                   )}
-                  
+
                   {/* STATUS DROPDOWN */}
                   {visibleColumns.status && (
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button 
-                            className={`px-2 py-1 rounded text-xs cursor-pointer transition-colors ${getStatusColor(i.status)}`}
+                          <button
+                            className={`cursor-pointer rounded px-2 py-1 text-xs transition-colors ${getStatusColor(i.status)}`}
                             disabled={isUpdating}
                           >
                             {i.status ?? "Pending"}
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start" className="w-32">
-                          <DropdownMenuItem 
-                            onClick={() => handleStatusChange(i.id, 'pending')}
+                          <DropdownMenuItem
+                            onClick={() => handleStatusChange(i.id, "pending")}
                             className="cursor-pointer"
                           >
                             <span className="flex items-center">
@@ -302,8 +338,8 @@ export default function InvoiceTable({
                               Pending
                             </span>
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleStatusChange(i.id, 'paid')}
+                          <DropdownMenuItem
+                            onClick={() => handleStatusChange(i.id, "paid")}
                             className="cursor-pointer"
                           >
                             <span className="flex items-center">
@@ -311,8 +347,8 @@ export default function InvoiceTable({
                               Paid
                             </span>
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleStatusChange(i.id, 'overdue')}
+                          <DropdownMenuItem
+                            onClick={() => handleStatusChange(i.id, "overdue")}
                             className="cursor-pointer"
                           >
                             <span className="flex items-center">
@@ -320,8 +356,10 @@ export default function InvoiceTable({
                               Overdue
                             </span>
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleStatusChange(i.id, 'cancelled')}
+                          <DropdownMenuItem
+                            onClick={() =>
+                              handleStatusChange(i.id, "cancelled")
+                            }
                             className="cursor-pointer"
                           >
                             <span className="flex items-center">
@@ -344,15 +382,27 @@ export default function InvoiceTable({
 
                       <DropdownMenuContent align="end" className="w-44">
                         <DropdownMenuItem asChild>
-                          <Link href={`/invoices/${i.id}`} className="flex items-center">
+                          <Link
+                            href={`/invoices/${i.id}`}
+                            className="flex items-center"
+                          >
                             <Eye className="mr-2 size-4" /> View
                           </Link>
                         </DropdownMenuItem>
 
                         <DropdownMenuItem asChild>
-                          <Link href={`/invoices/${i.id}/edit`} className="flex items-center">
+                          <Link
+                            href={`/invoices/${i.id}/edit`}
+                            className="flex items-center"
+                          >
                             <Edit2 className="mr-2 size-4" /> Edit
                           </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleShareLink(i.id)}
+                          className="flex cursor-pointer items-center"
+                        >
+                          <Share2 className="mr-2 size-4" /> Share Link
                         </DropdownMenuItem>
 
                         <DropdownMenuItem
@@ -368,7 +418,10 @@ export default function InvoiceTable({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={visibleColumnCount} className="h-[300px] text-center">
+                <TableCell
+                  colSpan={visibleColumnCount}
+                  className="h-[300px] text-center"
+                >
                   <div className="flex flex-col items-center space-y-3">
                     <SearchX className="size-8 text-gray-400" />
                     <p className="font-semibold">No invoices found</p>

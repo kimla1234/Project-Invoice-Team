@@ -1,19 +1,19 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useCreateInvoiceMutation } from "@/redux/service/invoices";
-import { useGetMyProductsQuery } from "@/redux/service/products";        
-import { useGetMyClientsQuery } from "@/redux/service/client";        
+import { useGetMyProductsQuery } from "@/redux/service/products";
+import { useGetMyClientsQuery } from "@/redux/service/client";
 import { useToast } from "@/hooks/use-toast";
 import { InvoiceItemRequest } from "@/types/invoice";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { ClientModal } from "@/components/Invoices/create-invoice/ClientModal";
 import { ProductModal } from "../create-invoice/ProductModal";
-import {useGetMySettingsQuery} from "@/redux/service/setting"
+import { useGetMySettingsQuery } from "@/redux/service/setting";
 //import { mockClients } from "@/components/Tables/clients";
 import { IoAddCircleOutline } from "react-icons/io5";
 import { IoMdAdd } from "react-icons/io";
-import  DownloadPDFButton  from "../create-invoice/DownloadPDFButton"
+import DownloadPDFButton from "../create-invoice/DownloadPDFButton";
 import { ClientResponse } from "@/types/client";
 
 type ExtendedItem = InvoiceItemRequest & {
@@ -24,15 +24,18 @@ type ExtendedItem = InvoiceItemRequest & {
 export default function CreateInvoiceForm() {
   const router = useRouter();
   const { toast } = useToast();
-  const { data: products = [], isLoading: loadingProducts } = useGetMyProductsQuery();
-  const { data: clients = [], isLoading: loadingClients } = useGetMyClientsQuery();
+  const { data: products = [], isLoading: loadingProducts } =
+    useGetMyProductsQuery();
+  const { data: clients = [], isLoading: loadingClients } =
+    useGetMyClientsQuery();
   const { data: setting, isLoading: loadingSetting } = useGetMySettingsQuery();
   const [createInvoice, { isLoading: creating }] = useCreateInvoiceMutation();
 
-//   const [clients, setClients] = useState<ClientResponse[]>([]);
+  //   const [clients, setClients] = useState<ClientResponse[]>([]);
 
-
-  const [selectedClient, setSelectedClient] = useState<ClientResponse | null>(null);
+  const [selectedClient, setSelectedClient] = useState<ClientResponse | null>(
+    null,
+  );
   const [invoiceNo, setInvoiceNo] = useState("");
   const [taxPercentage, setTaxPercentage] = useState<number>(10);
   const [items, setItems] = useState<ExtendedItem[]>([]);
@@ -55,13 +58,16 @@ export default function CreateInvoiceForm() {
   }, []);
 
   // Initialize invoice number
+  // Initialize invoice number from LocalStorage (Mock logic)
   useEffect(() => {
     const oldInvoices = JSON.parse(localStorage.getItem("invoices") || "[]");
-    const maxId = oldInvoices.length > 0 ? Math.max(...oldInvoices.map((i: any) => i.id)) : 0;
+    const maxId =
+      oldInvoices.length > 0
+        ? Math.max(...oldInvoices.map((i: any) => i.id))
+        : 0;
     setInvoiceNo(`INV-${String(maxId + 1).padStart(4, "0")}`);
   }, []);
 
-  
   // Handle modal scroll
   useEffect(() => {
     if (isProductModalOpen || isClientModalOpen) {
@@ -145,7 +151,7 @@ export default function CreateInvoiceForm() {
   // Submit invoice - WITH DATE FORMATTING
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedClient) {
       toast({
         title: "Validation Error",
@@ -184,7 +190,7 @@ export default function CreateInvoiceForm() {
 
     try {
       // Convert items to InvoiceItemRequest format (remove id and total)
-      const invoiceItems: InvoiceItemRequest[] = items.map(item => ({
+      const invoiceItems: InvoiceItemRequest[] = items.map((item) => ({
         productId: item.productId,
         unitPrice: item.unitPrice,
         quantity: item.quantity,
@@ -194,14 +200,15 @@ export default function CreateInvoiceForm() {
 
       // Convert date strings to ISO 8601 datetime format
       const formatDateToISO = (dateStr: string) => {
-        return `${dateStr}T00:00:00`;
+        return `${dateStr}T00:00:00`; // Produces "YYYY-MM-DDT00:00:00"
       };
 
+      // Inside handleSubmit, update the payload:
       await createInvoice({
         clientId: selectedClient.id!,
-        subtotal,
-        tax: taxAmount,
-        grandTotal,
+        subtotal: Number(subtotal.toFixed(2)),
+        tax: Number(taxAmount.toFixed(2)),
+        grandTotal: Number(grandTotal.toFixed(2)),
         items: invoiceItems,
         status: "pending",
         issueDate: formatDateToISO(issueDate),
@@ -216,10 +223,14 @@ export default function CreateInvoiceForm() {
 
       router.push("/invoices");
     } catch (error: any) {
-      console.error("Invoice creation error:", error);
+      // Log this way to see the actual error message from the server
+      console.log("Full Error Object:", error);
+      console.log("Server Message:", error?.data?.message);
+
       toast({
         title: "Error",
-        description: error?.data?.message || "Failed to create invoice.",
+        description:
+          error?.data?.message || "Check the Network Tab (F12) for details.",
         variant: "destructive",
       });
     }
@@ -263,42 +274,46 @@ export default function CreateInvoiceForm() {
       return;
     }
 
+    // Inside your handleSubmit...
     try {
-      const invoiceItems: InvoiceItemRequest[] = items.map(item => ({
+      const invoiceItems: InvoiceItemRequest[] = items.map((item) => ({
         productId: item.productId,
-        unitPrice: item.unitPrice,
+        unitPrice: Number(item.unitPrice.toFixed(2)),
         quantity: item.quantity,
-        subtotal: item.subtotal,
+        subtotal: Number(item.subtotal.toFixed(2)),
         name: item.name,
       }));
 
-      const formatDateToISO = (dateStr: string) => {
-        return `${dateStr}T00:00:00`;
-      };
+      // Standardized Date Format: YYYY-MM-DDT00:00:00
+      const formatDateForBackend = (dateStr: string) => `${dateStr}T00:00:00`;
 
       await createInvoice({
         clientId: selectedClient.id!,
-        subtotal,
-        tax: taxAmount,
-        grandTotal,
+        subtotal: Number(subtotal.toFixed(2)),
+        tax: Number(taxAmount.toFixed(2)),
+        grandTotal: Number(grandTotal.toFixed(2)),
         items: invoiceItems,
         status: "pending",
-        issueDate: formatDateToISO(issueDate),
-        expireDate: formatDateToISO(expireDate),
+        issueDate: formatDateForBackend(issueDate),
+        expireDate: formatDateForBackend(expireDate),
       }).unwrap();
 
       toast({
-        title: "Invoice Created",
-        description: "Invoice has been created successfully.",
+        title: "Success",
+        description: "Invoice created successfully.",
         className: "bg-green-600 text-white",
       });
 
       router.push("/invoices");
     } catch (error: any) {
-      console.error("Invoice creation error:", error);
+      // Enhanced error logging to catch database constraint messages
+      const serverError =
+        error?.data?.message || error?.message || "Unknown Error";
+      console.error("Submission failed:", serverError);
+
       toast({
-        title: "Error",
-        description: error?.data?.message || "Failed to create invoice.",
+        title: "Submission Failed",
+        description: serverError,
         variant: "destructive",
       });
     }
@@ -378,7 +393,7 @@ export default function CreateInvoiceForm() {
                   type="date"
                   value={issueDate}
                   onChange={(e) => setIssueDate(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
+                  className="w-full rounded-lg border border-gray-300 p-2 focus:border-purple-500 focus:ring-purple-500"
                   required
                 />
               </div>
@@ -390,7 +405,7 @@ export default function CreateInvoiceForm() {
                   type="date"
                   value={expireDate}
                   onChange={(e) => setExpireDate(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
+                  className="w-full rounded-lg border border-gray-300 p-2 focus:border-purple-500 focus:ring-purple-500"
                   required
                 />
               </div>
@@ -425,13 +440,13 @@ export default function CreateInvoiceForm() {
                   Phone:
                 </span>
                 <span className="font-semibold text-gray-700">
-                 {selectedClient.phoneNumber || "N/A"}
+                  {selectedClient.phoneNumber || "N/A"}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => setIsClientModalOpen(true)}
-                className="ml-auto flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700"
+                className="ml-auto flex items-center gap-2 text-sm font-medium text-purple-600 hover:text-purple-700"
               >
                 <span className="rounded border bg-gray-50 px-1.5 py-0.5 text-[10px] text-gray-500">
                   ⌘ K
@@ -443,7 +458,7 @@ export default function CreateInvoiceForm() {
             <button
               type="button"
               onClick={() => setIsClientModalOpen(true)}
-              className="flex items-center gap-2 text-lg font-medium text-blue-600 hover:text-blue-700"
+              className="flex items-center gap-2 text-lg font-medium text-purple-600 hover:text-purple-700"
             >
               <IoAddCircleOutline className="h-6 w-6" />
               Select Client
@@ -498,16 +513,18 @@ export default function CreateInvoiceForm() {
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
                       <input
-                        className="w-full rounded border-gray-200 bg-slate-100 p-2 focus:border-blue-500 focus:ring-blue-500"
+                        className="w-full rounded border-gray-200 bg-slate-100 p-2 focus:border-purple-500 focus:ring-purple-500"
                         value={item.name}
-                        onChange={(e) => handleUpdateName(index, e.target.value)}
+                        onChange={(e) =>
+                          handleUpdateName(index, e.target.value)
+                        }
                       />
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
                       <input
                         type="number"
                         min="1"
-                        className="w-full rounded border-gray-200 bg-slate-100 p-2 focus:border-blue-500 focus:ring-blue-500"
+                        className="w-full rounded border-gray-200 bg-slate-100 p-2 focus:border-purple-500 focus:ring-purple-500"
                         value={item.quantity}
                         onChange={(e) =>
                           handleUpdateQuantity(index, Number(e.target.value))
@@ -519,7 +536,7 @@ export default function CreateInvoiceForm() {
                         type="number"
                         step="0.01"
                         min="0"
-                        className="w-full rounded border-gray-200 bg-slate-100 p-2 focus:border-blue-500 focus:ring-blue-500"
+                        className="w-full rounded border-gray-200 bg-slate-100 p-2 focus:border-purple-500 focus:ring-purple-500"
                         value={item.unitPrice}
                         onChange={(e) =>
                           handleUpdateUnitPrice(index, Number(e.target.value))
@@ -574,8 +591,14 @@ export default function CreateInvoiceForm() {
         {/* Form Submission Button */}
         <button
           type="submit"
-          disabled={creating || items.length === 0 || !selectedClient || !issueDate || !expireDate}
-          className="w-full rounded-lg bg-blue-600 py-3 text-lg font-semibold text-white transition duration-150 ease-in-out hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-400"
+          disabled={
+            creating ||
+            items.length === 0 ||
+            !selectedClient ||
+            !issueDate ||
+            !expireDate
+          }
+          className="w-full rounded-lg bg-purple-600 py-3 text-lg font-semibold text-white transition duration-150 ease-in-out hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-400"
         >
           {creating ? "Creating Invoice..." : "Create Invoice"}
         </button>
@@ -588,7 +611,13 @@ export default function CreateInvoiceForm() {
           <button
             type="button"
             onClick={handlePreviewAndSend}
-            disabled={creating || items.length === 0 || !selectedClient || !issueDate || !expireDate}
+            disabled={
+              creating ||
+              items.length === 0 ||
+              !selectedClient ||
+              !issueDate ||
+              !expireDate
+            }
             className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-gray-400"
           >
             <span className="mr-2">+</span> Preview and send
@@ -632,11 +661,15 @@ export default function CreateInvoiceForm() {
             </h2>
             <div className="flex items-center justify-between py-1 text-sm">
               <span>Stripe</span>
-              <button type="button" className="text-purple-600">Connect</button>
+              <button type="button" className="text-purple-600">
+                Connect
+              </button>
             </div>
             <div className="flex items-center justify-between py-1 text-sm">
               <span>Paypal</span>
-              <button type="button" className="text-purple-600">Setup</button>
+              <button type="button" className="text-purple-600">
+                Setup
+              </button>
             </div>
           </div>
 
@@ -691,7 +724,10 @@ export default function CreateInvoiceForm() {
                 <span>Reminder 3: 30 days before due date</span>
               </label>
             </div>
-            <button type="button" className="mt-3 text-sm text-purple-600 hover:underline">
+            <button
+              type="button"
+              className="mt-3 text-sm text-purple-600 hover:underline"
+            >
               Add reminder option
             </button>
           </div>

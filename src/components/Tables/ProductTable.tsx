@@ -256,12 +256,12 @@ export function ProductTable({
                           unoptimized
                           src={
                             item.image_url ||
-                            "https://t4.ftcdn.net/jpg/06/57/37/01/360_F_657370150_pdNeG5pjI976ZasVbKN9VqH1rfoykdYU.jpg"
+                            "/image.png"
                           }
                           alt={item.name}
                           width={1000}
                           height={1000}
-                          className="object-cover"
+                          className="object-cover w-full h-full "
                         />
                       </div>
                     </TableCell>

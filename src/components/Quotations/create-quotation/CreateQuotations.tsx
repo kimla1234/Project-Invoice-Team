@@ -9,8 +9,8 @@ import { IoMdAdd } from "react-icons/io";
 import { ClientModal } from "./ClientModal";
 import { DownloadPDFButton } from "./DownloadPDFButton";
 
-<<<<<<< HEAD
-=======
+
+
 import { useGetMyProductsQuery } from "@/redux/service/products";
 import { useCreateQuotationMutation } from "@/redux/service/quotation";
 
@@ -20,7 +20,7 @@ import { QuotationCreateRequest } from "@/types/quotation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 
->>>>>>> 71adfe85072ed740c51f5c2c259edecc93d97200
+
 type Item = {
   id: number;
   uuid: string;
@@ -36,7 +36,7 @@ type ProductModalProps = {
   onSelectProducts: (selected: MyEventResponse[]) => void;
 };
 
-const user = useSelector((state: RootState) => state.auth.user);
+//const user = useSelector((state: RootState) => state.auth.user);
 
 const ProductModal = ({
   isOpen,
@@ -199,7 +199,7 @@ export default function CreateQuotation() {
       });
       return;
     }
-
+    {/* 
     try {
       if (!user) {
         toast({
@@ -245,6 +245,7 @@ export default function CreateQuotation() {
         className: "bg-red-600 text-white",
       });
     }
+      */}
   };
 
   return (

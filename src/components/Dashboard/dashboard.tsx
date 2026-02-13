@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { calculateDashboardData } from '../Dashboard/components/DashboardCalculation';
-import StatsCards from '../Dashboard/components/StatusCard';
+//import { calculateDashboardData } from '../Dashboard/components/DashboardCalculation';
+
 import MonthlyChart from '../Dashboard/components/charts/MonthlyChart';
-import ProductsChart from '../Dashboard/components/charts/ProductsChart';
+//import ProductsChart from '../Dashboard/components/charts/ProductsChart';
 import WeeklyRevenueChart from '../Dashboard/components/WeeklyRevenue';
-import RecentActivity from '../Dashboard/components/RecentActivity';
+//import RecentActivity from '../Dashboard/components/RecentActivity';
 
  interface DashboardData {
     totalQuotes: number;
@@ -28,8 +28,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const data = calculateDashboardData();
-      setDashboardData(data);
+     // const data = calculateDashboardData();
+     // setDashboardData(data);
       setLoading(false);
     }
   }, []);
@@ -53,15 +53,15 @@ export default function Dashboard() {
         Dashboard
       </div>
 
-      <StatsCards data={dashboardData} />
+
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <MonthlyChart data={dashboardData} />
-        <ProductsChart data={dashboardData} />
-        <WeeklyRevenueChart data={dashboardData} />
+       
+       
+
       </div>
 
-      <RecentActivity data={dashboardData} />
+      
     </div>
   );
 }

@@ -2,13 +2,13 @@
 
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend, Title } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
-import { DashboardData } from '../DashboardCalculation';
+//import { DashboardData } from '../DashboardCalculation';
 import { getLast6Months } from '../formatters';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend, Title);
 
 interface MonthlyChartProps {
-  data: DashboardData | null;
+  data: "" | null;
 }
 
 export default function MonthlyChart({ data }: MonthlyChartProps) {
@@ -17,12 +17,12 @@ export default function MonthlyChart({ data }: MonthlyChartProps) {
     datasets: [
       {
         label: 'Quotes Created',
-        data: data?.monthlyQuotes || [0, 0, 0, 0, 0, 0],
+       // data: data?.monthlyQuotes || [0, 0, 0, 0, 0, 0],
         backgroundColor: '#3b82f6',
       },
       {
         label: 'Invoices Generated',
-        data: data?.monthlyInvoices || [0, 0, 0, 0, 0, 0],
+       // data: data?.monthlyInvoices || [0, 0, 0, 0, 0, 0],
         backgroundColor: '#10b981',
       },
     ],
@@ -33,23 +33,7 @@ export default function MonthlyChart({ data }: MonthlyChartProps) {
       <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">
         Monthly Quotes vs Invoices
       </h3>
-      <Bar
-        data={monthlyData}
-        options={{
-          responsive: true,
-          plugins: {
-            legend: { position: 'top' },
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                stepSize: 1
-              }
-            }
-          }
-        }}
-      />
+      
     </div>
   );
 }

@@ -12,7 +12,8 @@ export function middleware(request: NextRequest) {
     '/api/refresh',
     '/_next',
     '/auth/google/callback', 
-    '/oauth2/callback'        
+    '/oauth2/callback' ,       
+    '/invoice-view'
   ];
 
 

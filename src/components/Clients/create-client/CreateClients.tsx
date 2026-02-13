@@ -115,7 +115,7 @@ export default function CreateClients() {
 
           <Link
             href="/clients"
-            className="text-md flex items-center rounded-lg border bg-white p-2 font-medium text-primary hover:text-red-400 dark:hover:text-blue-400"
+            className="text-md flex items-center rounded-lg border bg-white p-2 font-medium text-purple-600 hover:text-red-400 dark:hover:text-purple-400"
           >
             <FiSkipBack className="mr-2 h-5 w-5" />
             Back to Clients
@@ -244,7 +244,7 @@ export default function CreateClients() {
                 type="submit"
                 disabled={isLoading}
                 className={cn(
-                  "rounded-lg bg-primary px-5 py-2 text-white",
+                  "rounded-lg bg-purple-600 px-5 py-2 text-white",
                   isLoading && "opacity-70"
                 )}
               >

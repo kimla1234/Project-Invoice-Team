@@ -27,7 +27,13 @@ export default function ViewInvoice({ id }: ViewInvoiceProps) {
   });
 
   const { data: setting, isLoading: loadingSetting } = useGetMySettingsQuery();
-  
+  const stripHtml = (html: string) => { // 👈 បន្ថែម : string នៅទីនេះ
+  if (!html) return "";
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<[^>]*>?/gm, '');
+};
 
   const handleDownload = async () => {
     if (!invoice) return;
@@ -201,19 +207,24 @@ export default function ViewInvoice({ id }: ViewInvoiceProps) {
 
     startY += 15;
 
+    
+
     // Invoice Note
-    if (setting?.invoiceNote) {
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(...textColor);
-      doc.text("Note:", margin, startY);
-      
-      doc.setFont("helvetica", "normal");
-      startY += 5;
-      const noteLines = doc.splitTextToSize(setting.invoiceNote, pageWidth - 2 * margin);
-      doc.text(noteLines, margin, startY);
-      startY += noteLines.length * 5 + 5;
-    }
+if (setting?.invoiceNote) {
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...textColor);
+  doc.text("Note:", margin, startY);
+  
+  doc.setFont("helvetica", "normal");
+  startY += 5;
+
+  const cleanNote = stripHtml(setting.invoiceNote);
+  
+  const noteLines = doc.splitTextToSize(cleanNote, pageWidth - 2 * margin);
+  doc.text(noteLines, margin, startY);
+  startY += noteLines.length * 5 + 5;
+}
 
     // Signature
     if (setting?.signatureUrl) {
@@ -241,23 +252,25 @@ export default function ViewInvoice({ id }: ViewInvoiceProps) {
     // Footer
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(9);
-      doc.setTextColor(150, 150, 150);
-      doc.setDrawColor(220, 220, 220);
-      doc.line(margin, pageHeight - 20, pageWidth - margin, pageHeight - 20);
-      
-      // Invoice Footer from settings or default message
-      const footerText = setting?.invoiceFooter || "Thank you for your business";
-      doc.text(footerText, margin, pageHeight - 14);
-      
-      doc.text(
-        `Page ${i} of ${pageCount}`,
-        pageWidth - margin,
-        pageHeight - 14,
-        { align: "right" }
-      );
-    }
+  doc.setPage(i);
+  doc.setFontSize(9);
+  doc.setTextColor(150, 150, 150);
+  doc.setDrawColor(220, 220, 220);
+  doc.line(margin, pageHeight - 20, pageWidth - margin, pageHeight - 20);
+  
+  // 🔹 សម្អាត HTML tags ចេញពី footerText
+  const rawFooter = setting?.invoiceFooter || "Thank you for your business";
+  const footerText = stripHtml(rawFooter);
+  
+  doc.text(footerText, margin, pageHeight - 14);
+  
+  doc.text(
+    `Page ${i} of ${pageCount}`,
+    pageWidth - margin,
+    pageHeight - 14,
+    { align: "right" }
+  );
+}
 
     doc.save(`invoice-${invoice.invoiceNo}.pdf`);
   };

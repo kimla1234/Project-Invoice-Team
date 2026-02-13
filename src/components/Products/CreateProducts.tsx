@@ -149,7 +149,7 @@ export default function CreateProducts() {
     // Map local state to API requirements
     const payload = {
       name: productName,
-      image_url: imagePreview || "/images/default.png", // Match backend key
+      image_url: imagePreview , // Match backend key
       price: unitPrice, // Match backend key
       currency_type: currency,
       quantity: stock, // Match backend key
@@ -189,7 +189,7 @@ export default function CreateProducts() {
           </div>
           <Link
             href="/products"
-            className="text-md flex items-center rounded-lg border bg-white p-2 font-medium text-primary hover:text-red-400 dark:hover:text-blue-400"
+            className="text-md flex items-center rounded-lg border bg-white p-2 font-medium text-purple-600 hover:text-red-400 dark:hover:text-blue-400"
           >
             <FiSkipBack className="mr-2 h-5 w-5" />
             Back to Products
@@ -468,7 +468,7 @@ export default function CreateProducts() {
             {/* Submit */}
             <button
               type="submit"
-              className="w-full rounded-lg bg-primary py-3 font-medium text-white transition hover:bg-opacity-90"
+              className="w-full rounded-lg bg-purple-600 py-3 font-medium text-white transition hover:bg-opacity-90"
             >
               Save Product
             </button>

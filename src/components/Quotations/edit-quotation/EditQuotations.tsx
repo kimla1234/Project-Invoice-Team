@@ -3,10 +3,11 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { ProductData } from "@/types/product";
-import { ClientData } from "@/types/client";
-import { getProductsTableData } from "@/components/Tables/fetch";
+//import { ProductData } from "@/types/product";
+//import { ClientData } from "@/types/client";
+import { getProductsTableData, ProductData } from "@/components/Tables/fetch";
 import { mockClients } from "@/components/Tables/clients";
+import { ClientResponse } from "@/types/client";
 
 type Item = {
   id: number;
@@ -18,7 +19,7 @@ type Item = {
 
 type Quotation = {
   id: number;
-  client: ClientData;
+  client: ClientResponse;
   issueDate: string;
   items: Item[];
   amount: number;
@@ -127,8 +128,8 @@ export default function EditQuotation() {
   const { toast } = useToast();
   const id = Number(params.id);
 
-  const [clients, setClients] = useState<ClientData[]>([]);
-  const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
+  const [clients, setClients] = useState<ClientResponse[]>([]);
+  const [selectedClient, setSelectedClient] = useState<ClientResponse | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [issueDate, setIssueDate] = useState(
     new Date().toISOString().slice(0, 10),
@@ -137,7 +138,7 @@ export default function EditQuotation() {
 
   // Load clients
   useEffect(() => {
-    setClients(mockClients);
+    //setClients(mockClients);
   }, []);
 
   // Load quotation by ID

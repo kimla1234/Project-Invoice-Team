@@ -7,13 +7,14 @@ import { useToast } from "@/hooks/use-toast";
 import { InvoiceItemRequest } from "@/types/invoice";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
-import { ClientModal } from "@/components/Quotations/create-quotation/ClientModal";
+//import { ClientModal } from "@/components/Quotations/create-quotation/ClientModal";
 import { ProductModal } from "../create-invoice/ProductModal";
 import { ClientResponse } from "@/types/client";
 import { IoAddCircleOutline } from "react-icons/io5";
 import { IoMdAdd } from "react-icons/io";
 import DownloadPDFButton from "../create-invoice/DownloadPDFButton";
 import { useGetMySettingsQuery } from "@/redux/service/setting";
+import { ClientModal } from "../create-invoice/ClientModal";
 
 type ExtendedItem = InvoiceItemRequest & {
   id: number;

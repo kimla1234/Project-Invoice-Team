@@ -1,5 +1,7 @@
 // services/mockQuotations.ts
 //import { QuotationData } from "@/types/quotation";
+/*
+import { QuotationData } from "./fetch";
 
 // Mock quotation data
 export const mockQuotations: QuotationData[] = [
@@ -27,7 +29,8 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /* =========================
    READ
-========================= */
+========================= 
+
 export async function getQuotationTableData(): Promise<QuotationData[]> {
   await delay(500);
   return mockQuotations;
@@ -37,10 +40,10 @@ export async function getQuotationById(id: number): Promise<QuotationData | unde
   await delay(300);
   return mockQuotations.find(q => q.id === id);
 }
-
+*/
 /* =========================
    CREATE
-========================= */
+========================= 
 let nextNumber = mockQuotations.length + 1;
 
 export async function createQuotation(newQuotation: Partial<QuotationData>): Promise<QuotationData> {
@@ -57,10 +60,10 @@ export async function createQuotation(newQuotation: Partial<QuotationData>): Pro
   mockQuotations.push(quotation);
   return quotation;
 }
-
+*/
 /* =========================
    UPDATE
-========================= */
+========================= 
 export async function updateQuotation(
   id: number,
   updatedData: Partial<QuotationData>
@@ -78,10 +81,10 @@ export async function updateQuotation(
 
   return mockQuotations[index];
 }
-
+*/
 /* =========================
    DELETE
-========================= */
+========================= 
 export async function deleteQuotation(id: number): Promise<boolean> {
   await delay(300);
 
@@ -91,3 +94,5 @@ export async function deleteQuotation(id: number): Promise<boolean> {
   mockQuotations.splice(index, 1);
   return true;
 }
+
+*/

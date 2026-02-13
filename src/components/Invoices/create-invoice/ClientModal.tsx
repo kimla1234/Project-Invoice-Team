@@ -61,9 +61,13 @@ export const ClientModal = ({ isOpen, onClose, clients, onSelectClient }: Client
                   onClick={() => setActiveClient(client)}
                   className={`flex w-full items-center justify-between rounded-lg px-4 py-3 text-left transition-all ${
                     activeClient?.id === client.id 
-                      ? "bg-blue-50 text-blue-600 shadow-sm" 
+                      ? "bg-purple-50 text-purple-600 shadow-sm" 
                       : "text-gray-700 hover:bg-gray-50"
                   }`}
+                  onDoubleClick={() => { // Add this for speed users
+    onSelectClient(client);
+    onClose();
+  }}
                 >
                   <span className="font-medium">{client.name}</span>
                   {activeClient?.id === client.id && <Check className="h-4 w-4" />}
@@ -97,7 +101,7 @@ export const ClientModal = ({ isOpen, onClose, clients, onSelectClient }: Client
 
                 <button 
                   onClick={() => { onSelectClient(activeClient); onClose(); }}
-                  className="mt-10 w-full rounded-lg bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700"
+                  className="mt-10 w-full rounded-lg bg-purple-600 py-3 font-semibold text-white hover:bg-purple-700"
                 >
                   Select this client
                 </button>

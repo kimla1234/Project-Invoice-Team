@@ -4,7 +4,7 @@
 import Link from "next/link";
 import React, { useState, useEffect } from "react";
 import { FiSkipBack } from "react-icons/fi";
-import { Edit2, Plus, Minus } from "lucide-react";
+import { Edit2, Plus, Minus, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import RichTextEditor from "@/components/ui/RichTextEditor";
@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/sheet";
 import { CreateProductTypeForm } from "../CreateProductTypeForm";
 import { BiAddToQueue } from "react-icons/bi";
+import Image from "next/image";
 
 interface EditProductProps {
   productId: string;
@@ -67,7 +68,8 @@ export default function EditProduct({ productId }: EditProductProps) {
   const [openingStock, setOpeningStock] = useState(0);
   const [lowStockThreshold, setLowStockThreshold] = useState(0);
   const [description, setDescription] = useState("");
-
+const [imageUrl, setImageUrl] = useState<string>(""); // For the backend string
+const [imagePreview, setImagePreview] = useState<string | null>(null); // For UI only
   const options: ("Product" | "Service")[] = ["Product", "Service"];
   const [updateProductMutation] = useUpdateProductMutation();
   const [deleteProductMutation] = useDeleteProductMutation();
@@ -94,36 +96,31 @@ export default function EditProduct({ productId }: EditProductProps) {
     setDescription(product.description ?? "");
     setCurrency_type(product.currency_type ?? "USD");
     setSelectedTypeId(product.productTypeId ?? undefined);
+    setImageUrl(product.image_url);    
+      setImagePreview(product.image_url); 
   }, [product]);
 
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    // Optional: validate size
-    if (file.size > 10 * 1024 * 1024) {
-      toast({
-        title: "Image too large",
-        description: "Maximum size is 10MB",
-        variant: "destructive",
-      });
-      return;
-    }
 
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await postImage(formData).unwrap();
-      setImage(response.uri);
-    } catch (error) {
-      toast({
-        title: "Upload Failed",
-        description: "Could not upload image. Try again.",
-        variant: "destructive",
-      });
-    }
+  const reader = new FileReader();
+  reader.onloadend = () => {
+    setImagePreview(reader.result as string);
   };
+  reader.readAsDataURL(file);
+
+
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await postImage(formData).unwrap();
+    setImageUrl(response.uri); 
+  } catch (error) {
+    toast({ title: "Upload Failed", variant: "destructive" });
+  }
+};
 
   // Update product
   const handleSubmit = async (e: React.FormEvent) => {
@@ -135,7 +132,7 @@ export default function EditProduct({ productId }: EditProductProps) {
         body: {
           name: productName,
           price: unitPrice,
-          image_url: image,
+          image_url: imageUrl,
           stockQuantity: openingStock,
           low_stock: lowStockThreshold,
           description: description,
@@ -296,30 +293,39 @@ export default function EditProduct({ productId }: EditProductProps) {
               </div>
             </div>
 
+            {/* Image Section */}
             <div>
               <label className="mb-1.5 block font-medium">Product Image</label>
-              <div className="flex items-center gap-4">
-                {image && (
-                  <img
-                    src={image}
-                    alt="Product Image"
-                    className="h-40 w-40 rounded-lg border object-cover"
-                  />
-                )}
-                <div>
-                  <label className="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-gray-700 hover:bg-gray-200">
-                    <HiOutlinePhoto className="text-xl" />
-                    Upload Photo
-                    <input
-                      type="file"
-                      accept="image/png, image/jpeg"
-                      onChange={handleImageChange}
-                      className="hidden"
-                    />
+              <div className="flex items-center gap-6">
+                <div className="relative h-40 w-40 overflow-hidden rounded-lg border bg-gray-50">
+  {imagePreview ? (
+    <Image 
+      unoptimized 
+      src={imagePreview} 
+      alt="Product Image" 
+      fill 
+      className="object-cover" 
+    />
+  ) : (
+    <div className="flex h-full items-center justify-center text-gray-300">
+      <HiOutlinePhoto className="text-4xl" />
+    </div>
+  )}
+  
+
+  {isUploading && (
+    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+      <Loader2 className="h-6 w-6 animate-spin text-white" />
+    </div>
+  )}
+</div>
+                <div className="space-y-2">
+                  <label className="flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-gray-50 transition-colors">
+                    <HiOutlinePhoto className="text-lg" />
+                    Change Photo
+                    <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                   </label>
-                  <p className="mt-1 text-sm text-gray-400">
-                    JPG, PNG up to 2MB
-                  </p>
+                  <p className="text-xs text-gray-400">JPG, PNG up to 2MB</p>
                 </div>
               </div>
             </div>
