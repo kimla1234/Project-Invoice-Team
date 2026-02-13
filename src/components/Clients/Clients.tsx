@@ -157,7 +157,7 @@ export default function Clients() {
               visibleColumns={columnVisibility}
               searchTerm={searchTerm} // Pass the search term
               selectedGenders={selectedGenders}
-              onExportDataChange={setExportData}
+              //onExportDataChange={setExportData}
               onDataChanged={() => setSummaryRefreshKey((k) => k + 1)}
             />
             

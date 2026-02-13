@@ -7,9 +7,10 @@ import { useToast } from "@/hooks/use-toast";
 import { InvoiceItemRequest } from "@/types/invoice";
 import { useRouter } from "next/navigation";
 import { Trash2, Plus, Search, X, Check, UserCircle2 } from "lucide-react";
-import { ClientData } from "@/types/client";
+//import { ClientData } from "@/types/client";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { ClientResponse } from "@/types/client";
 
 type Item = {
   productId: number;
@@ -28,8 +29,8 @@ type ProductModalProps = {
 type ClientModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  clients: ClientData[];
-  onSelectClient: (client: ClientData) => void;
+  clients: ClientResponse[];
+  onSelectClient: (client: ClientResponse) => void;
 };
 
 // Product selection modal

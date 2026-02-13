@@ -16,7 +16,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Eye, Edit2, Trash2, Repeat, SearchX } from "lucide-react";
+import {
+  MoreHorizontal,
+  Eye,
+  Edit2,
+  Trash2,
+  SearchX,
+  Repeat,
+} from "lucide-react";
+//import { QuotationData } from "@/types/quotation";
+////import { ClientData } from "../Quotations/create-quotation/DownloadPDFButton";
+//import { InvoiceData } from "@/types/invoice";
 import QuotationTableSkeleton from "../skeletons/QuotationTableSkeleton";
 import { useToast } from "@/hooks/use-toast";
 import { PaginationControls } from "../ui/pagination-controls";
@@ -24,6 +34,8 @@ import { PaginationControls } from "../ui/pagination-controls";
 import { QuotationData } from "@/types/quotation";
 import { ClientResponse } from "@/types/client";
 import { DeleteQuotations } from "../Quotations/delete-quotation/DeleteQuotations";
+import { ClientData } from "../Quotations/create-quotation/DownloadPDFButton";
+import { Invoice } from "@/types/invoice";
 
 interface QuotationTableProps {
   data: QuotationData[];
@@ -65,6 +77,34 @@ export default function QuotationTable({
   };
 
   const handleConvertQuotation = (quotation: QuotationData) => {
+    if (!quotation) return;
+
+    const items = (quotation.items ?? []).map((item, idx) => ({
+      id: item.id ?? idx + 1,
+      name: item.name,
+      qty: item.qty,
+      unitPrice: item.unitPrice,
+      total: item.total,
+    }));
+
+    const subtotal = items.reduce((sum, i) => sum + i.total, 0);
+
+    const oldInvoices: Invoice[] = JSON.parse(localStorage.getItem("invoices") || "[]");
+
+    const newInvoice: Invoice = {
+      id: oldInvoices.length > 0 ? Math.max(...oldInvoices.map(i => i.id)) + 1 : 1,
+      invoiceNo: `INV-${String(oldInvoices.length + 1).padStart(4, "0")}`,
+      clientId: quotation.clientId,
+      issueDate: new Date().toISOString().slice(0, 10),
+      //dueDate: undefined,
+      items,
+      subtotal,
+      totalAmount: subtotal,
+      status: "Unpaid",
+    };
+
+    localStorage.setItem("invoices", JSON.stringify([...oldInvoices, newInvoice]));
+
     toast({
       title: "Converted",
       description: `Quotation #${quotation.id} converted to invoice`,
