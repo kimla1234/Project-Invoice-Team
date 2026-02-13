@@ -1,5 +1,5 @@
 # Use an official Node.js runtime as a parent image
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 RUN apk add --no-cache libc6-compat
 
@@ -19,7 +19,7 @@ RUN npm i sharp
 RUN npm run build
 
 # Multi-stage build process
-FROM node:18-alpine
+FROM node:20-alpine
 
 # update and install latest dependencies, add dumb-init package
 # add a non-root user
