@@ -9,17 +9,14 @@ import { IoMdAdd } from "react-icons/io";
 import { ClientModal } from "./ClientModal";
 import { DownloadPDFButton } from "./DownloadPDFButton";
 
-
-
 import { useGetMyProductsQuery } from "@/redux/service/products";
-import { useCreateQuotationMutation } from "@/redux/service/quotation";
+import { useCreateQuotationMutation, useGetQuotationsQuery } from "@/redux/service/quotation";
 
 import { MyEventResponse } from "@/types/product";
 import { ClientResponse } from "@/types/client";
 import { QuotationCreateRequest } from "@/types/quotation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
-
 
 type Item = {
   id: number;
@@ -36,7 +33,7 @@ type ProductModalProps = {
   onSelectProducts: (selected: MyEventResponse[]) => void;
 };
 
-//const user = useSelector((state: RootState) => state.auth.user);
+// const user = useSelector((state: RootState) => state.auth.user);
 
 const ProductModal = ({
   isOpen,
@@ -129,14 +126,79 @@ export default function CreateQuotation() {
   const { toast } = useToast();
 
   const [createQuotation] = useCreateQuotationMutation();
+  const { 
+    data: quotationsData, 
+    isLoading: isQuotationsLoading, 
+    isError: isQuotationsError, 
+    error: quotationsError 
+  } = useGetQuotationsQuery({ page: 0, size: 1000 }, { refetchOnMountOrArgChange: true });
 
   const [selectedClient, setSelectedClient] = useState<ClientResponse | null>(
     null,
   );
 
+
+
   const [items, setItems] = useState<Item[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [quotationNo] = useState("Auto Generated");
+  const [quotationNo, setQuotationNo] = useState<number | null>(null);
+  
+  useEffect(() => {
+    if (quotationsData) {
+      console.log("Quotations Data (Client-Side Calc):", quotationsData); // Debugging
+      
+      const content = Array.isArray(quotationsData.content) ? quotationsData.content : [];
+      let maxId = 0;
+      
+      if (content.length > 0) {
+        maxId = Math.max(...content.map((q: any) => {
+             // 1. Try to use quotationNo if it's a number
+             let val = Number(q.quotationNo);
+             
+             // 2. If it's a string like "QUO-0005", extract the number
+             if (isNaN(val) && typeof q.quotationNo === 'string') {
+                const match = q.quotationNo.match(/(\d+)$/);
+                if (match) {
+                  val = Number(match[1]);
+                }
+             }
+
+             // 3. If still invalid, fallback to ID (safest bet for auto-increment)
+             if (isNaN(val) || val === 0) {
+                val = Number(q.id) || 0;
+             }
+             
+             return val;
+        }));
+      }
+
+      const nextId = maxId + 1;
+      console.log("Max ID found:", maxId, "Next ID:", nextId); // Debugging
+      setQuotationNo(nextId);
+    } else if (isQuotationsError) {
+      console.error("Failed to fetch quotations:", quotationsError);
+      setQuotationNo(1);
+    }
+  }, [quotationsData, isQuotationsError, quotationsError]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setQuotationNo((prev) => (prev === null ? 1 : prev));
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, []);
+  
+  // Load default settings
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("invoice_footer_settings");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.defaultNote) setInvoiceNote(parsed.defaultNote);
+        if (parsed.defaultTerms) setInvoiceTerms(parsed.defaultTerms);
+      }
+    }
+  }, []);
   const [issueDate, setIssueDate] = useState(
     new Date().toISOString().slice(0, 10),
   );
@@ -182,6 +244,15 @@ export default function CreateQuotation() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (quotationNo === null) {
+      toast({
+        title: "Please wait",
+        description: "Quotation number is being generated.",
+        className: "bg-yellow-600 text-white",
+      });
+      return;
+    }
+
     if (!selectedClient) {
       toast({
         title: "Select client",
@@ -199,23 +270,24 @@ export default function CreateQuotation() {
       });
       return;
     }
-    {/* 
-    try {
-      if (!user) {
-        toast({
-          title: "Not logged in",
-          description: "Please log in to create a quotation.",
-          className: "bg-red-600 text-white",
-        });
-        return;
-      }
 
-      const userId = user.uuid;
+    try {
+      // if (!user) {
+      //   toast({
+      //     title: "Not logged in",
+      //     description: "Please log in to create a quotation.",
+      //     className: "bg-red-600 text-white",
+      //   });
+      //   return;
+      // }
+
+      // const userId = user.uuid;
 
       const body: QuotationCreateRequest = {
-        userId,
+        userId: 1,
         clientId: selectedClient.id,
         invoiceId: 0, // optional
+        quotationNo, // Send number
         quotationDate: new Date(issueDate).toISOString(),
         quotationExpire: expiryDate
           ? new Date(expiryDate).toISOString()
@@ -226,26 +298,42 @@ export default function CreateQuotation() {
           productId: item.id,
           quantity: item.qty,
           unitPrice: item.unitPrice,
+          subtotal: item.total,
         })),
       };
 
+      console.log("Creating Quotation with Body:", body); // Debugging check payload
+
       const result = await createQuotation(body).unwrap();
+      console.log("Create Quotation Result:", result); // Debugging
 
-      toast({
-        title: "Quotation Created",
-        description: `${result.quotationNo} created successfully!`,
-        className: "bg-green-600 text-white",
-      });
+      if (result) {
+        toast({
+          title: "Quotation Created",
+          description: `QUO-${String(result.quotationNo || quotationNo).padStart(4, "0")} created successfully!`,
+          className: "bg-green-600 text-white",
+        });
+        // If result.id is missing, we can't redirect to the specific ID
+        router.push(result.id ? `/quotation/${result.id}` : "/quotation");
+      } else {
+        // Fallback if result is undefined but no error thrown
+        toast({
+            title: "Quotation Created",
+            description: "Quotation created successfully (No checks)",
+            className: "bg-green-600 text-white",
+        });
+         router.push("/quotation");
+      }
 
-      router.push(`/quotation/${result.id}`);
     } catch (err) {
+      console.error("Error creating quotation (object):", err);
+      console.error("Error creating quotation (JSON):", JSON.stringify(err, null, 2));
       toast({
         title: "Error",
-        description: "Failed to create quotation",
+        description: "Failed to create quotation. Check console for details.",
         className: "bg-red-600 text-white",
       });
     }
-      */}
   };
 
   return (
@@ -258,7 +346,9 @@ export default function CreateQuotation() {
           <h1 className="text-3xl font-bold text-gray-800">Quotation</h1>
           <div className="text-sm">
             <p className="text-gray-500">Quotation No.</p>
-            <p className="font-semibold text-gray-700">{quotationNo}</p>
+            <p className="font-semibold text-gray-700">
+               {quotationNo !== null ? `QUO-${String(quotationNo).padStart(4, "0")}` : "Loading..."}
+            </p>
           </div>
         </header>
 
@@ -267,8 +357,6 @@ export default function CreateQuotation() {
           <div>
             <p className="text-lg font-semibold text-gray-800">Company Name</p>
             <p>Your Company Address</p>
-            <p>City, Province, Phone Number</p>
-            <p className="text-gray-500">company@email.com</p>
           </div>
 
           <div className="md:col-span-2">
@@ -489,9 +577,14 @@ export default function CreateQuotation() {
         {/* Form Submission Button */}
         <button
           type="submit"
-          className="w-full rounded-lg bg-blue-600 py-3 text-lg font-semibold text-white transition duration-150 ease-in-out hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          disabled={quotationNo === null}
+          className={`w-full rounded-lg py-3 text-lg font-semibold text-white transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+            quotationNo === null
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-700"
+          }`}
         >
-          Create Quotation
+          {quotationNo === null ? "Generating Quotation No..." : "Create Quotation"}
         </button>
       </form>
 
@@ -508,7 +601,7 @@ export default function CreateQuotation() {
           >
             <DownloadPDFButton
               quotation={{
-                quotationNo,
+                quotationNo: quotationNo || "",
                 issueDate,
                 expiryDate,
                 items: items.map((item) => ({

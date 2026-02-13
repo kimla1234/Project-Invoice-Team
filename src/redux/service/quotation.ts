@@ -17,15 +17,12 @@ export const quotationsApi = normPlovApi.injectEndpoints({
     /* GET ALL (PAGINATED) */
     getQuotations: builder.query<
       PaginatedQuotationResponse,
-      { page?: number; size?: number }
+      { page?: number; size?: number; sort?: string }
     >({
-      query: ({ page = 0, size = 10 }) => ({
-        url: `api/v1/quotations?page=${page}&size=${size}`,
+      query: ({ page = 0, size = 10, sort = "" }) => ({
+        url: `api/v1/quotations?page=${page}&size=${size}&sort=${sort}`,
         method: "GET",
       }),
-      transformResponse: (
-        response: BaseMessage<PaginatedQuotationResponse>
-      ) => response.data,
       providesTags: ["Quotations"],
     }),
 
@@ -35,8 +32,7 @@ export const quotationsApi = normPlovApi.injectEndpoints({
         url: `api/v1/quotations/${id}`,
         method: "GET",
       }),
-      transformResponse: (response: BaseMessage<Quotation>) =>
-        response.data,
+
       providesTags: (result, error, id) => [
         { type: "Quotations", id },
       ],
@@ -52,8 +48,7 @@ export const quotationsApi = normPlovApi.injectEndpoints({
         method: "POST",
         body: newQuotation,
       }),
-      transformResponse: (response: BaseMessage<Quotation>) =>
-        response.data,
+
       invalidatesTags: ["Quotations"],
     }),
 
@@ -67,8 +62,7 @@ export const quotationsApi = normPlovApi.injectEndpoints({
         method: "PUT",
         body,
       }),
-      transformResponse: (response: BaseMessage<Quotation>) =>
-        response.data,
+
       invalidatesTags: (result, error, { id }) => [
         { type: "Quotations", id },
         "Quotations",
@@ -81,8 +75,7 @@ export const quotationsApi = normPlovApi.injectEndpoints({
         url: `api/v1/quotations/${id}`,
         method: "DELETE",
       }),
-      transformResponse: (response: BaseMessage<boolean>) =>
-        response.data,
+
       invalidatesTags: ["Quotations"],
     }),
 
@@ -96,8 +89,7 @@ export const quotationsApi = normPlovApi.injectEndpoints({
         method: "POST",
         body: item,
       }),
-      transformResponse: (response: BaseMessage<Quotation>) =>
-        response.data,
+
       invalidatesTags: (result, error, { quotationId }) => [
         { type: "Quotations", id: quotationId },
         "Quotations",
@@ -113,8 +105,7 @@ export const quotationsApi = normPlovApi.injectEndpoints({
         url: `api/v1/quotations/${quotationId}/items/${itemId}`,
         method: "DELETE",
       }),
-      transformResponse: (response: BaseMessage<string>) =>
-        response.data,
+
       invalidatesTags: (result, error, { quotationId }) => [
         { type: "Quotations", id: quotationId },
         "Quotations",

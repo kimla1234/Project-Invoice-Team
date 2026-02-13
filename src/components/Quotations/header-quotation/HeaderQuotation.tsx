@@ -1,46 +1,20 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import SummaryCard from "./SummaryCard";
 import { FileText } from "lucide-react";
+import { useGetQuotationsQuery } from "@/redux/service/quotation";
 
-export default function HeaderClients({
-  refreshKey = 0,
-}: {
-  refreshKey?: number;
-}) {
-  const [totalQuotations, setTotalQuotations] = useState(0);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadSummary = () => {
-      try {
-        const quotations = JSON.parse(localStorage.getItem("quotations") || "[]");
-        setTotalQuotations(quotations.length);
-      } catch (err) {
-        console.error("Failed to load quotations from localStorage:", err);
-        setTotalQuotations(0);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadSummary();
-  }, [refreshKey]);
-
+export default function HeaderQuotations({ totalQuotations }: { totalQuotations: number }) {
   return (
     <div className="flex justify-around bg-white">
-      {loading ? (
-        <SummaryCardSkeleton />
-      ) : (
-        <SummaryCard
-          title="Total Quotations"
-          count={totalQuotations}
-          icon={FileText}
-          iconBgColor="bg-blue-100"
-          iconTextColor="text-blue-600"
-        />
-      )}
+      <SummaryCard
+        title="Total Quotations"
+        count={totalQuotations}
+        icon={FileText}
+        iconBgColor="bg-blue-100"
+        iconTextColor="text-blue-600"
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { VscAdd } from "react-icons/vsc";
 import Image from "next/image";
@@ -9,25 +9,20 @@ import logo from "@/assets/ui/icon_excel.svg";
 import HeaderQuotations from "./header-quotation/HeaderQuotation";
 import SearchInput from "./search/Search";
 import FilterDate from "./FilterData";
-//import QuotationTable from "../Tables/QuotationTable";
+import QuotationTable from "../Tables/QuotationTable";
 import { ColumnToggleDropdown } from "../ui/ColumnToggleDropdown";
 import { useToast } from "@/hooks/use-toast";
 import { exportProductsToExcel } from "@/utils/exportToExcel";
 
-import { Quotation, PaginatedQuotationResponse } from "@/types/quotation";
+import type { Quotation } from "@/types/quotation";
 import { ClientResponse } from "@/types/client";
+import { useGetQuotationsQuery } from "@/redux/service/quotation";
+import { useGetMyClientsQuery } from "@/redux/service/client";
 
-// Use environment variable from .env.development
-
-export default function QuotationPage() {
+export default function Quotation() {
   const [searchTerm, setSearchTerm] = useState("");
   const [issueDate, setIssueDate] = useState<string | undefined>();
-  const [refreshKey, setRefreshKey] = useState(0);
   const { toast } = useToast();
-
-  const [quotations, setQuotations] = useState<Quotation[]>([]);
-  const [clients, setClients] = useState<ClientResponse[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const [columnVisibility, setColumnVisibility] = useState({
     QuotationNo: true,
@@ -37,69 +32,40 @@ export default function QuotationPage() {
     Actions: true,
   });
 
-  // Fetch data from API
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
+  // Fetch quotations and clients
+  const { data: quotationData, isLoading: loadingQuotations, error: quotationError } = useGetQuotationsQuery({ page: 0, size: 1000, sort: "id,asc" });
+  const { data: clients = [], isLoading: loadingClients } = useGetMyClientsQuery();
 
-        const token = localStorage.getItem("accessToken");
-        if (!token) throw new Error("No access token");
+  console.log("Quotation Data:", quotationData);
+  console.log("Quotation Error:", quotationError);
 
-        const [quotationRes, clientRes] = await Promise.all([
-          fetch(
-            `${process.env.NEXT_PUBLIC_NORMPLOV_API_URL}quotations?page=0&size=100`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            },
-          ),
-          fetch(`${process.env.NEXT_PUBLIC_NORMPLOV_API_URL}clients`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
+  // Ensure quotations is always an array
+  const quotations: Quotation[] = Array.isArray(quotationData?.content)
+    ? quotationData.content
+    : Array.isArray(quotationData)
+      ? quotationData
+      : [];
 
-        if (!quotationRes.ok || !clientRes.ok) {
-          throw new Error("Failed to fetch data");
-        }
-
-        const quotationData: PaginatedQuotationResponse =
-          await quotationRes.json();
-        const clientData: ClientResponse[] = await clientRes.json();
-
-        setQuotations(quotationData.content);
-        setClients(clientData);
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: (error as Error).message,
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, [refreshKey]);
-
-  // Filtered quotations
+  // Filter quotations by search and date
   const filteredData = useMemo(() => {
     return quotations.filter((q) => {
       const clientName = clients.find((c) => c.id === q.clientId)?.name ?? "";
-      const quotationNo = `QUO-${String(q.id).padStart(4, "0")}`;
+      const quotationNo = q.quotationNo 
+        ? `QUO-${String(q.quotationNo).padStart(4, "0")}` 
+        : `QUO-${String(q.id).padStart(4, "0")}`;
 
       const matchesSearch =
         clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         quotationNo.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesDate = issueDate
-        ? new Date(q.issueDate).toDateString() ===
-          new Date(issueDate).toDateString()
+      const dateStr = q.quotationDate ?? q.issueDate;
+      const matchesDate = issueDate && dateStr
+        ? new Date(dateStr).toDateString() === new Date(issueDate).toDateString()
         : true;
 
       return matchesSearch && matchesDate;
-    });
-  }, [searchTerm, issueDate, quotations, clients]);
+    }).sort((a, b) => a.id - b.id);
+  }, [quotations, clients, searchTerm, issueDate]);
 
   // Export to Excel
   const handleExportExcel = () => {
@@ -121,7 +87,7 @@ export default function QuotationPage() {
     });
   };
 
-  // Toggle columns
+  // Column toggle
   const toggleColumnVisibility = (columnId: string) => {
     setColumnVisibility((prev) => ({
       ...prev,
@@ -167,31 +133,24 @@ export default function QuotationPage() {
 
       {/* BODY */}
       <div className="w-full space-y-6 rounded-md bg-white p-8 text-slate-600">
-        <HeaderQuotations refreshKey={refreshKey} />
+        <HeaderQuotations totalQuotations={quotationData?.totalElements || quotations.length} />
 
         <div className="flex w-full justify-between gap-4">
           <div className="flex gap-4">
-            <SearchInput
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-            />
+            <SearchInput searchTerm={searchTerm} onSearchChange={setSearchTerm} />
             <FilterDate date={issueDate} onChange={setIssueDate} />
           </div>
 
-          <ColumnToggleDropdown
-            columns={columnOptions}
-            onToggle={toggleColumnVisibility}
-          />
+          <ColumnToggleDropdown columns={columnOptions} onToggle={toggleColumnVisibility} />
         </div>
 
-        {/*
         <QuotationTable
           data={filteredData}
           clients={clients}
-          loading={loading}
-          onRefresh={() => setRefreshKey((prev) => prev + 1)}
+          loading={loadingQuotations || loadingClients}
+          onRefresh={() => {}}
+          columnVisibility={columnVisibility}
         />
-        */}
       </div>
     </div>
   );
