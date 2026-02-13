@@ -34,6 +34,7 @@ import {
   useDeleteQuotationMutation,
   useUpdateQuotationMutation,
 } from "@/redux/service/quotation";
+import { useCreateInvoiceMutation } from "@/redux/service/invoices";
 import { DeleteQuotations } from "../Quotations/delete-quotation/DeleteQuotations";
 import type { Invoice } from "@/types/invoice";
 
@@ -90,59 +91,127 @@ export default function QuotationTable({
     }
   };
 
+  const [createInvoice] = useCreateInvoiceMutation();
+
   const handleConvertQuotation = async (quotation: QuotationData) => {
     if (!quotation) return;
 
-    // 1. Update the status in the Backend first
-    await updateQuotation({
-  id: quotation.id,
-  body: {
-    status: "APPROVED",
-    // Only add other fields if they are strictly required by your API
-  } as any 
-}).unwrap();
+    try {
+      // 1. Create Invoice Payload
+      // Ensure dates are YYYY-MM-DD
+      const formatDate = (dateStr?: string) => {
+        if (!dateStr) return new Date().toISOString().slice(0, 19); // YYYY-MM-DDTHH:mm:ss
+        try {
+            // Ensure we have a valid date part
+            let dateObj = new Date(dateStr);
+            if (isNaN(dateObj.getTime())) {
+                dateObj = new Date();
+            }
+            return dateObj.toISOString().slice(0, 19);
+        } catch (e) {
+            return new Date().toISOString().slice(0, 19);
+        }
+      };
 
-    const items = (quotation.items ?? []).map((item) => ({
-      id: item.id,
-      productId: item.id,
-      name: item.productName,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      subtotal: item.total,
-      invoiceId: 0,
-      status: "PENDING",
-    }));
+      const invoiceData = {
+        issueDate: formatDate(quotation.issueDate),
+        expireDate: formatDate(quotation.expiryDate), // Use expiryDate from quotation
+        clientId: quotation.clientId,
+        subtotal: Number(quotation.totalAmount || quotation.amount) || 0,
+        tax: 0, 
+        grandTotal: Number(quotation.totalAmount || quotation.amount) || 0,
+        status: "PENDING",
+        items: (quotation.items ?? []).map((item) => ({
+          productId: item.productId || item.id,
+          unitPrice: Number(item.unitPrice) || 0,
+          quantity: Number(item.quantity) || 0,
+          subtotal: Number(item.total) || 0,
+          name: item.productName || item.name || "Unknown Product",
+        })),
+      };
+      
+      console.log("Converting Quotation to Invoice Payload:", invoiceData);
 
-    const subtotal = items.reduce((sum, i) => sum + i.subtotal, 0);
+      // 2. Call Create Invoice API
+      const newInvoice = await createInvoice(invoiceData as any).unwrap();
 
-    const oldInvoices: any[] = JSON.parse(
-      localStorage.getItem("invoices") || "[]",
-    );
+      if (newInvoice) {
+        toast({
+            // ... existing success logic
+          title: "Success",
+          description: `Invoice created from Quotation #${quotation.quotationNo || quotation.id}`,
+          className: "bg-green-600 text-white",
+        });
 
-    const newInvoice: any = {
-      id:
-        oldInvoices.length > 0
-          ? Math.max(...oldInvoices.map((i: any) => i.id)) + 1
-          : 1,
-      invoiceNo: `INV-${String(oldInvoices.length + 1).padStart(4, "0")}`,
-      clientId: quotation.clientId,
-      issueDate: new Date().toISOString().slice(0, 10),
-      items,
-      subtotal,
-      totalAmount: subtotal,
-      status: "PENDING",
-    };
+        // 3. Update Quotation Status to APPROVED
+        // 3. Update Quotation Status to APPROVED
+        const cleanQuotationNo = (val: string | number | undefined) => {
+            if (typeof val === 'number') return val;
+            if (!val) return undefined;
+            const match = String(val).match(/(\d+)$/);
+            return match ? Number(match[1]) : undefined;
+        };
 
-    localStorage.setItem(
-      "invoices",
-      JSON.stringify([...oldInvoices, newInvoice]),
-    );
+        const updateBody = {
+          userId: 1, // Fallback as we don't have it in response, but PUT usually needs it
+          clientId: quotation.clientId,
+          quotationNo: cleanQuotationNo(quotation.quotationNo), 
+          quotationDate: formatDate(quotation.quotationDate || quotation.issueDate),
+          quotationExpire: formatDate(quotation.quotationExpire || quotation.expiryDate),
+          issueDate: formatDate(quotation.issueDate),
+          expiryDate: formatDate(quotation.expiryDate),
+          status: "APPROVED",
+          quotationStatus: "APPROVED", // Try alternate field name for backend persistence
+          items: (quotation.items || []).map(item => ({
+             productId: item.productId || item.id, // Best effort fallback
+             quantity: item.quantity,
+             unitPrice: item.unitPrice,
+             subtotal: item.total || (item.quantity * item.unitPrice)
+          }))
+        };
 
-    toast({
-      title: "Converted",
-      description: `Quotation #${quotation.id} converted to invoice`,
-      className: "bg-green-600 text-white",
-    });
+        const updateResult = await updateQuotation({
+          id: quotation.id,
+          body: updateBody as any 
+        }).unwrap();
+        
+        console.log("Update Quotation Payload:", updateBody);
+        console.log("Update Quotation Result (from Backend):", updateResult);
+
+        if (onRefresh) {
+            console.log("Triggering onRefresh()...");
+            onRefresh();
+        }
+
+      }
+    } catch (error: any) {
+      console.error("Failed to convert quotation (Full Error):", JSON.stringify(error, null, 2));
+      console.error("Failed to convert quotation (Original):", error);
+      
+      let title = "Error";
+      let description = "Failed to convert quotation to invoice";
+
+      if (error?.data?.message) {
+        let msg = error.data.message;
+
+        // Check for specific "Insufficient stock" error
+        if (msg.includes("Insufficient stock")) {
+          title = "Insufficient Stock";
+          // Clean up the message if it contains "400 BAD_REQUEST" or quotes
+          description = msg.replace(/400 BAD_REQUEST|"/g, "").trim();
+        } else {
+          description = msg;
+        }
+      } else if (error?.status) {
+        description += `: Status ${error.status}`;
+      }
+
+      toast({
+        title,
+        description,
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) return <QuotationTableSkeleton />;
@@ -159,7 +228,7 @@ export default function QuotationTable({
               {columnVisibility.Client && <TableHead>Client</TableHead>}
               {columnVisibility.Amount && <TableHead>Amount</TableHead>}
               {columnVisibility.IssueDate && <TableHead>Issue Date</TableHead>}
-              {columnVisibility.IssueDate && <TableHead>Status</TableHead>}
+              {columnVisibility.Status && <TableHead>Status</TableHead>}
               {columnVisibility.Actions && (
                 <TableHead className="text-right">Actions</TableHead>
               )}
@@ -205,16 +274,16 @@ export default function QuotationTable({
                       ).toLocaleDateString()}
                     </TableCell>
                   )}
-                  {columnVisibility.IssueDate && (
+                  {columnVisibility.Status && (
                     <TableCell>
                       <span
                         className={`rounded-md px-2 py-1 text-xs font-bold text-white ${
-                          q.status === "APPROVED"
+                          (q.status || "PENDING") === "APPROVED"
                             ? "bg-green-200 text-green-700"
                             : "bg-yellow-200 text-yellow-600"
                         }`}
                       >
-                        {q.status}
+                        {q.status || "PENDING"}
                       </span>
                     </TableCell>
                   )}
@@ -243,12 +312,14 @@ export default function QuotationTable({
                               <Edit2 className="mr-2" /> Edit
                             </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleConvertQuotation(q)}
-                            className="flex items-center text-green-600"
-                          >
-                            <Repeat className="mr-2" /> Convert to Invoice
-                          </DropdownMenuItem>
+                          {q.status !== "APPROVED" && (
+                            <DropdownMenuItem
+                              onClick={() => handleConvertQuotation(q)}
+                              className="flex items-center text-green-600"
+                            >
+                              <Repeat className="mr-2" /> Convert to Invoice
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem
                             onClick={() => setDeleteId(q.id)}
                             className="flex items-center text-red-600"
