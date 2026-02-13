@@ -20,7 +20,14 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Eye, Edit2, Trash2, SearchX, Share2 } from "lucide-react";
+import {
+  MoreHorizontal,
+  Eye,
+  Edit2,
+  Trash2,
+  SearchX,
+  Share2,
+} from "lucide-react";
 import QuotationTableSkeleton from "../skeletons/QuotationTableSkeleton";
 import { useToast } from "@/hooks/use-toast";
 import { PaginationControls } from "../ui/pagination-controls";
@@ -254,29 +261,51 @@ export default function InvoiceTable({
   const handleShareLink = (invoiceId: number) => {
   const shareUrl = `${window.location.origin}/invoice-view/${invoiceId}`;
 
-
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(shareUrl);
-  } else {
-
-    const textArea = document.createElement("textarea");
-    textArea.value = shareUrl;
-    document.body.appendChild(textArea);
-    textArea.select();
-    try {
-      document.execCommand('copy');
-    } catch (err) {
-      console.error('Fallback: Oops, unable to copy', err);
+  // បង្កើត Function សម្រាប់ Copy ដែលដើរគ្រប់កាលៈទេសៈ
+  const copyToClipboard = (text: string) => {
+    // វិធីទី១: ប្រើ Clipboard API (សម្រាប់ HTTPS)
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    } else {
+      // វិធីទី២: ប្រើ TextArea (សម្រាប់ HTTP / ករណី IP address)
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      
+      // ដាក់វាឱ្យនៅក្រៅអេក្រង់ដើម្បីកុំឱ្យអ្នកប្រើឃើញ
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      textArea.style.top = "0";
+      document.body.appendChild(textArea);
+      
+      textArea.focus();
+      textArea.select();
+      
+      return new Promise<void>((resolve, reject) => {
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        successful ? resolve() : reject();
+      });
     }
-    document.body.removeChild(textArea);
-  }
+  };
 
-  toast({
-    title: "Link Copied!",
-    description: "Invoice link has been copied to clipboard.",
-    className: "bg-purple-600 text-white",
-    duration: 2000,
-  });
+  // ហៅការប្រើប្រាស់
+  copyToClipboard(shareUrl)
+    .then(() => {
+      toast({
+        title: "Link Copied!",
+        description: "Invoice link has been copied to clipboard.",
+        className: "bg-purple-600 text-white",
+        duration: 2000,
+      });
+    })
+    .catch((err) => {
+      console.error("Copy failed: ", err);
+      toast({
+        title: "Copy Failed",
+        description: "Please copy the URL manually from the browser bar.",
+        variant: "destructive",
+      });
+    });
 };
 
   return (
