@@ -32,6 +32,7 @@ export interface QuotationCreateRequest {
     productId: number;
     quantity: number;
     unitPrice: number;
+    subtotal: number;
   }[];
 }
 
@@ -64,3 +65,4 @@ export interface PaginatedQuotationResponse {
 
 export type QuotationResponse = BaseMessage<Quotation>;
 export type PaginatedQuotationWrapped = BaseMessage<PaginatedQuotationResponse>;
+export type QuotationData = Quotation;
