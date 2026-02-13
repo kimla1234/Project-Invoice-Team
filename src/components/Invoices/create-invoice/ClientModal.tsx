@@ -1,6 +1,10 @@
+"use client"; // Add this at the very top
+
 import { ClientResponse } from "@/types/client";
 import { useState } from "react";
 import { Search, X, Plus, Check, UserCircle2 } from "lucide-react";
+import { useRouter } from "next/navigation"; // Change from next/router
+
 
 type ClientModalProps = {
   isOpen: boolean;
@@ -11,6 +15,7 @@ type ClientModalProps = {
 };
 
 export const ClientModal = ({ isOpen, onClose, clients, onSelectClient }: ClientModalProps) => {
+  const router = useRouter(); // Add this line
   const [searchTerm, setSearchTerm] = useState("");
   const [activeClient, setActiveClient] = useState<ClientResponse | null>(null);
 
@@ -19,6 +24,12 @@ export const ClientModal = ({ isOpen, onClose, clients, onSelectClient }: Client
   const filteredClients = clients.filter((c) =>
     c.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleCreateClient = () => {
+    console.log("Creating new client...")
+    router.push('/clients/create'); 
+    onClose();
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -44,10 +55,8 @@ export const ClientModal = ({ isOpen, onClose, clients, onSelectClient }: Client
             <p className="mb-4 text-sm font-medium text-gray-500">Select a client</p>
             
             <button 
-              onClick={() => {
-                // You can implement create new client functionality here
-                console.log("Create new client");
-              }}
+              type="button"
+              onClick={handleCreateClient}
               className="mb-4 flex w-full items-center gap-3 rounded-lg bg-gray-50 px-4 py-3 text-gray-700 transition-colors hover:bg-gray-100"
             >
               <Plus className="h-5 w-5" />
@@ -64,10 +73,10 @@ export const ClientModal = ({ isOpen, onClose, clients, onSelectClient }: Client
                       ? "bg-purple-50 text-purple-600 shadow-sm" 
                       : "text-gray-700 hover:bg-gray-50"
                   }`}
-                  onDoubleClick={() => { // Add this for speed users
-    onSelectClient(client);
-    onClose();
-  }}
+                  onDoubleClick={() => {
+                    onSelectClient(client);
+                    onClose();
+                  }}
                 >
                   <span className="font-medium">{client.name}</span>
                   {activeClient?.id === client.id && <Check className="h-4 w-4" />}
