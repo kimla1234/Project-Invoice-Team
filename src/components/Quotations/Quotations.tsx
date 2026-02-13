@@ -33,7 +33,7 @@ export default function Quotation() {
   });
 
   // Fetch quotations and clients
-  const { data: quotationData, isLoading: loadingQuotations, error: quotationError } = useGetQuotationsQuery({ page: 0, size: 1000 });
+  const { data: quotationData, isLoading: loadingQuotations, error: quotationError } = useGetQuotationsQuery({ page: 0, size: 1000, sort: "id,asc" });
   const { data: clients = [], isLoading: loadingClients } = useGetMyClientsQuery();
 
   console.log("Quotation Data:", quotationData);
@@ -64,7 +64,7 @@ export default function Quotation() {
         : true;
 
       return matchesSearch && matchesDate;
-    });
+    }).sort((a, b) => a.id - b.id);
   }, [quotations, clients, searchTerm, issueDate]);
 
   // Export to Excel

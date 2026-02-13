@@ -30,6 +30,7 @@ import { PaginationControls } from "../ui/pagination-controls";
 
 import { QuotationData } from "@/types/quotation";
 import { ClientResponse } from "@/types/client";
+import { useDeleteQuotationMutation } from "@/redux/service/quotation";
 import { DeleteQuotations } from "../Quotations/delete-quotation/DeleteQuotations";
 import type { Invoice } from "@/types/invoice";
 
@@ -61,15 +62,28 @@ export default function QuotationTable({
     return data.slice(start, start + rowsPerPage);
   }, [data, currentPage, rowsPerPage]);
 
-  const handleConfirmDelete = () => {
-    // Simulate delete (call API here)
-    toast({
-      title: "Deleted",
-      description: "Quotation deleted successfully",
-      className: "bg-green-600 text-white",
-    });
-    setDeleteId(null);
-    onRefresh();
+  const [deleteQuotation] = useDeleteQuotationMutation();
+
+  const handleConfirmDelete = async () => {
+    if (deleteId === null) return;
+
+    try {
+      await deleteQuotation(deleteId).unwrap();
+      toast({
+        title: "Deleted",
+        description: "Quotation deleted successfully",
+        className: "bg-green-600 text-white",
+      });
+      // onRefresh(); // RTK Query invalidates tags, so manual refresh might not be needed, but keeping if parent handles pagination state reset
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete quotation",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteId(null);
+    }
   };
 
   const handleConvertQuotation = (quotation: QuotationData) => {
