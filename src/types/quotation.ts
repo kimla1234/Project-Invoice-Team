@@ -11,6 +11,9 @@ export interface QuotationItem {
   quantity: number;
   unitPrice: number;
   total: number;
+  itemTotal?: number; // Added for flexibility
+  name?: string;
+  productId?: number;
 }
 
 /*CREATE REQUEST */
@@ -24,6 +27,7 @@ export interface QuotationCreateRequest {
   userId: number;
   clientId: number;
   invoiceId?: number;
+  quotationNo?: number;
   quotationDate: string;
   quotationExpire: string;
   issueDate: string;      // frontend date
@@ -42,9 +46,18 @@ export interface Quotation {
   id: number;
   quotationNo: string;
   clientId: number;
-  issueDate: string;
+  
+  quotationDate?: string;
+  issueDate?: string;
+  
   expiryDate: string;
-  amount: number;
+  
+  total_amount?: number;
+  amount?: number;
+  totalAmount?: number;
+  
+  quotationExpire?: string;
+  
   notes?: string;
   terms?: string;
   items: QuotationItem[];
@@ -59,6 +72,9 @@ export interface PaginatedQuotationResponse {
   totalPages: number;
   size: number;
   number: number;
+  last: boolean;
+  first: boolean;
+  empty: boolean;
 }
 
 /* WRAPPED RESPONSE (LIKE PRODUCT) */

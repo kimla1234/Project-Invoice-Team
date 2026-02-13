@@ -1,336 +1,343 @@
 "use client";
+
 import React, { useState, useEffect } from "react";
-import { useCreateQuotationMutation } from "@/redux/service/quotation";
-import { useGetMyProductsQuery } from "@/redux/service/products";        
-import { useGetMyClientsQuery } from "@/redux/service/client";        
-import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { Trash2 } from "lucide-react";
-import { ClientModal } from "@/components/Invoices/create-invoice/ClientModal";
-import { ProductModal } from "@/components/Invoices/create-invoice/ProductModal";
-import { useGetMySettingsQuery } from "@/redux/service/setting"
+import { useToast } from "@/hooks/use-toast";
 import { IoAddCircleOutline } from "react-icons/io5";
 import { IoMdAdd } from "react-icons/io";
-import { ClientResponse } from "@/types/client";
 
-type ExtendedItem = {
+import { ClientModal } from "./ClientModal";
+import { DownloadPDFButton } from "./DownloadPDFButton";
+
+import { useGetMyProductsQuery } from "@/redux/service/products";
+import { useCreateQuotationMutation, useGetQuotationsQuery } from "@/redux/service/quotation";
+
+import { MyEventResponse } from "@/types/product";
+import { ClientResponse } from "@/types/client";
+import { QuotationCreateRequest } from "@/types/quotation";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
+
+type Item = {
   id: number;
-  productId: number;
+  uuid: string;
   name: string;
-  quantity: number;
+  qty: number;
   unitPrice: number;
-  subtotal: number;
   total: number;
 };
 
-export default function CreateQuotationForm() {
+type ProductModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelectProducts: (selected: MyEventResponse[]) => void;
+};
+
+// const user = useSelector((state: RootState) => state.auth.user);
+
+const ProductModal = ({
+  isOpen,
+  onClose,
+  onSelectProducts,
+}: ProductModalProps) => {
+  const { data: products = [] } = useGetMyProductsQuery(undefined, {
+    skip: !isOpen,
+  });
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedProducts, setSelectedProducts] = useState<Set<number>>(
+    new Set(),
+  );
+
+  const toggleSelect = (id: number) => {
+    const newSet = new Set(selectedProducts);
+    newSet.has(id) ? newSet.delete(id) : newSet.add(id);
+    setSelectedProducts(newSet);
+  };
+
+  const handleSubmit = () => {
+    const selected = products.filter((p) => selectedProducts.has(p.id));
+    onSelectProducts(selected);
+    setSelectedProducts(new Set());
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
+      <div className="relative z-50 max-h-[80vh] w-[600px] overflow-y-auto rounded-lg border bg-white p-4">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Select Products</h2>
+          <button onClick={onClose} className="font-bold text-red-500">
+            X
+          </button>
+        </div>
+
+        <input
+          type="text"
+          placeholder="Search product..."
+          className="mb-3 w-full rounded border p-2"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+
+        <div className="max-h-[300px] space-y-2 overflow-y-auto">
+          {products
+            .filter((p) =>
+              p.name.toLowerCase().includes(searchTerm.toLowerCase()),
+            )
+            .map((p) => (
+              <div
+                key={p.id}
+                onClick={() => toggleSelect(p.id)}
+                className={`flex cursor-pointer items-center justify-between rounded p-2 hover:bg-gray-100 ${selectedProducts.has(p.id) ? "bg-blue-100" : ""}`}
+              >
+                <span>{p.name}</span>
+                <input
+                  type="checkbox"
+                  checked={selectedProducts.has(p.id)}
+                  readOnly
+                />
+              </div>
+            ))}
+
+          {products.filter((p) =>
+            p.name.toLowerCase().includes(searchTerm.toLowerCase()),
+          ).length === 0 && (
+            <p className="text-center text-gray-500">No products found</p>
+          )}
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          className="mt-3 w-full rounded bg-primary py-2 text-white hover:bg-primary/90"
+        >
+          Add Selected
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default function CreateQuotation() {
   const router = useRouter();
   const { toast } = useToast();
-  const { data: products = [], isLoading: loadingProducts } = useGetMyProductsQuery();
-  const { data: clients = [], isLoading: loadingClients } = useGetMyClientsQuery();
-  const { data: setting, isLoading: loadingSetting } = useGetMySettingsQuery();
-  const [createQuotation, { isLoading: creating }] = useCreateQuotationMutation();
 
-  const [selectedClient, setSelectedClient] = useState<ClientResponse | null>(null);
-  const [quotationNo, setQuotationNo] = useState("");
-  const [items, setItems] = useState<ExtendedItem[]>([]);
-  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const [issueDate, setIssueDate] = useState("");
-  const [expiryDate, setExpiryDate] = useState("");
+  const [createQuotation] = useCreateQuotationMutation();
+  const { 
+    data: quotationsData, 
+    isLoading: isQuotationsLoading, 
+    isError: isQuotationsError, 
+    error: quotationsError 
+  } = useGetQuotationsQuery({ page: 0, size: 1000 }, { refetchOnMountOrArgChange: true });
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem("registered_user");
-    if (storedUser) setUser(JSON.parse(storedUser));
-  }, []);
+  const [selectedClient, setSelectedClient] = useState<ClientResponse | null>(
+    null,
+  );
 
-  // Initialize quotation number
-  useEffect(() => {
-    const oldQuotations = JSON.parse(localStorage.getItem("quotations") || "[]");
-    const maxId = oldQuotations.length > 0 ? Math.max(...oldQuotations.map((q: any) => q.id || 0), 0) : 0;
-    setQuotationNo(`QT-${String(maxId + 1).padStart(4, "0")}`);
-  }, []);
 
+
+  const [items, setItems] = useState<Item[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [quotationNo, setQuotationNo] = useState<number | null>(null);
   
-  // Handle modal scroll
   useEffect(() => {
-    if (isProductModalOpen || isClientModalOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isProductModalOpen, isClientModalOpen]);
+    if (quotationsData) {
+      console.log("Quotations Data (Client-Side Calc):", quotationsData); // Debugging
+      
+      const content = Array.isArray(quotationsData.content) ? quotationsData.content : [];
+      let maxId = 0;
+      
+      if (content.length > 0) {
+        maxId = Math.max(...content.map((q: any) => {
+             // 1. Try to use quotationNo if it's a number
+             let val = Number(q.quotationNo);
+             
+             // 2. If it's a string like "QUO-0005", extract the number
+             if (isNaN(val) && typeof q.quotationNo === 'string') {
+                const match = q.quotationNo.match(/(\d+)$/);
+                if (match) {
+                  val = Number(match[1]);
+                }
+             }
 
-  // Add products to items list - FIXED THIS FUNCTION
-  const handleAddProducts = (selectedProducts: any[]) => {
-    const newItems: ExtendedItem[] = selectedProducts.map((p) => ({
+             // 3. If still invalid, fallback to ID (safest bet for auto-increment)
+             if (isNaN(val) || val === 0) {
+                val = Number(q.id) || 0;
+             }
+             
+             return val;
+        }));
+      }
+
+      const nextId = maxId + 1;
+      console.log("Max ID found:", maxId, "Next ID:", nextId); // Debugging
+      setQuotationNo(nextId);
+    } else if (isQuotationsError) {
+      console.error("Failed to fetch quotations:", quotationsError);
+      setQuotationNo(1);
+    }
+  }, [quotationsData, isQuotationsError, quotationsError]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setQuotationNo((prev) => (prev === null ? 1 : prev));
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, []);
+  
+  // Load default settings
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("invoice_footer_settings");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.defaultNote) setInvoiceNote(parsed.defaultNote);
+        if (parsed.defaultTerms) setInvoiceTerms(parsed.defaultTerms);
+      }
+    }
+  }, []);
+  const [issueDate, setIssueDate] = useState(
+    new Date().toISOString().slice(0, 10),
+  );
+  const [expiryDate, setExpiryDate] = useState("");
+  const [invoiceNote, setInvoiceNote] = useState("");
+  const [invoiceTerms, setInvoiceTerms] = useState("");
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+
+  const handleAddProducts = (products: MyEventResponse[]) => {
+    const newItems: Item[] = products.map((p) => ({
       id: p.id,
-      productId: p.id,
+      uuid: p.uuid,
       name: p.name,
-      quantity: 1,
+      qty: 1,
       unitPrice: p.price,
-      subtotal: p.price,
       total: p.price,
     }));
+
     setItems((prev) => [...prev, ...newItems]);
   };
 
-  // Update item quantity
-  const handleUpdateQuantity = (index: number, quantity: number) => {
-    if (quantity < 1) return;
+  const handleItemChange = (
+    index: number,
+    field: "name" | "qty" | "phoneNumber" | "unitPrice",
+    value: string,
+  ) => {
     setItems((prev) =>
       prev.map((item, i) => {
         if (i !== index) return item;
-        const subtotal = quantity * item.unitPrice;
+        const qty = Number(value);
         return {
           ...item,
-          quantity,
-          subtotal,
-          total: subtotal,
+          qty,
+          total: qty * item.unitPrice,
         };
       }),
     );
   };
 
-  // Update item unit price
-  const handleUpdateUnitPrice = (index: number, unitPrice: number) => {
-    if (unitPrice < 0) return;
-    setItems((prev) =>
-      prev.map((item, i) => {
-        if (i !== index) return item;
-        const subtotal = unitPrice * item.quantity;
-        return {
-          ...item,
-          unitPrice,
-          subtotal,
-          total: subtotal,
-        };
-      }),
-    );
-  };
+  const removeItem = (index: number) =>
+    setItems((prev) => prev.filter((_, i) => i !== index));
 
-  // Update item name
-  const handleUpdateName = (index: number, name: string) => {
-    setItems((prev) =>
-      prev.map((item, i) => {
-        if (i !== index) return item;
-        return { ...item, name };
-      }),
-    );
-  };
-
-  // Remove item
-  const handleRemoveItem = (index: number) => {
-    setItems(items.filter((_, i) => i !== index));
-  };
-
-  // Calculate totals
-  const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
-  const grandTotal = subtotal;
-
-  // Submit quotation
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    if (quotationNo === null) {
+      toast({
+        title: "Please wait",
+        description: "Quotation number is being generated.",
+        className: "bg-yellow-600 text-white",
+      });
+      return;
+    }
+
     if (!selectedClient) {
       toast({
-        title: "Validation Error",
+        title: "Select client",
         description: "Please select a client.",
-        variant: "destructive",
+        className: "bg-red-600 text-white",
       });
       return;
     }
 
     if (items.length === 0) {
       toast({
-        title: "Validation Error",
+        title: "No items",
         description: "Please add at least one item.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!issueDate) {
-      toast({
-        title: "Validation Error",
-        description: "Please select an issue date.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!expiryDate) {
-      toast({
-        title: "Validation Error",
-        description: "Please select an expiry date.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const formatDateToISO = (dateStr: string) => {
-        return `${dateStr}T00:00:00`;
-      };
-
-      await createQuotation({
-        userId: user?.id || 0,
-        clientId: selectedClient.id!,
-        quotationDate: formatDateToISO(issueDate),
-        quotationExpire: formatDateToISO(expiryDate),
-        issueDate,
-        expiryDate,
-        items: items.map(item => ({
-          productId: item.productId,
-          unitPrice: item.unitPrice,
-          quantity: item.quantity,
-          subtotal: item.subtotal,
-        })),
-      }).unwrap();
-
-      toast({
-        title: "Quotation Created",
-        description: "Quotation has been created successfully.",
-        className: "bg-green-600 text-white",
-      });
-
-      // Wait briefly for Redux cache invalidation
-      await new Promise(resolve => setTimeout(resolve, 500));
-      router.push("/quotation");
-    } catch (error: any) {
-      console.error("Quotation creation error:", error);
-      toast({
-        title: "Error",
-        description: error?.data?.message || "Failed to create quotation.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Preview and send handler
-  const handlePreviewAndSend = async () => {
-    if (!selectedClient) {
-      toast({
-        title: "Validation Error",
-        description: "Please select a client.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (items.length === 0) {
-      toast({
-        title: "Validation Error",
-        description: "Please add at least one item.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!issueDate) {
-      toast({
-        title: "Validation Error",
-        description: "Please select an issue date.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!expiryDate) {
-      toast({
-        title: "Validation Error",
-        description: "Please select an expiry date.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const formatDateToISO = (dateStr: string) => {
-        return `${dateStr}T00:00:00`;
-      };
-
-      await createQuotation({
-        userId: user?.id || 0,
-        clientId: selectedClient.id!,
-        quotationDate: formatDateToISO(issueDate),
-        quotationExpire: formatDateToISO(expiryDate),
-        issueDate,
-        expiryDate,
-        items: items.map(item => ({
-          productId: item.productId,
-          unitPrice: item.unitPrice,
-          quantity: item.quantity,
-          subtotal: item.subtotal,
-        })),
-      }).unwrap();
-
-      toast({
-        title: "Quotation Created",
-        description: "Quotation has been created successfully.",
-        className: "bg-green-600 text-white",
-      });
-
-      // Wait briefly for Redux cache invalidation
-      await new Promise(resolve => setTimeout(resolve, 500));
-      router.push("/quotation");
-    } catch (error: any) {
-      console.error("Quotation creation error:", error);
-      toast({
-        title: "Error",
-        description: error?.data?.message || "Failed to create quotation.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleSendToClient = () => {
-    if (!items.length || !selectedClient) {
-      toast({
-        title: "Cannot send",
-        description: "Please complete the quotation first",
         className: "bg-red-600 text-white",
       });
       return;
     }
 
-    const quotations = JSON.parse(localStorage.getItem("quotations") || "[]");
-    const quotation = quotations.find((q: any) => q.quotationNo === quotationNo);
+    try {
+      // if (!user) {
+      //   toast({
+      //     title: "Not logged in",
+      //     description: "Please log in to create a quotation.",
+      //     className: "bg-red-600 text-white",
+      //   });
+      //   return;
+      // }
 
-    if (!quotation) {
+      // const userId = user.uuid;
+
+      const body: QuotationCreateRequest = {
+        userId: 1,
+        clientId: selectedClient.id,
+        invoiceId: 0, // optional
+        quotationNo, // Send number
+        quotationDate: new Date(issueDate).toISOString(),
+        quotationExpire: expiryDate
+          ? new Date(expiryDate).toISOString()
+          : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // default +7 days
+        issueDate,
+        expiryDate,
+        items: items.map((item) => ({
+          productId: item.id,
+          quantity: item.qty,
+          unitPrice: item.unitPrice,
+          subtotal: item.total,
+        })),
+      };
+
+      console.log("Creating Quotation with Body:", body); // Debugging check payload
+
+      const result = await createQuotation(body).unwrap();
+      console.log("Create Quotation Result:", result); // Debugging
+
+      if (result) {
+        toast({
+          title: "Quotation Created",
+          description: `QUO-${String(result.quotationNo || quotationNo).padStart(4, "0")} created successfully!`,
+          className: "bg-green-600 text-white",
+        });
+        // If result.id is missing, we can't redirect to the specific ID
+        router.push(result.id ? `/quotation/${result.id}` : "/quotation");
+      } else {
+        // Fallback if result is undefined but no error thrown
+        toast({
+            title: "Quotation Created",
+            description: "Quotation created successfully (No checks)",
+            className: "bg-green-600 text-white",
+        });
+         router.push("/quotation");
+      }
+
+    } catch (err) {
+      console.error("Error creating quotation (object):", err);
+      console.error("Error creating quotation (JSON):", JSON.stringify(err, null, 2));
       toast({
-        title: "Save quotation first",
-        description: "Please create quotation before sending",
+        title: "Error",
+        description: "Failed to create quotation. Check console for details.",
         className: "bg-red-600 text-white",
       });
-      return;
     }
-
-    const link = `${window.location.origin}/quotation/${quotation.id}`;
-    navigator.clipboard.writeText(link);
-
-    toast({
-      title: "Link copied",
-      description: "Quotation link copied. Send it to client!",
-      className: "bg-green-600 text-white",
-    });
   };
-
-  if (loadingProducts) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-gray-500">Loading products...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex justify-center space-x-6">
-      {/* Main Form - Left Column */}
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-4xl space-y-8 rounded-xl bg-white p-8"
@@ -339,19 +346,19 @@ export default function CreateQuotationForm() {
           <h1 className="text-3xl font-bold text-gray-800">Quotation</h1>
           <div className="text-sm">
             <p className="text-gray-500">Quotation No.</p>
-            <p className="font-semibold text-gray-700">{quotationNo}</p>
+            <p className="font-semibold text-gray-700">
+               {quotationNo !== null ? `QUO-${String(quotationNo).padStart(4, "0")}` : "Loading..."}
+            </p>
           </div>
         </header>
 
         {/* Address and Date Details Section */}
         <div className="grid gap-6 border-b pb-6 text-sm text-gray-600 md:grid-cols-3">
           <div>
-            <p className="text-lg font-semibold text-gray-800">
-              {setting?.companyName || "Company Name"}
-            </p>
-            <p>{`${setting?.companyAddress || ""}, ${setting?.companyPhoneNumber || ""}`}</p>
-            <p className="text-gray-500">{setting?.companyEmail}</p>
+            <p className="text-lg font-semibold text-gray-800">Company Name</p>
+            <p>Your Company Address</p>
           </div>
+
           <div className="md:col-span-2">
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -363,7 +370,6 @@ export default function CreateQuotationForm() {
                   value={issueDate}
                   onChange={(e) => setIssueDate(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
-                  required
                 />
               </div>
               <div>
@@ -371,11 +377,15 @@ export default function CreateQuotationForm() {
                   Expiry Date
                 </label>
                 <input
-                  type="date"
+                  type="text"
+                  placeholder="Pick a date"
                   value={expiryDate}
+                  onFocus={(e) => (e.target.type = "date")}
+                  onBlur={(e) => {
+                    if (!e.target.value) e.target.type = "text";
+                  }}
                   onChange={(e) => setExpiryDate(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
-                  required
+                  className="w-full rounded-lg border border-gray-300 bg-gray-50 p-2 text-gray-400"
                 />
               </div>
             </div>
@@ -386,6 +396,7 @@ export default function CreateQuotationForm() {
         <div className="border-b pb-6">
           {selectedClient ? (
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+              {/* Label and Name */}
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-400">
                   Customer:
@@ -394,7 +405,10 @@ export default function CreateQuotationForm() {
                   {selectedClient.name}
                 </span>
               </div>
+
               <div className="hidden h-4 w-px bg-gray-300 md:block" />
+
+              {/* Label and Address */}
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-400">
                   Address:
@@ -403,15 +417,20 @@ export default function CreateQuotationForm() {
                   {selectedClient.address || "N/A"}
                 </span>
               </div>
+
               <div className="hidden h-4 w-px bg-gray-300 md:block" />
+
+              {/* Label and Phone */}
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-400">
                   Phone:
                 </span>
                 <span className="font-semibold text-gray-700">
-                 {selectedClient.phoneNumber || "N/A"}
+                  {selectedClient.phoneNumber || "N/A"}
                 </span>
               </div>
+
+              {/* Edit Button moved to the end of the line */}
               <button
                 type="button"
                 onClick={() => setIsClientModalOpen(true)}
@@ -441,7 +460,6 @@ export default function CreateQuotationForm() {
         <ClientModal
           isOpen={isClientModalOpen}
           onClose={() => setIsClientModalOpen(false)}
-          clients={clients}
           onSelectClient={setSelectedClient}
         />
 
@@ -461,10 +479,10 @@ export default function CreateQuotationForm() {
                     Qty
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Unit Price ($)
+                    Unit Price
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Total ($)
+                    Total
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Actions
@@ -484,40 +502,41 @@ export default function CreateQuotationForm() {
                       <input
                         className="w-full rounded border-gray-200 bg-slate-100 p-2 focus:border-blue-500 focus:ring-blue-500"
                         value={item.name}
-                        onChange={(e) => handleUpdateName(index, e.target.value)}
-                      />
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
-                      <input
-                        type="number"
-                        min="1"
-                        className="w-full rounded border-gray-200 bg-slate-100 p-2 focus:border-blue-500 focus:ring-blue-500"
-                        value={item.quantity}
+                        disabled
                         onChange={(e) =>
-                          handleUpdateQuantity(index, Number(e.target.value))
+                          handleItemChange(index, "name", e.target.value)
                         }
                       />
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
                       <input
                         type="number"
-                        step="0.01"
-                        min="0"
+                        className="w-full rounded border-gray-200 bg-slate-100 p-2 focus:border-blue-500 focus:ring-blue-500"
+                        value={item.qty}
+                        onChange={(e) =>
+                          handleItemChange(index, "qty", e.target.value)
+                        }
+                      />
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
+                      <input
+                        type="number"
                         className="w-full rounded border-gray-200 bg-slate-100 p-2 focus:border-blue-500 focus:ring-blue-500"
                         value={item.unitPrice}
+                        disabled
                         onChange={(e) =>
-                          handleUpdateUnitPrice(index, Number(e.target.value))
+                          handleItemChange(index, "unitPrice", e.target.value)
                         }
                       />
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
-                      ${item.subtotal.toFixed(2)}
+                      {item.total.toFixed(2)}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
                       <button
                         type="button"
                         className="rounded-md bg-red-100 px-2 py-1 text-red-600 hover:text-red-900"
-                        onClick={() => handleRemoveItem(index)}
+                        onClick={() => removeItem(index)}
                       >
                         Delete
                       </button>
@@ -529,7 +548,7 @@ export default function CreateQuotationForm() {
             <div className="flex items-center justify-end border-b bg-gray-50 p-4">
               <button
                 type="button"
-                onClick={() => setIsProductModalOpen(true)}
+                onClick={() => setIsModalOpen(true)}
                 className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-slate-400 bg-slate-200 px-4 py-2 text-sm transition duration-150 ease-in-out hover:bg-slate-100"
               >
                 <IoMdAdd className="h-5 w-5" />
@@ -541,11 +560,15 @@ export default function CreateQuotationForm() {
             <div className="w-1/2 space-y-2">
               <div className="flex justify-between font-medium text-gray-700">
                 <span>Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>
+                  ${items.reduce((sum, item) => sum + item.total, 0).toFixed(2)}
+                </span>
               </div>
               <div className="flex justify-between text-lg font-bold text-gray-600">
-                <span>Total Amount</span>
-                <span>${grandTotal.toFixed(2)}</span>
+                <span>Grand Total</span>
+                <span>
+                  ${items.reduce((sum, item) => sum + item.total, 0).toFixed(2)}
+                </span>
               </div>
             </div>
           </div>
@@ -554,30 +577,74 @@ export default function CreateQuotationForm() {
         {/* Form Submission Button */}
         <button
           type="submit"
-          disabled={creating || items.length === 0 || !selectedClient || !issueDate || !expiryDate}
-          className="w-full rounded-lg bg-blue-600 py-3 text-lg font-semibold text-white transition duration-150 ease-in-out hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-400"
+          disabled={quotationNo === null}
+          className={`w-full rounded-lg py-3 text-lg font-semibold text-white transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+            quotationNo === null
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-700"
+          }`}
         >
-          {creating ? "Creating Quotation..." : "Create Quotation"}
+          {quotationNo === null ? "Generating Quotation No..." : "Create Quotation"}
         </button>
       </form>
 
-      {/* Quotation Settings Sidebar (Right Column) */}
-      <div className="sticky top-6 space-y-6">
+      {/* Invoice Settings Sidebar (Right Column) - Based on your image's style */}
+      <div className="sticky top-6 space-y-6 lg:col-span-1">
         {/* Top action buttons section */}
         <div className="space-y-3 rounded-lg bg-white p-4">
-          <button
-            type="button"
-            onClick={handlePreviewAndSend}
-            disabled={creating || items.length === 0 || !selectedClient || !issueDate || !expiryDate}
-            className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-gray-400"
-          >
+          <button className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700">
             <span className="mr-2">+</span> Preview and send
           </button>
+          <div
+            onClick={handleSubmit}
+            className="flex w-full items-center justify-center rounded-lg bg-purple-600 text-white hover:bg-purple-700"
+          >
+            <DownloadPDFButton
+              quotation={{
+                quotationNo: quotationNo || "",
+                issueDate,
+                expiryDate,
+                items: items.map((item) => ({
+                  id: item.id,
+                  uuid: item.uuid,
+                  name: item.name,
+                  price: item.unitPrice,
+                  image_url: "", // default
+                  status: "IN_STOCK", // "IN_STOCK" | "LOW_STOCK" | "OUT_STOCK"
+                  productTypeId: 0,
+                  productTypeName: "",
+                  stockQuantity: 0,
+                  low_stock: 0,
+                  userId: 0,
+                  currency_type: "USD",
+                })),
+                amount: items.reduce((sum, i) => sum + i.total, 0),
+                notes: invoiceNote,
+                terms: invoiceTerms,
+              }}
+              client={selectedClient}
+              taxRate={0}
+              // user={undefined}
+            />
+          </div>
           <button
             type="button"
-            onClick={handleSendToClient}
-            disabled={creating || items.length === 0 || !selectedClient}
-            className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+            onClick={() => {
+              if (!selectedClient) {
+                toast({
+                  title: "Select a client",
+                  description: "Please select a client first.",
+                  variant: "destructive",
+                });
+                return;
+              }
+              toast({
+                title: "Sending...",
+                description: "Quotation will be sent to client.",
+                className: "bg-blue-600 text-white",
+              });
+            }}
+            className="flex w-full items-center justify-center rounded-lg bg-purple-600 p-3 text-white hover:bg-purple-700"
           >
             <span className="mr-2">+</span> Send to client
           </button>
@@ -585,24 +652,18 @@ export default function CreateQuotationForm() {
 
         {/* Settings Sections */}
         <div className="space-y-4 rounded-lg bg-white p-4">
-          {/* Quotation Settings */}
-          <div>
-            <h2 className="mb-2 font-semibold text-gray-800">Quotation Settings</h2>
-            <p className="text-sm text-gray-600">Configure quotation details</p>
-          </div>
-
           {/* Accepted Payments */}
-          <div className="border-t pt-4">
+          <div>
             <h2 className="mb-2 font-semibold text-gray-800">
               Accepted payments
             </h2>
             <div className="flex items-center justify-between py-1 text-sm">
               <span>Stripe</span>
-              <button type="button" className="text-purple-600">Connect</button>
+              <button className="text-purple-600">Connect</button>
             </div>
             <div className="flex items-center justify-between py-1 text-sm">
               <span>Paypal</span>
-              <button type="button" className="text-purple-600">Setup</button>
+              <button className="text-purple-600">Setup</button>
             </div>
           </div>
 
@@ -617,7 +678,7 @@ export default function CreateQuotationForm() {
                 readOnly
               />
               <span className="text-sm">
-                Charge fees if this quotation expires.
+                Charge late fees if this invoice becomes past due.
               </span>
             </label>
             <select className="w-full rounded border bg-gray-50 p-2 text-sm">
@@ -636,7 +697,7 @@ export default function CreateQuotationForm() {
                   checked
                   readOnly
                 />
-                <span>Reminder 1: 7 days before expiry</span>
+                <span>Reminder 1: 7 days before due date</span>
               </label>
               <label className="flex items-center space-x-2">
                 <input
@@ -645,7 +706,7 @@ export default function CreateQuotationForm() {
                   checked
                   readOnly
                 />
-                <span>Reminder 2: 14 days before expiry</span>
+                <span>Reminder 2: 14 days before due date</span>
               </label>
               <label className="flex items-center space-x-2">
                 <input
@@ -654,10 +715,10 @@ export default function CreateQuotationForm() {
                   checked
                   readOnly
                 />
-                <span>Reminder 3: 30 days before expiry</span>
+                <span>Reminder 3: 30 days before due date</span>
               </label>
             </div>
-            <button type="button" className="mt-3 text-sm text-purple-600 hover:underline">
+            <button className="mt-3 text-sm text-purple-600 hover:underline">
               Add reminder option
             </button>
           </div>
@@ -665,8 +726,8 @@ export default function CreateQuotationForm() {
       </div>
 
       <ProductModal
-        isOpen={isProductModalOpen}
-        onClose={() => setIsProductModalOpen(false)}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         onSelectProducts={handleAddProducts}
       />
     </div>

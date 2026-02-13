@@ -24,9 +24,6 @@ import {
   SearchX,
   Repeat,
 } from "lucide-react";
-//import { QuotationData } from "@/types/quotation";
-////import { ClientData } from "../Quotations/create-quotation/DownloadPDFButton";
-//import { InvoiceData } from "@/types/invoice";
 import QuotationTableSkeleton from "../skeletons/QuotationTableSkeleton";
 import { useToast } from "@/hooks/use-toast";
 import { PaginationControls } from "../ui/pagination-controls";
@@ -34,8 +31,7 @@ import { PaginationControls } from "../ui/pagination-controls";
 import { QuotationData } from "@/types/quotation";
 import { ClientResponse } from "@/types/client";
 import { DeleteQuotations } from "../Quotations/delete-quotation/DeleteQuotations";
-import { ClientData } from "../Quotations/create-quotation/DownloadPDFButton";
-import { Invoice } from "@/types/invoice";
+import type { Invoice } from "@/types/invoice";
 
 interface QuotationTableProps {
   data: QuotationData[];
@@ -79,24 +75,25 @@ export default function QuotationTable({
   const handleConvertQuotation = (quotation: QuotationData) => {
     if (!quotation) return;
 
-    const items = (quotation.items ?? []).map((item, idx) => ({
-      id: item.id ?? idx + 1,
-      name: item.name,
-      qty: item.qty,
+    const items = (quotation.items ?? []).map((item) => ({
+      id: item.id,
+      productId: item.id,
+      name: item.productName,
+      quantity: item.quantity,
       unitPrice: item.unitPrice,
-      total: item.total,
+      subtotal: item.total,
+      invoiceId: 0,
     }));
 
-    const subtotal = items.reduce((sum, i) => sum + i.total, 0);
+    const subtotal = items.reduce((sum, i) => sum + i.subtotal, 0);
 
-    const oldInvoices: Invoice[] = JSON.parse(localStorage.getItem("invoices") || "[]");
+    const oldInvoices: any[] = JSON.parse(localStorage.getItem("invoices") || "[]");
 
-    const newInvoice: Invoice = {
-      id: oldInvoices.length > 0 ? Math.max(...oldInvoices.map(i => i.id)) + 1 : 1,
+    const newInvoice: any = {
+      id: oldInvoices.length > 0 ? Math.max(...oldInvoices.map((i: any) => i.id)) + 1 : 1,
       invoiceNo: `INV-${String(oldInvoices.length + 1).padStart(4, "0")}`,
       clientId: quotation.clientId,
       issueDate: new Date().toISOString().slice(0, 10),
-      //dueDate: undefined,
       items,
       subtotal,
       totalAmount: subtotal,
@@ -133,13 +130,28 @@ export default function QuotationTable({
               paginatedData.map((q) => (
                 <TableRow key={q.id}>
                   {columnVisibility.QuotationNo && (
-                    <TableCell>{q.quotationNo ?? `QUO-${String(q.id).padStart(4, "0")}`}</TableCell>
+                    <TableCell>
+                      {q.quotationNo 
+                        ? `QUO-${String(q.quotationNo).padStart(4, "0")}` 
+                        : `QUO-${String(q.id).padStart(4, "0")}`}
+                    </TableCell>
                   )}
                   {columnVisibility.Client && (
                     <TableCell>{clients.find((c) => c.id === q.clientId)?.name ?? "Unknown Client"}</TableCell>
                   )}
-                  {columnVisibility.Amount && <TableCell>${q.amount?.toFixed(2) ?? 0}</TableCell>}
-                  {columnVisibility.IssueDate && <TableCell>{new Date(q.issueDate).toLocaleDateString()}</TableCell>}
+                  {columnVisibility.Amount && (
+                    <TableCell>
+                      $
+                      {(
+                        q.totalAmount ??
+                        q.total_amount ??
+                        q.amount ??
+                        q.items?.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0) ??
+                        0
+                      ).toFixed(2)}
+                    </TableCell>
+                  )}
+                  {columnVisibility.IssueDate && <TableCell>{new Date(q.quotationDate ?? q.issueDate ?? "").toLocaleDateString()}</TableCell>}
                   {columnVisibility.Actions && (
                     <TableCell className="text-right">
                       <DropdownMenu>

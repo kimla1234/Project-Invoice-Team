@@ -14,7 +14,7 @@ import { ColumnToggleDropdown } from "../ui/ColumnToggleDropdown";
 import { useToast } from "@/hooks/use-toast";
 import { exportProductsToExcel } from "@/utils/exportToExcel";
 
-import { Quotation } from "@/types/quotation";
+import type { Quotation } from "@/types/quotation";
 import { ClientResponse } from "@/types/client";
 import { useGetQuotationsQuery } from "@/redux/service/quotation";
 import { useGetMyClientsQuery } from "@/redux/service/client";
@@ -36,6 +36,9 @@ export default function Quotation() {
   const { data: quotationData, isLoading: loadingQuotations, error: quotationError } = useGetQuotationsQuery({ page: 0, size: 1000 });
   const { data: clients = [], isLoading: loadingClients } = useGetMyClientsQuery();
 
+  console.log("Quotation Data:", quotationData);
+  console.log("Quotation Error:", quotationError);
+
   // Ensure quotations is always an array
   const quotations: Quotation[] = Array.isArray(quotationData?.content)
     ? quotationData.content
@@ -47,14 +50,17 @@ export default function Quotation() {
   const filteredData = useMemo(() => {
     return quotations.filter((q) => {
       const clientName = clients.find((c) => c.id === q.clientId)?.name ?? "";
-      const quotationNo = q.quotationNo ?? `QUO-${String(q.id).padStart(4, "0")}`;
+      const quotationNo = q.quotationNo 
+        ? `QUO-${String(q.quotationNo).padStart(4, "0")}` 
+        : `QUO-${String(q.id).padStart(4, "0")}`;
 
       const matchesSearch =
         clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         quotationNo.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesDate = issueDate
-        ? new Date(q.issueDate).toDateString() === new Date(issueDate).toDateString()
+      const dateStr = q.quotationDate ?? q.issueDate;
+      const matchesDate = issueDate && dateStr
+        ? new Date(dateStr).toDateString() === new Date(issueDate).toDateString()
         : true;
 
       return matchesSearch && matchesDate;
@@ -127,7 +133,7 @@ export default function Quotation() {
 
       {/* BODY */}
       <div className="w-full space-y-6 rounded-md bg-white p-8 text-slate-600">
-        <HeaderQuotations />
+        <HeaderQuotations totalQuotations={quotationData?.totalElements || quotations.length} />
 
         <div className="flex w-full justify-between gap-4">
           <div className="flex gap-4">

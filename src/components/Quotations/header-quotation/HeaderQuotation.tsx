@@ -5,24 +5,16 @@ import SummaryCard from "./SummaryCard";
 import { FileText } from "lucide-react";
 import { useGetQuotationsQuery } from "@/redux/service/quotation";
 
-export default function HeaderQuotations() {
-  const { data: quotationData, isLoading } = useGetQuotationsQuery({ page: 0, size: 100 });
-  
-  const totalQuotations = quotationData?.content?.length || 0;
-
+export default function HeaderQuotations({ totalQuotations }: { totalQuotations: number }) {
   return (
     <div className="flex justify-around bg-white">
-      {isLoading ? (
-        <SummaryCardSkeleton />
-      ) : (
-        <SummaryCard
-          title="Total Quotations"
-          count={totalQuotations}
-          icon={FileText}
-          iconBgColor="bg-blue-100"
-          iconTextColor="text-blue-600"
-        />
-      )}
+      <SummaryCard
+        title="Total Quotations"
+        count={totalQuotations}
+        icon={FileText}
+        iconBgColor="bg-blue-100"
+        iconTextColor="text-blue-600"
+      />
     </div>
   );
 }
