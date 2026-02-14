@@ -3,9 +3,6 @@
 The **E-Invoice**System is a professional web-based application designed to help small businesses, freelancers, and students create, manage, and export invoices and quotations with ease. By digitizing billing operations, it eliminates manual errors and streamlines financial workflows.
 
 
-[![nextjs admin template]()](https://invoice.ui.kimla.online)
-
-
 **🎯 Project Overview** This system provides a centralized dashboard to manage your products and financial documents. It leverages the latest Next.js 16 features to ensure fast performance and a premium user experience.
 
 ### [✨ Visit Website](https://invoice.ui.kimla.online)
@@ -35,5 +32,7 @@ And if you're using **Yarn**, it's:
 ```
 yarn dev
 ```
+
+
 
 And voila! You're now ready to start developing. **Happy coding**!
